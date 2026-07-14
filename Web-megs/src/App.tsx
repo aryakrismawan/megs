@@ -50,7 +50,7 @@ function Navbar() {
   const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem('megs_theme') || 'dark');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { cart, setIsCartOpen, setIsSearchOpen } = useShop();
+  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen } = useShop();
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -80,7 +80,7 @@ function Navbar() {
       </nav>
       
       <div className="nav-controls">
-        <button onClick={() => setIsSearchOpen(true)} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center'}}>
+        <button onClick={() => setIsSearchOpen(!isSearchOpen)} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center'}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
