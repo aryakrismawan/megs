@@ -148,7 +148,7 @@ function HomeView() {
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/articles`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
       .then(async res => {
         const text = await res.text();
         try {
@@ -925,7 +925,7 @@ function JournalView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/articles`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
       .then(async res => {
         const text = await res.text();
         try {

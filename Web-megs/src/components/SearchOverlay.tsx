@@ -1,62 +1,133 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useShop } from '../ShopContext';
 
 export function SearchOverlay() {
   const { isSearchOpen, setIsSearchOpen, products } = useShop();
   const [query, setQuery] = useState('');
 
+  // Menutup pencarian jika tombol Escape ditekan
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+        setQuery('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen, setIsSearchOpen]);
+
   if (!isSearchOpen) return null;
 
   const filteredProducts = query 
-    ? products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
+    ? products.filter(p => {
+        const lowerQuery = query.toLowerCase();
+        const inName = p.name?.toLowerCase().includes(lowerQuery);
+        const inDesc = p.description?.toLowerCase().includes(lowerQuery);
+        return inName || inDesc;
+      })
     : [];
+
+  const handleClose = () => {
+    setIsSearchOpen(false);
+    setQuery('');
+  };
 
   return (
     <>
+      {/* Background Dimmer */}
       <div 
-        onClick={() => {setIsSearchOpen(false); setQuery('');}}
-        style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 1999, backdropFilter: 'blur(2px)'}}
+        onClick={handleClose}
+        style={{
+          position: 'fixed', top: '80px', left: 0, width: '100vw', height: 'calc(100vh - 80px)', 
+          background: 'rgba(0,0,0,0.4)', zIndex: 998, backdropFilter: 'blur(2px)'
+        }}
       />
+
+      {/* Dropdown Search Bar under Navbar */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, width: '100vw', maxHeight: '70vh', height: 'auto',
-        background: 'var(--color-bg-main)', color: 'var(--color-text-main)',
-        zIndex: 2000, display: 'flex', flexDirection: 'column',
-        borderBottom: '1px solid var(--color-border)',
-        transformOrigin: 'top', animation: 'slideDown 0.3s ease-out forwards'
+        position: 'fixed', top: '75px', left: 0, width: '100vw', 
+        background: 'var(--color-bg-main)', color: 'var(--color-text-main)', 
+        borderBottom: '1px solid var(--color-border)', zIndex: 999,
+        padding: '1.5rem 3rem',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        transformOrigin: 'top', animation: 'slideDown 0.2s ease-out forwards'
       }}>
-      <div style={{padding: '2rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)'}}>
-        <input 
-          type="text" 
-          placeholder="SEARCH PRODUCTS..." 
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-          style={{
-            background: 'transparent', border: 'none', color: 'var(--color-text-main)', 
-            fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', 
-            outline: 'none', textTransform: 'uppercase', width: '100%'
-          }}
-        />
-        <button onClick={() => {setIsSearchOpen(false); setQuery('');}} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '2rem', padding: '0 1rem'}}>×</button>
-      </div>
-      
-      <div style={{flex: 1, padding: '3rem', overflowY: 'auto'}}>
-        {query && filteredProducts.length === 0 && (
-          <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '1rem'}}>NO RESULTS FOUND FOR "{query}".</p>
-        )}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '2rem'}}>
-          {filteredProducts.map(product => (
-            <div key={product.id} style={{display: 'flex', flexDirection: 'column'}}>
-              <div style={{width: '100%', aspectRatio: '3/4', background: 'var(--color-accent)', overflow: 'hidden', marginBottom: '1rem'}}>
-                <img src={product.img} alt={product.name} style={{width: '100%', height: '100%', objectFit: 'cover'}} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
-              </div>
-              <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase', margin: 0}}>{product.name}</h3>
-              <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '0.5rem'}}>{product.price}</p>
-            </div>
-          ))}
+        
+        {/* Search Input Box */}
+        <div style={{
+          width: '100%', maxWidth: '1000px', display: 'flex', alignItems: 'center', 
+          border: '1px solid var(--color-border)', borderRadius: '4px',
+          padding: '0.8rem 1.5rem', background: 'var(--color-bg-main)'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--color-text-muted)', marginRight: '1rem'}}>
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            placeholder="Search products, articles, FAQ ect." 
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+            style={{
+              flex: 1, background: 'transparent', border: 'none', color: 'var(--color-text-main)', 
+              fontFamily: 'var(--font-sans)', fontSize: '1rem', outline: 'none'
+            }}
+          />
         </div>
+        
+        {/* Search Results Area */}
+        {query && (
+          <div style={{
+            width: '100%', maxWidth: '1000px', marginTop: '2rem',
+            maxHeight: '50vh', overflowY: 'auto'
+          }}>
+            {filteredProducts.length === 0 ? (
+              <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem'}}>
+                No results found for "{query}".
+              </p>
+            ) : (
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem'}}>
+                {filteredProducts.map(product => {
+                  let displayImg = product.img;
+                  try {
+                    const parsed = JSON.parse(product.img);
+                    if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                  } catch (e) {}
+
+                  return (
+                    <Link 
+                      to={`/product/${product.id}`} 
+                      key={product.id} 
+                      onClick={handleClose}
+                      style={{display: 'flex', gap: '1rem', textDecoration: 'none', color: 'inherit'}}
+                    >
+                      <div style={{width: '60px', height: '80px', flexShrink: 0, overflow: 'hidden', background: 'var(--color-bg-card)'}}>
+                        <img 
+                          src={displayImg} 
+                          alt={product.name} 
+                          style={{width: '100%', height: '100%', objectFit: 'contain'}} 
+                          onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                        />
+                      </div>
+                      <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                        <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', margin: 0}}>
+                          {product.name}
+                        </h3>
+                        <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '0.2rem'}}>
+                          {product.price}
+                        </p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </div>
     </>
   );
 }

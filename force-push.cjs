@@ -16,7 +16,7 @@ try {
 
   // Lakukan commit
   console.log('Committing...');
-  execSync('git commit -m "fix: update production url and fix ts errors"');
+  execSync('git commit -m "feat: improve search UI layout to match satisfy design"');
 
   // Push ke Github
   console.log('Pushing to GitHub...');
