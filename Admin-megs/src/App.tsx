@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
-
-// --- TYPES ---
-type DesignElement = {
-  id: string;
-  type: 'image' | 'text';
-  content: string; 
-  position: { x: number; y: number }; // Persentase (0 - 100)
-  scale: number;
-  label: string;
-  color?: string;
-  view: 'front' | 'back'; // Menentukan di sisi mana elemen ini berada
-};
+import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 
 // --- MAIN APP COMPONENT ---
 function App() {

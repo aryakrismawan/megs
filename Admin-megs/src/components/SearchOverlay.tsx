@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useShop } from '../ShopContext';
-import { Link } from 'react-router-dom';
 
 export function SearchOverlay() {
   const { isSearchOpen, setIsSearchOpen, products } = useShop();
