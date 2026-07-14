@@ -88,7 +88,7 @@ function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/orders');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/orders`);
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch {
@@ -201,7 +201,7 @@ function AdminProductList() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/products');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/products`);
       const data = await res.json();
       setProducts(data);
     } catch {
@@ -339,7 +339,7 @@ function AdminProductForm() {
     setStatus('Submitting...');
     const sizesArray = sizes.split(',').map(s => s.trim()).filter(Boolean);
     try {
-      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/products/${id}` : 'https://worker-megs.krisarya8.workers.dev/api/products';
+      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/products/${id}` : `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/products`;
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -430,7 +430,7 @@ function AdminArticleList() {
 
   const fetchArticles = async () => {
     try {
-      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/articles');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/articles`);
       const data = await res.json();
       setArticles(data);
     } catch {
@@ -556,7 +556,7 @@ function AdminArticleForm() {
     e.preventDefault();
     setStatus('Submitting...');
     try {
-      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/articles/${id}` : 'https://worker-megs.krisarya8.workers.dev/api/articles';
+      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/articles/${id}` : `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8788'}/api/articles`;
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
