@@ -1,8 +1,0 @@
-name = "megs-app"
-compatibility_date = "2024-03-20"
-pages_build_output_dir = "dist"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "megs-db"
-database_id = "local-db"
