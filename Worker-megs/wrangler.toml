@@ -5,4 +5,4 @@ compatibility_date = "2024-03-20"
 [[d1_databases]]
 binding = "DB"
 database_name = "megs-db"
-database_id = "local-db"
+database_id = "04f2ba74-3b2c-490c-9597-0bf3726604ee"

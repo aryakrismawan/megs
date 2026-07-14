@@ -129,7 +129,7 @@ function HomeView() {
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('http://localhost:8787/api/articles')
+    fetch('https://worker-megs.krisarya8.workers.dev/api/articles')
       .then(async res => {
         const text = await res.text();
         try {
@@ -393,7 +393,7 @@ function ProductDetailView() {
   const { addToCart } = useShop();
 
   useEffect(() => {
-    fetch(`http://localhost:8787/api/products/${id}`)
+    fetch(`https://worker-megs.krisarya8.workers.dev/api/products/${id}`)
       .then(res => res.json())
       .then(data => {
         setProduct(data);
@@ -906,7 +906,7 @@ function JournalView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:8787/api/articles')
+    fetch('https://worker-megs.krisarya8.workers.dev/api/articles')
       .then(async res => {
         const text = await res.text();
         try {
@@ -975,7 +975,7 @@ function ArticleDetailView() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    fetch(`http://localhost:8787/api/articles/${id}`)
+    fetch(`https://worker-megs.krisarya8.workers.dev/api/articles/${id}`)
       .then(async res => {
         if (!res.ok) throw new Error('Not found');
         return res.json();
@@ -1153,7 +1153,7 @@ function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('http://localhost:8787/api/orders');
+      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/orders');
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch {
@@ -1169,7 +1169,7 @@ function AdminOrders() {
 
   const updateStatus = async (id: number, status: string) => {
     try {
-      await fetch(`http://localhost:8787/api/orders/${id}`, {
+      await fetch(`https://worker-megs.krisarya8.workers.dev/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': 'MEGS2026' },
         body: JSON.stringify({ status })
@@ -1183,7 +1183,7 @@ function AdminOrders() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this order?')) return;
     try {
-      await fetch(`http://localhost:8787/api/orders/${id}`, {
+      await fetch(`https://worker-megs.krisarya8.workers.dev/api/orders/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -1266,7 +1266,7 @@ function AdminProductList() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8787/api/products');
+      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/products');
       const data = await res.json();
       setProducts(data);
     } catch {
@@ -1283,7 +1283,7 @@ function AdminProductList() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this product?')) return;
     try {
-      await fetch(`http://localhost:8787/api/products/${id}`, {
+      await fetch(`https://worker-megs.krisarya8.workers.dev/api/products/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -1342,7 +1342,7 @@ function AdminProductForm() {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(`http://localhost:8787/api/products/${id}`)
+      fetch(`https://worker-megs.krisarya8.workers.dev/api/products/${id}`)
         .then(res => res.json())
         .then(data => {
           setName(data.name || '');
@@ -1404,7 +1404,7 @@ function AdminProductForm() {
     setStatus('Submitting...');
     const sizesArray = sizes.split(',').map(s => s.trim()).filter(Boolean);
     try {
-      const url = isEdit ? `http://localhost:8787/api/products/${id}` : 'http://localhost:8787/api/products';
+      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/products/${id}` : 'https://worker-megs.krisarya8.workers.dev/api/products';
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -1495,7 +1495,7 @@ function AdminArticleList() {
 
   const fetchArticles = async () => {
     try {
-      const res = await fetch('http://localhost:8787/api/articles');
+      const res = await fetch('https://worker-megs.krisarya8.workers.dev/api/articles');
       const data = await res.json();
       setArticles(data);
     } catch {
@@ -1512,7 +1512,7 @@ function AdminArticleList() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this article?')) return;
     try {
-      await fetch(`http://localhost:8787/api/articles/${id}`, {
+      await fetch(`https://worker-megs.krisarya8.workers.dev/api/articles/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -1571,7 +1571,7 @@ function AdminArticleForm() {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(`http://localhost:8787/api/articles/${id}`)
+      fetch(`https://worker-megs.krisarya8.workers.dev/api/articles/${id}`)
         .then(res => res.json())
         .then(data => {
           setTitle(data.title || '');
@@ -1621,7 +1621,7 @@ function AdminArticleForm() {
     e.preventDefault();
     setStatus('Submitting...');
     try {
-      const url = isEdit ? `http://localhost:8787/api/articles/${id}` : 'http://localhost:8787/api/articles';
+      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/articles/${id}` : 'https://worker-megs.krisarya8.workers.dev/api/articles';
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,

@@ -36,7 +36,7 @@ export function CartSidebar() {
 
     try {
       // Save order to database
-      await fetch('http://localhost:8787/api/orders', {
+      await fetch('https://worker-megs.krisarya8.workers.dev/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

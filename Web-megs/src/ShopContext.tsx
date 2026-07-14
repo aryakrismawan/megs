@@ -31,7 +31,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
 
   React.useEffect(() => {
-    fetch('http://localhost:8787/api/products')
+    fetch('https://worker-megs.krisarya8.workers.dev/api/products')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
