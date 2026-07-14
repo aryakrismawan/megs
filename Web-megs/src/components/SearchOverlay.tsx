@@ -24,7 +24,7 @@ export function SearchOverlay() {
     ? products.filter(p => {
         const lowerQuery = query.toLowerCase();
         const inName = p.name?.toLowerCase().includes(lowerQuery);
-        const inDesc = p.description?.toLowerCase().includes(lowerQuery);
+        const inDesc = (p as any).description?.toLowerCase().includes(lowerQuery);
         return inName || inDesc;
       })
     : [];

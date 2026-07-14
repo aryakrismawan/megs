@@ -6,6 +6,7 @@ export type Product = {
   img: string;
   price: string;
   category: string;
+  description?: string;
 };
 
 type CartItem = Product & { quantity: number; selectedSize?: string };
@@ -31,7 +32,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
 
   React.useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`)
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
