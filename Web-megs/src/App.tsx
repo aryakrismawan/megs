@@ -68,6 +68,17 @@ function App() {
           <Navbar />
           <CartSidebar />
           <SearchOverlay />
+          <style>
+            {`
+              @keyframes fadeInUpMain {
+                from { opacity: 0; transform: translateY(15px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              .main-content {
+                animation: fadeInUpMain 0.8s ease-out forwards;
+              }
+            `}
+          </style>
           <main className="main-content">
             <Routes>
               <Route path="/" element={<HomeView />} />
@@ -181,21 +192,33 @@ function App() {
 
 function GlobalLoader() {
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600); // 600ms loading animation
+    setIsMounted(true);
+    setIsVisible(true);
+    
+    // Hold the loading screen for 1200ms
+    const timerVisible = setTimeout(() => {
+      setIsVisible(false); // trigger fade-out transition
+    }, 1200); 
+
+    // Unmount after fade-out completes (1200ms + 500ms transition)
+    const timerMount = setTimeout(() => {
+      setIsMounted(false);
+    }, 1700);
 
     // Scroll to top on route change
     window.scrollTo(0, 0);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timerVisible);
+      clearTimeout(timerMount);
+    };
   }, [location.pathname]);
 
-  if (!isLoading) return null;
+  if (!isMounted) return null;
 
   // Mendapatkan tema aktif langsung dari HTML root element
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -205,7 +228,10 @@ function GlobalLoader() {
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
       background: 'var(--color-bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 999999, transition: 'opacity 0.3s ease'
+      zIndex: 999999, transition: 'opacity 0.5s ease-in-out, visibility 0.5s ease-in-out',
+      opacity: isVisible ? 1 : 0,
+      visibility: isVisible ? 'visible' : 'hidden',
+      pointerEvents: isVisible ? 'auto' : 'none'
     }}>
       <style>
         {`
@@ -580,7 +606,7 @@ function HomeView() {
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto', gap: '4rem', alignItems: 'center' }}>
             {aboutImage && (
               <div style={{ flex: '1 1 400px' }}>
-                <img src={aboutImage} alt="About MEGS" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+                <img src={aboutImage} alt="About MEGS" loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
               </div>
             )}
             <div style={{ flex: '1 1 400px', textAlign: 'left' }}>
@@ -615,7 +641,7 @@ function HomeView() {
                 return (
                   <Link to={`/journal/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
                     {coverImage ? (
-                      <img src={coverImage} alt={article.title} className="archive-img" />
+                      <img src={coverImage} alt={article.title} loading="lazy" className="archive-img" />
                     ) : (
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
@@ -665,7 +691,7 @@ function HomeView() {
               {createYoursItems.map(item => (
                 <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="archive-img" />
+                    <img src={item.image} alt={item.name} loading="lazy" className="archive-img" />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
@@ -741,7 +767,7 @@ function HomeView() {
                 <div className="new-badge">NEW</div>
                 <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="product-image-container">
-                    <img src={displayImg} alt={product.name} className="product-image" onError={(e) => {
+                    <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }} />
                   </div>
@@ -839,7 +865,7 @@ function ProductListView() {
               <div className="new-badge">NEW</div>
               <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="product-image-container">
-                  <img src={displayImg} alt={product.name} className="product-image" onError={(e) => {
+                  <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }} />
                 </div>
@@ -1352,7 +1378,7 @@ function JournalView() {
                 </div>
                 <div style={{ flex: 1, minWidth: '300px', background: 'var(--color-accent)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {coverImage ? (
-                    <img src={coverImage} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={coverImage} alt="Cover" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-border)' }}>IMG_PLACEHOLDER</span>
                   )}
