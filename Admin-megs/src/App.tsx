@@ -991,7 +991,7 @@ function AdminSettings() {
   };
 
   const handleDragStart = (index: number) => setDraggedIndex(index);
-  const handleDragOver = (e: React.DragEvent, index: number) => e.preventDefault();
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (index: number) => {
     if (draggedIndex === null || draggedIndex === index) return;
     const newSlides = [...heroSlides];
@@ -1012,7 +1012,7 @@ function AdminSettings() {
             key={index} 
             draggable
             onDragStart={() => handleDragStart(index)}
-            onDragOver={(e) => handleDragOver(e, index)}
+            onDragOver={handleDragOver}
             onDrop={() => handleDrop(index)}
             style={{border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1}}
           >
