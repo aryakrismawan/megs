@@ -1471,7 +1471,13 @@ function ArticleDetailView() {
 }
 
 function CreateYoursView() {
-  const [category, setCategory] = useState<'Jersey' | 'Kaos' | 'Jaket' | 'Vest'>('Jersey');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialCategory = searchParams.get('category');
+
+  const [items, setItems] = useState<any[]>([]);
+  const [category, setCategory] = useState<string>(initialCategory || 'Jersey');
+  
   const [qty, setQty] = useState('');
   const [pants, setPants] = useState('Yes');
   const [paket, setPaket] = useState('Basic');
@@ -1481,9 +1487,26 @@ function CreateYoursView() {
   const [sizeChart, setSizeChart] = useState('');
   const [addOn, setAddOn] = useState('');
 
+  useEffect(() => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setItems(data);
+          if (!initialCategory && data.length > 0) {
+            setCategory(data[0].name);
+          }
+        }
+      });
+  }, [initialCategory]);
+
+  useEffect(() => {
+    if (initialCategory) setCategory(initialCategory);
+  }, [initialCategory]);
+
   // Update default bahan if category changes
   useEffect(() => {
-    if (category === 'Jersey') {
+    if (category.toLowerCase() === 'jersey') {
       setBahan('Basic');
     } else {
       setBahan('');
@@ -1494,7 +1517,7 @@ function CreateYoursView() {
     e.preventDefault();
     let text = `*CREATE YOURS - ${category.toUpperCase()}*\n\n`;
     text += `*QTY:* ${qty}\n`;
-    if (category === 'Jersey') {
+    if (category.toLowerCase() === 'jersey') {
       text += `*Pants:* ${pants}\n`;
       text += `*Nama Paket:* ${paket}\n`;
       text += `*Bahan:* ${bahan}\n`;
@@ -1522,15 +1545,15 @@ function CreateYoursView() {
         </p>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {['Jersey', 'Kaos', 'Jaket', 'Vest'].map(cat => (
+          {items.map(item => (
             <button
-              key={cat}
+              key={item.id}
               type="button"
-              onClick={() => setCategory(cat as any)}
-              className={category === cat ? 'btn-primary' : 'btn-secondary'}
+              onClick={() => setCategory(item.name)}
+              className={category === item.name ? 'btn-primary' : 'btn-secondary'}
               style={{ flex: '1 1 100px', padding: '0.8rem', textAlign: 'center', fontSize: '0.9rem' }}
             >
-              {cat.toUpperCase()}
+              {item.name.toUpperCase()}
             </button>
           ))}
         </div>
@@ -1541,7 +1564,7 @@ function CreateYoursView() {
             <input required className="input-text" type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 24" />
           </div>
 
-          {category === 'Jersey' && (
+          {category.toLowerCase() === 'jersey' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
               <div className="control-group">
                 <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PANTS</label>
@@ -1574,9 +1597,7 @@ function CreateYoursView() {
                 </select>
               </div>
             </div>
-          )}
-
-          {(category === 'Kaos' || category === 'Jaket' || category === 'Vest') && (
+          ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
               <div className="control-group">
                 <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>BAHAN</label>
