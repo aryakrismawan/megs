@@ -62,6 +62,7 @@ function AdminLayout() {
           <Link to="/orders" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>ORDERS</Link>
           <Link to="/products" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>PRODUCTS</Link>
           <Link to="/articles" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>JOURNAL ARTICLES</Link>
+          <Link to="/create-yours" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>CREATE YOURS</Link>
           <Link to="/settings" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>HOME SETTINGS</Link>
           <button onClick={() => { localStorage.removeItem('megs_admin_auth'); setIsAuthenticated(false); }} style={{color: '#ff4444', fontSize: '0.8rem', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)'}}>LOGOUT</button>
           <Link to="/" style={{color: 'var(--color-white)', marginTop: '2rem', fontSize: '0.8rem'}}>← BACK TO APP</Link>
@@ -77,6 +78,9 @@ function AdminLayout() {
           <Route path="/articles" element={<AdminArticleList />} />
           <Route path="/articles/new" element={<AdminArticleForm />} />
           <Route path="/articles/edit/:id" element={<AdminArticleForm />} />
+          <Route path="/create-yours" element={<AdminCreateYoursList />} />
+          <Route path="/create-yours/new" element={<AdminCreateYoursForm />} />
+          <Route path="/create-yours/edit/:id" element={<AdminCreateYoursForm />} />
           <Route path="/settings" element={<AdminSettings />} />
         </Routes>
       </div>
@@ -276,6 +280,7 @@ function AdminProductForm() {
   const [sizes, setSizes] = useState('S, M, L, XL');
   const [images, setImages] = useState<string[]>([]);
   const [status, setStatus] = useState('');
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -324,7 +329,15 @@ function AdminProductForm() {
               canvas.height = img.height * scaleSize;
               const ctx = canvas.getContext('2d');
               ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/jpeg', 0.8));
+              let mimeType = 'image/jpeg';
+              let quality: number | undefined = 0.8;
+              if (file.type === 'image/png') {
+                mimeType = 'image/png';
+                quality = undefined;
+              } else if (file.type === 'image/webp') {
+                mimeType = 'image/webp';
+              }
+              resolve(canvas.toDataURL(mimeType, quality));
             };
             img.src = event.target?.result as string;
           };
@@ -367,6 +380,18 @@ function AdminProductForm() {
     } catch (e: any) {
       setStatus(e.message);
     }
+  };
+
+  const handleDragStart = (idx: number) => setDraggedImageIndex(idx);
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDrop = (idx: number) => {
+    if (draggedImageIndex === null || draggedImageIndex === idx) return;
+    const newImages = [...images];
+    const draggedImg = newImages[draggedImageIndex];
+    newImages.splice(draggedImageIndex, 1);
+    newImages.splice(idx, 0, draggedImg);
+    setImages(newImages);
+    setDraggedImageIndex(null);
   };
 
   return (
@@ -412,7 +437,14 @@ function AdminProductForm() {
           </div>
           <div style={{display: 'flex', gap: '1rem', marginTop: '1rem', overflowX: 'auto'}}>
             {images.map((imgSrc, idx) => (
-              <div key={idx} style={{position: 'relative', height: '100px', width: '100px', flexShrink: 0}}>
+              <div 
+                key={idx} 
+                draggable
+                onDragStart={() => handleDragStart(idx)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(idx)}
+                style={{position: 'relative', height: '100px', width: '100px', flexShrink: 0, cursor: 'grab', opacity: draggedImageIndex === idx ? 0.5 : 1}}
+              >
                 <img src={imgSrc} alt={`Preview ${idx}`} style={{height: '100%', width: '100%', objectFit: 'cover'}} />
                 <button type="button" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))} style={{position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', padding: '0.2rem 0.5rem', fontFamily: 'var(--font-mono)'}}>X</button>
               </div>
@@ -505,6 +537,7 @@ function AdminArticleForm() {
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [status, setStatus] = useState('');
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -542,7 +575,15 @@ function AdminArticleForm() {
               canvas.height = img.height * scaleSize;
               const ctx = canvas.getContext('2d');
               ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/jpeg', 0.7));
+              let mimeType = 'image/jpeg';
+              let quality: number | undefined = 0.7;
+              if (file.type === 'image/png') {
+                mimeType = 'image/png';
+                quality = undefined;
+              } else if (file.type === 'image/webp') {
+                mimeType = 'image/webp';
+              }
+              resolve(canvas.toDataURL(mimeType, quality));
             };
             img.src = event.target?.result as string;
           };
@@ -588,6 +629,18 @@ function AdminArticleForm() {
     }
   };
 
+  const handleDragStart = (idx: number) => setDraggedImageIndex(idx);
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDrop = (idx: number) => {
+    if (draggedImageIndex === null || draggedImageIndex === idx) return;
+    const newImages = [...images];
+    const draggedImg = newImages[draggedImageIndex];
+    newImages.splice(draggedImageIndex, 1);
+    newImages.splice(idx, 0, draggedImg);
+    setImages(newImages);
+    setDraggedImageIndex(null);
+  };
+
   return (
     <div style={{maxWidth: '800px'}}>
       <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem'}}>
@@ -618,7 +671,14 @@ function AdminArticleForm() {
           {images.length > 0 && (
             <div style={{display: 'flex', gap: '10px', overflowX: 'auto', marginTop: '1rem', paddingBottom: '10px'}}>
               {images.map((img, i) => (
-                <div key={i} style={{position: 'relative', height: '100px', width: '100px', flexShrink: 0}}>
+                <div 
+                  key={i} 
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(i)}
+                  style={{position: 'relative', height: '100px', width: '100px', flexShrink: 0, cursor: 'grab', opacity: draggedImageIndex === i ? 0.5 : 1}}
+                >
                   <img src={img} alt={`Preview ${i}`} style={{height: '100%', width: '100%', objectFit: 'cover'}} />
                   <button type="button" onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} style={{position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', padding: '0.2rem 0.5rem', fontFamily: 'var(--font-mono)'}}>X</button>
                 </div>
@@ -641,6 +701,165 @@ function AdminArticleForm() {
   );
 }
 
+// --- ADMIN CREATE YOURS ---
+function AdminCreateYoursList() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchItems = async () => {
+    try {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`);
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch {
+      console.error('Failed to fetch create yours items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this item?')) return;
+    try {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Token': 'MEGS2026' }
+      });
+      fetchItems();
+    } catch (e) {
+      alert('Error deleting item');
+    }
+  };
+
+  return (
+    <div style={{maxWidth: '1200px'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
+        <h2 style={{fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0}}>Create Yours Options</h2>
+        <Link to="/create-yours/new" className="btn-primary" style={{textDecoration: 'none', display: 'inline-block'}}>+ ADD ITEM</Link>
+      </div>
+
+      {loading ? <p>Loading...</p> : items.length === 0 ? <p>No items found.</p> : (
+        <table style={{width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.9rem'}}>
+          <thead>
+            <tr style={{borderBottom: '1px solid var(--color-border)', textAlign: 'left'}}>
+              <th style={{padding: '1rem', color: 'var(--color-text-muted)'}}>ID</th>
+              <th style={{padding: '1rem', color: 'var(--color-text-muted)'}}>IMAGE</th>
+              <th style={{padding: '1rem', color: 'var(--color-text-muted)'}}>NAME</th>
+              <th style={{padding: '1rem', color: 'var(--color-text-muted)'}}>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(item => (
+              <tr key={item.id} style={{borderBottom: '1px solid var(--color-border)'}}>
+                <td style={{padding: '1rem'}}>{item.id}</td>
+                <td style={{padding: '1rem'}}>
+                  {item.image ? <img src={item.image} alt={item.name} style={{width: '60px', height: '60px', objectFit: 'cover'}} /> : 'NO IMG'}
+                </td>
+                <td style={{padding: '1rem'}}>{item.name}</td>
+                <td style={{padding: '1rem'}}>
+                  <div style={{display: 'flex', gap: '1rem'}}>
+                    <Link to={`/create-yours/edit/${item.id}`} style={{color: 'var(--color-text-main)', textDecoration: 'underline'}}>EDIT</Link>
+                    <button onClick={() => handleDelete(item.id)} style={{color: '#ff4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline'}}>DELETE</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function AdminCreateYoursForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: '', image: '', description: '' });
+
+  useEffect(() => {
+    if (id) {
+      fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const item = data.find(i => i.id === Number(id));
+            if (item) setFormData({ name: item.name, image: item.image, description: item.description || '' });
+          }
+        });
+    }
+  }, [id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = id ? 'PUT' : 'POST';
+    const url = `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours${id ? `/${id}` : ''}`;
+    
+    try {
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': 'MEGS2026' },
+        body: JSON.stringify(formData)
+      });
+      navigate('/create-yours');
+    } catch (err) {
+      alert('Error saving item');
+    }
+  };
+
+  return (
+    <div style={{maxWidth: '800px'}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem'}}>
+        <Link to="/create-yours" style={{fontFamily: 'var(--font-mono)', fontSize: '1rem', textDecoration: 'none', color: 'var(--color-text-muted)'}}>← BACK</Link>
+        <h2 style={{fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0}}>
+          {id ? 'Edit Item' : 'New Item'}
+        </h2>
+      </div>
+
+      <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)'}}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+          <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)'}}>NAME (E.G. JERSEY)</label>
+          <input required type="text" className="input-text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        </div>
+        
+        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+          <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)'}}>UPLOAD IMAGE</label>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                setFormData({ ...formData, image: event.target?.result as string });
+              };
+              reader.readAsDataURL(file);
+            }} 
+            style={{color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '0.9rem'}}
+          />
+          {formData.image && (
+            <div style={{marginTop: '1rem'}}>
+              <p style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem'}}>PREVIEW:</p>
+              <img src={formData.image} alt="Preview" style={{width: '200px', height: '200px', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '8px'}} />
+            </div>
+          )}
+        </div>
+
+        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+          <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)'}}>DESCRIPTION (OPTIONAL)</label>
+          <textarea className="input-text" style={{minHeight: '100px'}} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+        </div>
+
+        <button type="submit" className="btn-primary" style={{alignSelf: 'flex-start'}}>SAVE ITEM</button>
+      </form>
+    </div>
+  );
+}
+
 export default App;
 
 
@@ -649,6 +868,7 @@ function AdminSettings() {
   const [aboutImage, setAboutImage] = useState('');
   const [aboutText, setAboutText] = useState('We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics.');
   const [status, setStatus] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`)
@@ -689,7 +909,15 @@ function AdminSettings() {
           ctx?.drawImage(img, 0, 0, width, height);
           
           const newSlides = [...heroSlides];
-          newSlides[index].image = canvas.toDataURL('image/jpeg', 0.8);
+          let mimeType = 'image/jpeg';
+          let quality: number | undefined = 0.8;
+          if (file.type === 'image/png') {
+            mimeType = 'image/png';
+            quality = undefined;
+          } else if (file.type === 'image/webp') {
+            mimeType = 'image/webp';
+          }
+          newSlides[index].image = canvas.toDataURL(mimeType, quality);
           setHeroSlides(newSlides);
         };
         img.src = event.target?.result as string;
@@ -717,7 +945,16 @@ function AdminSettings() {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          setAboutImage(canvas.toDataURL('image/jpeg', 0.8));
+          
+          let mimeType = 'image/jpeg';
+          let quality: number | undefined = 0.8;
+          if (file.type === 'image/png') {
+            mimeType = 'image/png';
+            quality = undefined;
+          } else if (file.type === 'image/webp') {
+            mimeType = 'image/webp';
+          }
+          setAboutImage(canvas.toDataURL(mimeType, quality));
         };
         img.src = event.target?.result as string;
       };
@@ -753,14 +990,38 @@ function AdminSettings() {
     }
   };
 
+  const handleDragStart = (index: number) => setDraggedIndex(index);
+  const handleDragOver = (e: React.DragEvent, index: number) => e.preventDefault();
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newSlides = [...heroSlides];
+    const draggedSlide = newSlides[draggedIndex];
+    newSlides.splice(draggedIndex, 1);
+    newSlides.splice(index, 0, draggedSlide);
+    setHeroSlides(newSlides);
+    setDraggedIndex(null);
+  };
+
   return (
     <div style={{maxWidth: '800px'}}>
       <h2 style={{fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0'}}>Home Settings</h2>
       <form onSubmit={handleSave} style={{display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)'}}>
         
         {heroSlides.map((slide, index) => (
-          <div key={index} style={{border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative'}}>
-            <h3 style={{fontFamily: 'var(--font-sans)', fontSize: '1.2rem', marginBottom: '1rem'}}>SLIDE {index + 1}</h3>
+          <div 
+            key={index} 
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={() => handleDrop(index)}
+            style={{border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1}}
+          >
+            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem'}}>
+              <div style={{cursor: 'grab', padding: '0.2rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center'}}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </div>
+              <h3 style={{fontFamily: 'var(--font-sans)', fontSize: '1.2rem', margin: 0}}>SLIDE {index + 1}</h3>
+            </div>
             {heroSlides.length > 1 && (
               <button type="button" onClick={() => handleRemoveSlide(index)} style={{position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem'}}>REMOVE</button>
             )}

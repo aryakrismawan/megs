@@ -175,6 +175,63 @@ app.delete('/api/articles/:id', async (c) => {
 });
 
 
+// --- CREATE YOURS ---
+app.get('/api/create-yours', async (c) => {
+  try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
+    const { results } = await c.env.DB.prepare("SELECT * FROM create_yours ORDER BY id DESC").all();
+    return c.json(results);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.post('/api/create-yours', async (c) => {
+  try {
+    const adminToken = c.req.header('X-Admin-Token');
+    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
+    const body = await c.req.json();
+    const { name, image, description } = body;
+    
+    const info = await c.env.DB.prepare("INSERT INTO create_yours (name, image, description) VALUES (?, ?, ?)").bind(name, image || '', description || '').run();
+    return c.json({ success: true, id: info.meta.last_row_id });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.put('/api/create-yours/:id', async (c) => {
+  try {
+    const adminToken = c.req.header('X-Admin-Token');
+    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { name, image, description } = body;
+
+    const result = await c.env.DB.prepare("UPDATE create_yours SET name = ?, image = ?, description = ? WHERE id = ?").bind(name, image || '', description || '', id).run();
+    if (result.meta.changes === 0) return c.json({ error: 'Item not found' }, 404);
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.delete('/api/create-yours/:id', async (c) => {
+  try {
+    const adminToken = c.req.header('X-Admin-Token');
+    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    
+    const id = c.req.param('id');
+    await c.env.DB.prepare("DELETE FROM create_yours WHERE id = ?").bind(id).run();
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 // --- ORDERS ---
 app.get('/api/orders', async (c) => {
   try {

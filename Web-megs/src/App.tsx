@@ -3,6 +3,60 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams } 
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
+// --- HOOK FOR DRAGGABLE SCROLL ---
+function useDraggableScroll() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragged, setDragged] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    setIsDragging(true);
+    setDragged(false);
+    setStartX(e.pageX - ref.current.offsetLeft);
+    setScrollLeft(ref.current.scrollLeft);
+  };
+
+  const onMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !ref.current) return;
+    e.preventDefault();
+    setDragged(true);
+    const x = e.pageX - ref.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    ref.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (dragged) {
+      e.stopPropagation();
+      e.preventDefault();
+      setDragged(false);
+    }
+  };
+
+  return {
+    ref,
+    onMouseDown,
+    onMouseLeave,
+    onMouseUp,
+    onMouseMove,
+    onClickCapture,
+    style: { 
+      cursor: isDragging ? 'grabbing' : 'grab',
+      scrollSnapType: isDragging ? 'none' : ''
+    }
+  };
+}
 
 // --- MAIN APP COMPONENT ---
 function App() {
@@ -10,6 +64,7 @@ function App() {
     <ShopProvider>
       <Router>
         <div className="app-container">
+          <GlobalLoader />
           <Navbar />
           <CartSidebar />
           <SearchOverlay />
@@ -22,15 +77,159 @@ function App() {
               <Route path="/journal" element={<JournalView />} />
               <Route path="/journal/:id" element={<ArticleDetailView />} />
               <Route path="/contact" element={<ContactView />} />
+              <Route path="/create-yours" element={<CreateYoursView />} />
 
             </Routes>
           </main>
-          <footer className="footer">
-            <p>&copy; 2026 MEGS // ALL RIGHTS RESERVED.</p>
+          <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '3rem', marginBottom: '6rem' }}>
+
+                {/* Column 1: Brand Info */}
+                <div
+                  style={{
+                    gridColumn: 'span 2',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <h3
+                    style={{
+                      width: '100%',
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 900,
+                      fontSize: '1.5rem',
+                      margin: '0 0 1.5rem 0',
+                      letterSpacing: '-0.02em',
+                      textTransform: 'uppercase',
+                      textAlign: 'left',
+                    }}
+                  >
+                    MEGS
+                  </h3>
+
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.85rem',
+                      color: 'var(--color-text-main)',
+                      lineHeight: 1.6,
+                      maxWidth: '300px',
+                      margin: 0,
+                      textAlign: 'justify',
+                    }}
+                  >
+                    Since launching in 2026, MEGS develops technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics to help you unlock your best performance.
+                  </p>
+                </div>
+
+                {/* Column 2: Shop */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Shop</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
+                    <Link to="/product?cat=Jersey" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Jersey</Link>
+                    <Link to="/product?cat=Kaos" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Kaos</Link>
+                    <Link to="/product?cat=Jaket" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Jaket</Link>
+                    <Link to="/product?cat=Vest" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Vest</Link>
+                  </div>
+                </div>
+
+                {/* Column 3: Help */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Help</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
+                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>FAQ</Link>
+                    <Link to="/track-order" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Delivery</Link>
+                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Return Policy</Link>
+                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Contact Us</Link>
+                    <span style={{ color: 'var(--color-text-main)', cursor: 'pointer' }}>Payment Options</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Section */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+
+                {/* Social Icons */}
+                <div style={{ display: 'flex', gap: '1.5rem' }}>
+                  <a href="https://www.instagram.com/megsapparel_/" aria-label="Instagram" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                  </a>
+                  <a href="https://www.tiktok.com/@megsapparel0" aria-label="TikTok" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                  </a>
+                  <a href="https://wa.me/6285863144773" aria-label="WhatsApp" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                  </a>
+                </div>
+
+                {/* Right Aligned Links & Shipping */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
+                    <span>&copy;2026 MEGS&reg;</span>
+                    <span style={{ cursor: 'pointer' }}>Manage Cookies</span>
+                    <span style={{ cursor: 'pointer' }}>Terms &amp; Conditions</span>
+                    <span style={{ cursor: 'pointer' }}>Privacy Policy</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </footer>
         </div>
       </Router>
     </ShopProvider>
+  );
+}
+
+function GlobalLoader() {
+  const location = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 600); // 600ms loading animation
+
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
+
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
+  if (!isLoading) return null;
+
+  // Mendapatkan tema aktif langsung dari HTML root element
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const logoSrc = currentTheme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'var(--color-bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 999999, transition: 'opacity 0.3s ease'
+    }}>
+      <style>
+        {`
+          @keyframes pulse-megs {
+            0% { opacity: 0.1; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.1; transform: scale(0.95); }
+          }
+          .loader-logo-img {
+            animation: pulse-megs 1.2s infinite ease-in-out;
+            width: 150px;
+            height: auto;
+          }
+        `}
+      </style>
+      <img src={logoSrc} alt="MEGS Loading" className="loader-logo-img" />
+    </div>
   );
 }
 
@@ -115,9 +314,6 @@ function Navbar() {
           </div>
         </div>
 
-        <div className="nav-item">
-          <Link to="/track-order" className={location.pathname === '/track-order' ? 'active' : ''}>TRACK ORDER</Link>
-        </div>
 
         <div className="nav-item">
           <Link to="/product" className={location.pathname.startsWith('/product') ? 'active' : ''}>PRODUCTS</Link>
@@ -140,6 +336,14 @@ function Navbar() {
               );
             })}
           </div>
+        </div>
+
+        <div className="nav-item">
+          <Link to="/create-yours" className={location.pathname === '/create-yours' ? 'active' : ''}>CREATE YOURS</Link>
+        </div>
+
+        <div className="nav-item">
+          <Link to="/track-order" className={location.pathname === '/track-order' ? 'active' : ''}>TRACK ORDER</Link>
         </div>
 
         <div className="nav-item">
@@ -200,8 +404,9 @@ function Navbar() {
         <div className="mobile-menu">
           <Link to="/">HOME</Link>
           <Link to="/journal">ARCHIVES</Link>
-          <Link to="/track-order">TRACK ORDER</Link>
           <Link to="/product">PRODUCTS</Link>
+          <Link to="/create-yours">CREATE YOURS</Link>
+          <Link to="/track-order">TRACK ORDER</Link>
           <Link to="/contact">CONTACT</Link>
         </div>
       )}
@@ -219,6 +424,10 @@ function HomeView() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [heroLoading, setHeroLoading] = useState(true);
+  const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
+
+  const archiveScroll = useDraggableScroll();
+  const productScroll = useDraggableScroll();
 
   // Swipe Handlers for Hero Slider
   const [touchStart, setTouchStart] = useState(0);
@@ -304,6 +513,13 @@ function HomeView() {
         setArticles(data);
         setLoading(false);
       });
+
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setCreateYoursItems(data);
+      })
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -374,7 +590,7 @@ function HomeView() {
               </div>
             )}
             <div style={{ flex: '1 1 400px', textAlign: 'left' }}>
-              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', color: 'var(--color-text-main)', letterSpacing: '-0.02em', margin: '0 0 1.5rem 0', textTransform: 'uppercase' }}>ABOUT MEGS</h2>
+              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', color: 'var(--color-text-main)', letterSpacing: '-0.02em', margin: '0 0 1.5rem 0', textTransform: 'uppercase' }}>ABOUT US</h2>
               <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '1rem', whiteSpace: 'pre-wrap' }}>
                 {aboutText}
               </p>
@@ -382,10 +598,97 @@ function HomeView() {
           </div>
         </div>
 
+        {/* ARCHIVES SECTION */}
+        {!loading && articles.length > 0 && (
+          <div style={{ padding: '4rem 2rem 0 2rem', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem' }}>
+              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>ARCHIVES</h2>
+            </div>
+            <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
+            <div 
+              className="archive-scroll-container" 
+              ref={archiveScroll.ref}
+              onMouseDown={archiveScroll.onMouseDown}
+              onMouseLeave={archiveScroll.onMouseLeave}
+              onMouseUp={archiveScroll.onMouseUp}
+              onMouseMove={archiveScroll.onMouseMove}
+              onClickCapture={archiveScroll.onClickCapture}
+              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...archiveScroll.style }}
+            >
+              {articles.slice(0, 6).map(article => {
+                const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
+                const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
+                return (
+                  <Link to={`/journal/${article.id}`} key={article.id} className="archive-card" style={{ flex: '0 0 auto', width: 'calc(33.333% - 1.33rem)', minWidth: '320px', scrollSnapAlign: 'start' }}>
+                    {coverImage ? (
+                      <img src={coverImage} alt={article.title} className="archive-img" />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
+                      </div>
+                    )}
+
+                    <div className="archive-overlay" />
+
+                    <div className="archive-content">
+                      <h3 className="archive-title">{article.title}</h3>
+                      <p className="archive-subtitle">
+                        {article.excerpt || new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                      </p>
+                      <div className="archive-btn">READ</div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0 4rem 0' }}>
+              <Link to="/journal" className="btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1rem' }}>VIEW ALL ARCHIVES</Link>
+            </div>
+          </div>
+        )}
+
+        {/* CREATE YOURS SECTION */}
+        {!loading && createYoursItems.length > 0 && (
+          <div style={{ padding: '4rem 2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem', maxWidth: '1200px', margin: '0 auto 3rem auto' }}>
+              <div>
+                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>CREATE YOURS</h2>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+              {createYoursItems.map(item => (
+                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card" style={{ aspectRatio: '3/4' }}>
+                  {item.image ? (
+                    <img src={item.image} alt={item.name} className="archive-img" />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
+                    </div>
+                  )}
+
+                  <div className="archive-overlay" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)' }} />
+
+                  <div className="archive-content" style={{ justifyContent: 'flex-end', paddingBottom: '3rem' }}>
+                    <h3 className="archive-title" style={{ color: '#fff' }}>{item.name}</h3>
+                    {item.description && (
+                      <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8, marginBottom: '1.5rem' }}>{item.description}</p>
+                    )}
+                    <div className="archive-btn" style={{ background: '#fff', color: '#000' }}>START DESIGN</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CATEGORIES SECTION */}
-        <div style={{ background: 'var(--color-bg-card)', padding: '0 0 5rem 0', borderTop: '1px solid var(--color-border)' }}>
+        {!loading && products.length > 0 && (
+          <>
+            <div style={{ background: 'var(--color-bg-card)', padding: '0 0 5rem 0', borderTop: '1px solid var(--color-border)' }}>
           <div style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'center' }}>
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'left' }}>SHOP BY CATEGORY</h2>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
           </div>
           <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=tops'}>
@@ -396,7 +699,10 @@ function HomeView() {
             </div>
             <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=bottoms'}>
               <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.94 22.84a1.88 1.88 0 0 0 .91-1.25l1.09-5.45A3.16 3.16 0 0 0 19.86 13H15v-2h-6v2H4.14a3.16 3.16 0 0 0-3.08 3.14l1.09 5.45a1.88 1.88 0 0 0 .91 1.25 1.57 1.57 0 0 0 .94.16h16a1.57 1.57 0 0 0 .94-.16z"></path><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 21l1.5-15a1.5 1.5 0 0 1 1.5-1h9a1.5 1.5 0 0 1 1.5 1l1.5 15h-5.5l-2-10l-2 10z" />
+                  <path d="M12 5v5" />
+                </svg>
               </div>
               <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>BOTTOMS</h3>
             </div>
@@ -404,12 +710,23 @@ function HomeView() {
         </div>
 
         {/* FEATURED PRODUCTS */}
-        <div className="page-header" style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'left', alignItems: 'flex-start', width: '100%' }}>
-          <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'left' }}>NEW ARRIVALS</h2>
+        <div style={{ padding: '4rem 2rem 0 2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0 }}>NEW ARRIVALS</h2>
+          </div>
         </div>
 
-        <div className="product-grid">
-          {products.slice(0, 8).map(product => {
+        <div 
+          className="product-slider"
+          ref={productScroll.ref}
+          onMouseDown={productScroll.onMouseDown}
+          onMouseLeave={productScroll.onMouseLeave}
+          onMouseUp={productScroll.onMouseUp}
+          onMouseMove={productScroll.onMouseMove}
+          onClickCapture={productScroll.onClickCapture}
+          style={productScroll.style}
+        >
+          {products.slice(0, 5).map(product => {
             let displayImg = product.img;
             try {
               const parsed = JSON.parse(product.img);
@@ -435,43 +752,12 @@ function HomeView() {
           })}
         </div>
 
-        {/* EDITORIAL SLIDER AT THE BOTTOM */}
-        {!loading && articles.length > 0 && (
-          <div style={{ marginTop: '0', borderTop: '1px solid var(--color-border)' }}>
-            <div className="page-header" style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'left', alignItems: 'flex-start', width: '100%' }}>
-              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'left' }}>ARCHIVES</h2>
-            </div>
-            <div className="horizontal-carousel" ref={carouselRef}>
-              {articles.map((article) => {
-                const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
-                const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
-                return (
-                  <div key={article.id} className="carousel-card" onClick={() => window.location.href = `/journal/${article.id}`}>
-                    {coverImage && (
-                      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
-                        <img src={coverImage} alt="Cover" className="carousel-img" />
-                      </div>
-                    )}
-                    {/* GRADIENT OVERLAY FOR TEXT READABILITY */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)', zIndex: 2 }} />
-
-                    <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', right: '2rem', zIndex: 3, color: '#fff' }}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', marginBottom: '0.5rem', opacity: 0.8 }}>
-                        {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()} // EDITORIAL
-                      </p>
-                      <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3.5rem)', letterSpacing: '-0.03em', textTransform: 'uppercase', marginBottom: '0.5rem', lineHeight: 1 }}>
-                        {article.title}
-                      </h2>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', opacity: 0.8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {article.excerpt}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
+          <Link to="/product" className="btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1rem' }}>VIEW ALL PRODUCTS</Link>
+        </div>
+          </>
         )}
+
       </div>
     </>
   );
@@ -482,9 +768,19 @@ function ProductListView() {
   const searchParams = new URLSearchParams(location.search);
   const categoryFilter = searchParams.get('cat');
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter]);
+
   const filteredProducts = categoryFilter
     ? products.filter(p => p.category.toLowerCase() === categoryFilter.toLowerCase())
     : products;
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const currentProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="page-content" style={{ paddingTop: '80px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -528,7 +824,7 @@ function ProductListView() {
         </div>
       </div>
       <div className="product-grid" style={{ padding: '0 2rem' }}>
-        {filteredProducts.map(product => {
+        {currentProducts.map(product => {
           let displayImg = product.img;
           try {
             const parsed = JSON.parse(product.img);
@@ -553,6 +849,36 @@ function ProductListView() {
           )
         })}
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', padding: '4rem 2rem' }}>
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => {
+              setCurrentPage(p => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}
+          >
+            ← PREV
+          </button>
+          
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+            PAGE {currentPage} OF {totalPages}
+          </div>
+
+          <button 
+            disabled={currentPage === totalPages} 
+            onClick={() => {
+              setCurrentPage(p => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}
+          >
+            NEXT →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -564,6 +890,13 @@ function ProductDetailView() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const { addToCart } = useShop();
+
+  // Carousel & Zoom State
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: '50%', y: '50%' });
+  const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}`)
@@ -602,15 +935,110 @@ function ProductDetailView() {
     }
   } catch (e) { }
 
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if ('touches' in e) setTouchStart(e.targetTouches[0].clientX);
+    else setTouchStart((e as React.MouseEvent).clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if ('touches' in e) setTouchEnd(e.targetTouches[0].clientX);
+    else if (touchStart > 0) setTouchEnd((e as React.MouseEvent).clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart === 0 || touchEnd === 0) return;
+    const distance = touchStart - touchEnd;
+    if (distance > 50) {
+      setActiveImageIndex(prev => (prev + 1) % images.length);
+    }
+    if (distance < -50) {
+      setActiveImageIndex(prev => (prev - 1 + images.length) % images.length);
+    }
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x: `${x}%`, y: `${y}%` });
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (wheelTimeout.current || images.length <= 1) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 40) {
+      if (e.deltaX > 0) {
+        setActiveImageIndex(prev => (prev + 1) % images.length);
+      } else {
+        setActiveImageIndex(prev => (prev - 1 + images.length) % images.length);
+      }
+      wheelTimeout.current = setTimeout(() => {
+        wheelTimeout.current = null;
+      }, 500);
+    }
+  };
+
   return (
     <div className="page-content" style={{ paddingTop: '80px', maxWidth: '1400px', margin: '0 auto', display: 'flex', gap: '4rem', padding: '100px 2rem 4rem 2rem', flexWrap: 'wrap' }}>
       {/* LEFT: GALLERY */}
       <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ width: '100%', aspectRatio: '4/5', background: 'var(--color-bg-card)', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '4/5',
+            background: 'var(--color-bg-card)',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: isZoomed ? 'zoom-out' : (images.length > 1 ? 'grab' : 'zoom-in')
+          }}
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => { setIsZoomed(false); setTouchStart(0); setTouchEnd(0); }}
+          onMouseMove={handleMouseMove}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleTouchStart}
+          onMouseUp={handleTouchEnd}
+        >
           {images.length > 0 ? (
-            <img src={images[activeImageIndex]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img
+              src={images[activeImageIndex]}
+              alt={product.name}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: isZoomed ? 'scale(2)' : 'scale(1)',
+                transformOrigin: `${zoomPos.x} ${zoomPos.y}`,
+                transition: 'transform 0.1s ease-out'
+              }}
+            />
           ) : (
             <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>NO IMAGE</div>
+          )}
+
+          {/* ARROWS FOR MULTIPLE IMAGES */}
+          {images.length > 1 && !isZoomed && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => (prev - 1 + images.length) % images.length); }}
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+              >
+                ←
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => (prev + 1) % images.length); }}
+                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+              >
+                →
+              </button>
+            </>
           )}
         </div>
         {images.length > 1 && (
@@ -893,13 +1321,13 @@ function JournalView() {
   return (
     <div className="page-content" style={{ paddingTop: '100px', maxWidth: '1000px', margin: '0 auto' }}>
       <div className="page-header" style={{ padding: '5rem 0 3rem', textAlign: 'left', alignItems: 'flex-start' }}>
-        <h1 style={{ fontSize: 'clamp(3rem, 6vw, 6rem)', textAlign: 'left' }}>JOURNAL</h1>
+        <h1 style={{ fontSize: 'clamp(3rem, 6vw, 6rem)', textAlign: 'left' }}>ARCHIVES</h1>
         <p style={{ textAlign: 'left', margin: '1rem 0 0 0' }}>Insights, editorials, and engineering logs.</p>
       </div>
 
       <div className="journal-list" style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
         {loading ? <p style={{ fontFamily: 'var(--font-mono)' }}>LOADING...</p> : articles.length === 0 ? (
-          <p style={{ fontFamily: 'var(--font-mono)' }}>NO ARTICLES FOUND. START POSTING IN THE ADMIN OS.</p>
+          <p style={{ fontFamily: 'var(--font-mono)' }}>NO ARTICLES FOUND</p>
         ) : articles.map((article: any) => {
           const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
           const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
@@ -908,7 +1336,7 @@ function JournalView() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem' }}>
                 <div style={{ flex: 1, minWidth: '300px' }}>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-                    {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()} // EDITORIAL
+                    {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
                   </p>
                   <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-0.03em', textTransform: 'uppercase', marginBottom: '1rem' }}>
                     {article.title}
@@ -970,8 +1398,8 @@ function ArticleDetailView() {
   const images = Array.isArray(article.images) ? article.images : [];
 
   return (
-    <div className="page-content" style={{ paddingTop: '80px', paddingBottom: '5rem' }}>
-      <Link to="/journal" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', textDecoration: 'underline', marginBottom: '2rem', display: 'inline-block' }}>← BACK TO JOURNAL</Link>
+    <div className="page-content" style={{ paddingTop: '120px', paddingBottom: '5rem' }}>
+      <Link to="/journal" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-main)', textDecoration: 'underline', marginBottom: '2rem', display: 'inline-block', position: 'relative', zIndex: 10 }}>← BACK TO ARCHIVES</Link>
 
       <div className="article-detail-container">
 
@@ -1037,6 +1465,144 @@ function ArticleDetailView() {
           </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+function CreateYoursView() {
+  const [category, setCategory] = useState<'Jersey' | 'Kaos' | 'Jaket' | 'Vest'>('Jersey');
+  const [qty, setQty] = useState('');
+  const [pants, setPants] = useState('Yes');
+  const [paket, setPaket] = useState('Basic');
+  const [bahan, setBahan] = useState('Basic');
+  const [print, setPrint] = useState('Print');
+  const [sablon, setSablon] = useState('');
+  const [sizeChart, setSizeChart] = useState('');
+  const [addOn, setAddOn] = useState('');
+
+  // Update default bahan if category changes
+  useEffect(() => {
+    if (category === 'Jersey') {
+      setBahan('Basic');
+    } else {
+      setBahan('');
+    }
+  }, [category]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    let text = `*CREATE YOURS - ${category.toUpperCase()}*\n\n`;
+    text += `*QTY:* ${qty}\n`;
+    if (category === 'Jersey') {
+      text += `*Pants:* ${pants}\n`;
+      text += `*Nama Paket:* ${paket}\n`;
+      text += `*Bahan:* ${bahan}\n`;
+      text += `*Print:* ${print}\n`;
+    } else {
+      text += `*Bahan:* ${bahan}\n`;
+      text += `*Sablon:* ${sablon}\n`;
+    }
+    text += `*Size Chart:* ${sizeChart}\n`;
+    text += `*Add On:* ${addOn || '-'}`;
+
+    const encodedText = encodeURIComponent(text);
+    const waNumber = '6285863144773'; // Admin WhatsApp
+    window.open(`https://wa.me/${waNumber}?text=${encodedText}`, '_blank');
+  };
+
+  return (
+    <div className="page-content" style={{ paddingTop: '120px', paddingBottom: '5rem', minHeight: '80vh' }}>
+      <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1, textAlign: 'center' }}>
+          CREATE YOURS
+        </h1>
+        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '3rem', textAlign: 'center' }}>
+          CUSTOMIZE YOUR APPAREL AND GET A QUOTE VIA WHATSAPP.
+        </p>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {['Jersey', 'Kaos', 'Jaket', 'Vest'].map(cat => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat as any)}
+              className={category === cat ? 'btn-primary' : 'btn-secondary'}
+              style={{ flex: '1 1 100px', padding: '0.8rem', textAlign: 'center', fontSize: '0.9rem' }}
+            >
+              {cat.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)' }}>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>QTY (MIN 12, &lt;12 DILUAR PRICE LIST)</label>
+            <input required className="input-text" type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 24" />
+          </div>
+
+          {category === 'Jersey' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PANTS</label>
+                <select className="input-text" value={pants} onChange={e => setPants(e.target.value)}>
+                  <option value="Yes">YES</option>
+                  <option value="No">NO</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NAMA PAKET</label>
+                <select className="input-text" value={paket} onChange={e => setPaket(e.target.value)}>
+                  <option value="Basic">BASIC</option>
+                  <option value="Standard">STANDARD</option>
+                  <option value="Premium">PREMIUM</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>BAHAN</label>
+                <select className="input-text" value={bahan} onChange={e => setBahan(e.target.value)}>
+                  <option value="Basic">BASIC</option>
+                  <option value="Standard">STANDARD</option>
+                  <option value="Premium">PREMIUM</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PRINT OR NON PRINT</label>
+                <select className="input-text" value={print} onChange={e => setPrint(e.target.value)}>
+                  <option value="Print">PRINT</option>
+                  <option value="Non Print">NON PRINT</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {(category === 'Kaos' || category === 'Jaket' || category === 'Vest') && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>BAHAN</label>
+                <input required className="input-text" type="text" value={bahan} onChange={e => setBahan(e.target.value)} placeholder={`Bahan ${category}`} />
+              </div>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>SABLON</label>
+                <input required className="input-text" type="text" value={sablon} onChange={e => setSablon(e.target.value)} placeholder={`Tipe Sablon`} />
+              </div>
+            </div>
+          )}
+
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>SIZE CHART</label>
+            <textarea required className="input-text" rows={2} value={sizeChart} onChange={e => setSizeChart(e.target.value)} placeholder="e.g. S: 5, M: 10, L: 5, XL: 4" />
+          </div>
+
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>ADD ON</label>
+            <textarea className="input-text" rows={2} value={addOn} onChange={e => setAddOn(e.target.value)} placeholder="Any additional requirements or notes?" />
+          </div>
+
+          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
+            SEND FORM VIA WHATSAPP
+          </button>
+        </form>
       </div>
     </div>
   );

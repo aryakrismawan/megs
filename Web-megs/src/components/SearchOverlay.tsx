@@ -48,8 +48,8 @@ export function SearchOverlay() {
       {/* Dropdown Search Bar under Navbar */}
       <div style={{
         position: 'fixed', top: '75px', left: 0, width: '100vw', 
-        background: 'var(--color-bg-main)', color: 'var(--color-text-main)', 
-        borderBottom: '1px solid var(--color-border)', zIndex: 999,
+        background: 'rgba(10, 12, 16, 0.6)', backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)', 
+        color: 'var(--color-text-main)', borderBottom: '1px solid var(--color-border)', zIndex: 999,
         padding: '1.5rem 3rem',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         transformOrigin: 'top', animation: 'slideDown 0.2s ease-out forwards'
@@ -58,8 +58,8 @@ export function SearchOverlay() {
         {/* Search Input Box */}
         <div style={{
           width: '100%', maxWidth: '1000px', display: 'flex', alignItems: 'center', 
-          border: '1px solid var(--color-border)', borderRadius: '4px',
-          padding: '0.8rem 1.5rem', background: 'var(--color-bg-main)'
+          border: '1px solid var(--color-border)', borderRadius: '8px',
+          padding: '0.8rem 1.5rem', background: 'color-mix(in srgb, var(--color-bg-main) 40%, transparent)'
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--color-text-muted)', marginRight: '1rem'}}>
             <circle cx="11" cy="11" r="8"></circle>
@@ -76,6 +76,21 @@ export function SearchOverlay() {
               fontFamily: 'var(--font-sans)', fontSize: '1rem', outline: 'none'
             }}
           />
+          <button 
+            onClick={handleClose} 
+            style={{
+              background: 'transparent', border: 'none', color: 'var(--color-text-muted)', 
+              cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-text-main)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
         
         {/* Search Results Area */}
