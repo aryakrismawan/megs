@@ -69,10 +69,96 @@ a {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 3rem;
-  background: var(--color-bg-main);
-  border-bottom: 1px solid var(--color-border);
-  z-index: 100;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.3s ease, border-color 0.3s ease, padding 0.3s ease;
+  z-index: 1000;
 }
+
+.navbar-scrolled {
+  background: rgba(10, 12, 16, 0.4);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 3rem;
+}
+
+/* Navbar Hero Override (For bright legibility over images in Light Mode) */
+.navbar-hero .brand-name,
+.navbar-hero nav a,
+.navbar-hero .nav-controls button {
+  color: #ffffff !important;
+}
+.navbar-hero .mobile-toggle span {
+  background-color: #ffffff !important;
+}
+.navbar-hero .nav-controls svg {
+  stroke: #ffffff;
+}
+
+.megs-logo-svg {
+  color: var(--color-text-main);
+}
+
+.nav-btn-highlight {
+  background: #6c5ce7;
+  color: #ffffff !important;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+}
+
+.nav-btn-highlight:hover {
+  background: #a29bfe;
+  transform: translateY(-2px);
+}
+
+/* Global Loader */
+.global-loader {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: var(--color-bg-main);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s ease;
+}
+
+.global-loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spinning-logo {
+  animation: spinLogo 2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+  width: 60px;
+  height: 60px;
+  color: var(--color-text-main);
+}
+
+@keyframes spinLogo {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); color: #6c5ce7; }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.page-header-hero {
+  background-size: cover;
+  background-position: center;
+  color: white !important;
+  min-height: 100vh;
+  width: 100%;
+  transition: background-image 1s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
 
 .logo-container {
   display: flex;
@@ -87,6 +173,12 @@ a {
   color: var(--color-white);
   letter-spacing: -0.05em;
   text-transform: uppercase;
+}
+
+.brand-logo {
+  height: 50px; /* Diperbesar lagi */
+  width: auto;
+  object-fit: contain;
 }
 
 .navbar nav {
@@ -612,7 +704,9 @@ input[type=range]::-webkit-slider-runnable-track {
   top: 100%;
   left: 0;
   width: 100vw;
-  background: var(--color-bg-main);
+  background: rgba(10, 12, 16, 0.85);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border-bottom: 1px solid var(--color-border);
   z-index: 99;
   display: flex;
@@ -634,8 +728,9 @@ input[type=range]::-webkit-slider-runnable-track {
   font-family: var(--font-sans);
   font-weight: 900;
   font-size: 1.5rem;
-  color: var(--color-text-main);
+  color: #ffffff !important;
   text-transform: uppercase;
+  text-decoration: none;
 }
 
 .desktop-nav {
@@ -688,5 +783,123 @@ input[type=range]::-webkit-slider-runnable-track {
     padding: 2.5rem;
     overflow-y: auto;
     max-height: 80vh;
+  }
+}
+
+
+/* Nav Megamenu */
+.nav-item {
+  position: static; /* so megamenu can be absolute to the header or fixed */
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 1rem 0;
+}
+.nav-megamenu {
+  position: fixed;
+  top: 75px;
+  left: 0;
+  width: 100vw;
+  background: rgba(10, 12, 16, 0.6);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3rem 10vw;
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  z-index: 998;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.nav-item:hover .nav-megamenu {
+  display: grid;
+  animation: slideDown 0.2s ease-out forwards;
+}
+.nav-megamenu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-decoration: none;
+  color: var(--color-text-main);
+  transition: transform 0.3s ease;
+}
+.nav-megamenu-item:hover {
+  transform: translateY(-5px);
+}
+.nav-megamenu-img-wrapper {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+.nav-megamenu-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nav-megamenu-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.nav-megamenu-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Hero Slide Responsive Styles */
+.page-header-hero {
+  height: 100vh;
+}
+
+.hero-slide-item {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  background-size: cover;
+  background-position: center;
+  padding: 2rem 3rem 4rem 3rem;
+}
+
+.hero-title {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 4rem);
+  color: #ffffff;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-align: right;
+  margin: 0;
+  max-width: 60vw;
+}
+
+.hero-subtitle {
+  text-align: right;
+  margin: 0.5rem 0 0 0;
+  color: #eeeeee;
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  max-width: 500px;
+}
+
+@media (max-width: 768px) {
+  .page-header-hero {
+    height: 65vh !important;
+  }
+  .hero-slide-item {
+    padding: 2rem 1.5rem 2.5rem 1.5rem;
+    background-position: top center;
+  }
+  .hero-title {
+    max-width: 90vw;
+    font-size: 2.5rem;
+  }
+  .hero-subtitle {
+    max-width: 90vw;
   }
 }

@@ -245,4 +245,38 @@ app.delete('/api/orders/:id', async (c) => {
   }
 });
 
+
+// --- SETTINGS ---
+app.get('/api/settings', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare("SELECT * FROM settings").all();
+    const settingsObj = results.reduce((acc: any, row: any) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+    return c.json(settingsObj);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.put('/api/settings', async (c) => {
+  try {
+    const adminToken = c.req.header('X-Admin-Token');
+    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    
+    const body = await c.req.json();
+    const stmts = [];
+    for (const [key, value] of Object.entries(body)) {
+      if (typeof value === 'string') {
+        stmts.push(c.env.DB.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(key, value));
+      }
+    }
+    await c.env.DB.batch(stmts);
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export default app;

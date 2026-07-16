@@ -62,6 +62,7 @@ function AdminLayout() {
           <Link to="/orders" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>ORDERS</Link>
           <Link to="/products" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>PRODUCTS</Link>
           <Link to="/articles" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>JOURNAL ARTICLES</Link>
+          <Link to="/settings" style={{color: 'var(--color-text-muted)', fontSize: '0.8rem'}}>HOME SETTINGS</Link>
           <button onClick={() => { localStorage.removeItem('megs_admin_auth'); setIsAuthenticated(false); }} style={{color: '#ff4444', fontSize: '0.8rem', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)'}}>LOGOUT</button>
           <Link to="/" style={{color: 'var(--color-white)', marginTop: '2rem', fontSize: '0.8rem'}}>← BACK TO APP</Link>
         </nav>
@@ -76,6 +77,7 @@ function AdminLayout() {
           <Route path="/articles" element={<AdminArticleList />} />
           <Route path="/articles/new" element={<AdminArticleForm />} />
           <Route path="/articles/edit/:id" element={<AdminArticleForm />} />
+          <Route path="/settings" element={<AdminSettings />} />
         </Routes>
       </div>
     </div>
@@ -104,7 +106,7 @@ function AdminOrders() {
 
   const updateStatus = async (id: number, status: string) => {
     try {
-      await fetch(`https://worker-megs.krisarya8.workers.dev/api/orders/${id}`, {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': 'MEGS2026' },
         body: JSON.stringify({ status })
@@ -118,7 +120,7 @@ function AdminOrders() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this order?')) return;
     try {
-      await fetch(`https://worker-megs.krisarya8.workers.dev/api/orders/${id}`, {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -218,7 +220,7 @@ function AdminProductList() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this product?')) return;
     try {
-      await fetch(`https://worker-megs.krisarya8.workers.dev/api/products/${id}`, {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -252,7 +254,7 @@ function AdminProductList() {
               </div>
             </div>
             <div style={{display: 'flex', gap: '0.5rem'}}>
-              <Link to={`/admin/products/edit/${product.id}`} className="btn-secondary" style={{padding: '0.5rem 1rem'}}>EDIT</Link>
+              <Link to={`/products/edit/${product.id}`} className="btn-secondary" style={{padding: '0.5rem 1rem'}}>EDIT</Link>
               <button onClick={() => handleDelete(product.id)} style={{background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontFamily: 'var(--font-mono)'}}>DELETE</button>
             </div>
           </div>
@@ -277,7 +279,7 @@ function AdminProductForm() {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(`https://worker-megs.krisarya8.workers.dev/api/products/${id}`)
+      fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}`)
         .then(res => res.json())
         .then(data => {
           setName(data.name || '');
@@ -339,7 +341,7 @@ function AdminProductForm() {
     setStatus('Submitting...');
     const sizesArray = sizes.split(',').map(s => s.trim()).filter(Boolean);
     try {
-      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/products/${id}` : `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`;
+      const url = isEdit ? `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}` : `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`;
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -447,7 +449,7 @@ function AdminArticleList() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this article?')) return;
     try {
-      await fetch(`https://worker-megs.krisarya8.workers.dev/api/articles/${id}`, {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Token': 'MEGS2026' }
       });
@@ -483,7 +485,7 @@ function AdminArticleList() {
               </div>
             </div>
             <div style={{display: 'flex', gap: '0.5rem'}}>
-              <Link to={`/admin/articles/edit/${article.id}`} className="btn-secondary" style={{padding: '0.5rem 1rem'}}>EDIT</Link>
+              <Link to={`/articles/edit/${article.id}`} className="btn-secondary" style={{padding: '0.5rem 1rem'}}>EDIT</Link>
               <button onClick={() => handleDelete(article.id)} style={{background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontFamily: 'var(--font-mono)'}}>DELETE</button>
             </div>
           </div>
@@ -506,7 +508,7 @@ function AdminArticleForm() {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(`https://worker-megs.krisarya8.workers.dev/api/articles/${id}`)
+      fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles/${id}`)
         .then(res => res.json())
         .then(data => {
           setTitle(data.title || '');
@@ -556,7 +558,7 @@ function AdminArticleForm() {
     e.preventDefault();
     setStatus('Submitting...');
     try {
-      const url = isEdit ? `https://worker-megs.krisarya8.workers.dev/api/articles/${id}` : `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`;
+      const url = isEdit ? `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles/${id}` : `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`;
       const method = isEdit ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -640,3 +642,179 @@ function AdminArticleForm() {
 }
 
 export default App;
+
+
+function AdminSettings() {
+  const [heroSlides, setHeroSlides] = useState<{image: string, title: string, subtitle: string}[]>([]);
+  const [aboutImage, setAboutImage] = useState('');
+  const [aboutText, setAboutText] = useState('We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics.');
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.hero_slides) {
+          try {
+            setHeroSlides(JSON.parse(data.hero_slides));
+          } catch(e) {}
+        } else if (data.hero_image) {
+          setHeroSlides([{ image: data.hero_image, title: data.hero_title || '', subtitle: data.hero_subtitle || '' }]);
+        } else {
+          setHeroSlides([{ image: '', title: '', subtitle: '' }]);
+        }
+        if (data.about_image) setAboutImage(data.about_image);
+        if (data.about_text) setAboutText(data.about_text);
+      });
+  }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const newSlides = [...heroSlides];
+          newSlides[index].image = canvas.toDataURL('image/jpeg', 0.8);
+          setHeroSlides(newSlides);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAboutImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          setAboutImage(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddSlide = () => {
+    setHeroSlides([...heroSlides, { image: '', title: '', subtitle: '' }]);
+  };
+
+  const handleRemoveSlide = (index: number) => {
+    setHeroSlides(heroSlides.filter((_, i) => i !== index));
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('Saving...');
+    try {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': 'MEGS2026' },
+        body: JSON.stringify({ 
+          hero_slides: JSON.stringify(heroSlides),
+          about_image: aboutImage,
+          about_text: aboutText
+        })
+      });
+      if (res.ok) setStatus('Settings saved successfully!');
+      else setStatus('Error saving settings.');
+    } catch (e: any) {
+      setStatus(e.message);
+    }
+  };
+
+  return (
+    <div style={{maxWidth: '800px'}}>
+      <h2 style={{fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0'}}>Home Settings</h2>
+      <form onSubmit={handleSave} style={{display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)'}}>
+        
+        {heroSlides.map((slide, index) => (
+          <div key={index} style={{border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative'}}>
+            <h3 style={{fontFamily: 'var(--font-sans)', fontSize: '1.2rem', marginBottom: '1rem'}}>SLIDE {index + 1}</h3>
+            {heroSlides.length > 1 && (
+              <button type="button" onClick={() => handleRemoveSlide(index)} style={{position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem'}}>REMOVE</button>
+            )}
+            
+            <div className="control-group" style={{marginBottom: '1rem'}}>
+              <label>TITLE</label>
+              <input className="input-text" type="text" value={slide.title} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].title = e.target.value;
+                setHeroSlides(newSlides);
+              }} />
+            </div>
+            
+            <div className="control-group" style={{marginBottom: '1rem'}}>
+              <label>SUBTITLE</label>
+              <input className="input-text" type="text" value={slide.subtitle} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].subtitle = e.target.value;
+                setHeroSlides(newSlides);
+              }} />
+            </div>
+            
+            <div className="control-group">
+              <label>BACKGROUND IMAGE</label>
+              {slide.image && <img src={slide.image} alt="Hero Preview" style={{width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem'}} />}
+              <div style={{position: 'relative', overflow: 'hidden'}}>
+                <button type="button" className="btn-secondary" style={{width: '100%'}}>+ UPLOAD NEW BACKGROUND</button>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, index)} style={{fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer'}} />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button type="button" className="btn-secondary" onClick={handleAddSlide} style={{alignSelf: 'flex-start'}}>+ ADD NEW SLIDE</button>
+        
+        <hr style={{borderColor: 'var(--color-border)', width: '100%', margin: '2rem 0'}} />
+        
+        <h3 style={{fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem'}}>ABOUT MEGS SECTION</h3>
+        <div className="control-group" style={{marginBottom: '1rem'}}>
+          <label>ABOUT TEXT</label>
+          <textarea className="input-text" rows={4} value={aboutText} onChange={e => setAboutText(e.target.value)} />
+        </div>
+        <div className="control-group">
+          <label>ABOUT IMAGE (Left Side)</label>
+          {aboutImage && <img src={aboutImage} alt="About Preview" style={{width: '200px', height: '200px', objectFit: 'cover', marginBottom: '1rem'}} />}
+          <div style={{position: 'relative', overflow: 'hidden'}}>
+            <button type="button" className="btn-secondary" style={{width: '100%'}}>+ UPLOAD ABOUT IMAGE</button>
+            <input type="file" accept="image/*" onChange={handleAboutImageUpload} style={{fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer'}} />
+          </div>
+        </div>
+
+        <button type="submit" className="btn-primary" style={{alignSelf: 'flex-start', marginTop: '2rem'}}>SAVE SETTINGS</button>
+        {status && <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)'}}>{status}</p>}
+      </form>
+    </div>
+  );
+}

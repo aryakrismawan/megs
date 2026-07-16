@@ -36,7 +36,7 @@ export function CartSidebar() {
 
     try {
       // Save order to database
-      await fetch('https://worker-megs.krisarya8.workers.dev/api/orders', {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
