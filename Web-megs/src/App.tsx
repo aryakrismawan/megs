@@ -428,6 +428,7 @@ function HomeView() {
 
   const archiveScroll = useDraggableScroll();
   const productScroll = useDraggableScroll();
+  const createYoursScroll = useDraggableScroll();
 
   // Swipe Handlers for Hero Slider
   const [touchStart, setTouchStart] = useState(0);
@@ -657,9 +658,19 @@ function HomeView() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+            <style>{`.create-yours-scroll::-webkit-scrollbar { display: none; }`}</style>
+            <div 
+              className="create-yours-scroll"
+              ref={createYoursScroll.ref}
+              onMouseDown={createYoursScroll.onMouseDown}
+              onMouseLeave={createYoursScroll.onMouseLeave}
+              onMouseUp={createYoursScroll.onMouseUp}
+              onMouseMove={createYoursScroll.onMouseMove}
+              onClickCapture={createYoursScroll.onClickCapture}
+              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...createYoursScroll.style }}
+            >
               {createYoursItems.map(item => (
-                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card" style={{ aspectRatio: '3/4' }}>
+                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card" style={{ flex: '0 0 auto', width: 'calc(33.333% - 1.33rem)', minWidth: '280px', scrollSnapAlign: 'start', aspectRatio: '3/4' }}>
                   {item.image ? (
                     <img src={item.image} alt={item.name} className="archive-img" />
                   ) : (
