@@ -835,7 +835,32 @@ function AdminCreateYoursForm() {
               if (!file) return;
               const reader = new FileReader();
               reader.onload = (event) => {
-                setFormData({ ...formData, image: event.target?.result as string });
+                const img = new Image();
+                img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  const MAX_WIDTH = 800;
+                  let width = img.width;
+                  let height = img.height;
+                  if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                  }
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx?.drawImage(img, 0, 0, width, height);
+                  
+                  let mimeType = 'image/jpeg';
+                  let quality: number | undefined = 0.8;
+                  if (file.type === 'image/png') {
+                    mimeType = 'image/png';
+                    quality = undefined;
+                  } else if (file.type === 'image/webp') {
+                    mimeType = 'image/webp';
+                  }
+                  setFormData({ ...formData, image: canvas.toDataURL(mimeType, quality) });
+                };
+                img.src = event.target?.result as string;
               };
               reader.readAsDataURL(file);
             }} 
