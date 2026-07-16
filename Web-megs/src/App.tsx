@@ -83,17 +83,10 @@ function App() {
           </main>
           <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '3rem', marginBottom: '6rem' }}>
+              <div className="footer-grid">
 
                 {/* Column 1: Brand Info */}
-                <div
-                  style={{
-                    gridColumn: 'span 2',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                  }}
-                >
+                <div className="footer-brand">
                   <h3
                     style={{
                       width: '100%',
@@ -150,7 +143,7 @@ function App() {
               </div>
 
               {/* Bottom Section */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+              <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
 
                 {/* Social Icons */}
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
@@ -168,7 +161,7 @@ function App() {
                 </div>
 
                 {/* Right Aligned Links & Shipping */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
+                <div className="footer-bottom-links" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
                     <span>&copy;2026 MEGS&reg;</span>
                     <span style={{ cursor: 'pointer' }}>Manage Cookies</span>
@@ -601,8 +594,8 @@ function HomeView() {
 
         {/* ARCHIVES SECTION */}
         {!loading && articles.length > 0 && (
-          <div style={{ padding: '4rem 2rem 0 2rem', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem' }}>
+          <div style={{ padding: '4rem 0 0 0', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>ARCHIVES</h2>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
@@ -614,13 +607,13 @@ function HomeView() {
               onMouseUp={archiveScroll.onMouseUp}
               onMouseMove={archiveScroll.onMouseMove}
               onClickCapture={archiveScroll.onClickCapture}
-              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...archiveScroll.style }}
+              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...archiveScroll.style }}
             >
               {articles.slice(0, 6).map(article => {
                 const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
                 const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
                 return (
-                  <Link to={`/journal/${article.id}`} key={article.id} className="archive-card" style={{ flex: '0 0 auto', width: 'calc(33.333% - 1.33rem)', minWidth: '320px', scrollSnapAlign: 'start' }}>
+                  <Link to={`/journal/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
                     {coverImage ? (
                       <img src={coverImage} alt={article.title} className="archive-img" />
                     ) : (
@@ -643,16 +636,16 @@ function HomeView() {
               })}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0 4rem 0' }}>
-              <Link to="/journal" className="btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1rem' }}>VIEW ALL ARCHIVES</Link>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 2rem 4rem 2rem' }}>
+              <Link to="/journal" className="btn-secondary view-all-btn">VIEW ALL ARCHIVES</Link>
             </div>
           </div>
         )}
 
         {/* CREATE YOURS SECTION */}
         {!loading && createYoursItems.length > 0 && (
-          <div style={{ padding: '4rem 2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem', maxWidth: '1200px', margin: '0 auto 3rem auto' }}>
+          <div style={{ padding: '4rem 0', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
               <div>
                 <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>CREATE YOURS</h2>
               </div>
@@ -667,10 +660,10 @@ function HomeView() {
               onMouseUp={createYoursScroll.onMouseUp}
               onMouseMove={createYoursScroll.onMouseMove}
               onClickCapture={createYoursScroll.onClickCapture}
-              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...createYoursScroll.style }}
+              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...createYoursScroll.style }}
             >
               {createYoursItems.map(item => (
-                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card" style={{ flex: '0 0 auto', width: 'calc(33.333% - 1.33rem)', minWidth: '280px', scrollSnapAlign: 'start', aspectRatio: '3/4' }}>
+                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>
                   {item.image ? (
                     <img src={item.image} alt={item.name} className="archive-img" />
                   ) : (
@@ -764,7 +757,7 @@ function HomeView() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
-          <Link to="/product" className="btn-secondary" style={{ padding: '1rem 3rem', fontSize: '1rem' }}>VIEW ALL PRODUCTS</Link>
+          <Link to="/product" className="btn-secondary view-all-btn">VIEW ALL PRODUCTS</Link>
         </div>
           </>
         )}
