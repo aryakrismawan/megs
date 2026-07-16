@@ -1,20 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
-
-// --- TYPES ---
-type DesignElement = {
-  id: string;
-  type: 'image' | 'text';
-  content: string;
-  position: { x: number; y: number }; // Persentase (0 - 100)
-  scale: number;
-  label: string;
-  color?: string;
-  view: 'front' | 'back'; // Menentukan di sisi mana elemen ini berada
-};
 
 // --- MAIN APP COMPONENT ---
 function App() {
@@ -235,7 +223,7 @@ function HomeView() {
   // Swipe Handlers for Hero Slider
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const wheelTimeout = useRef<NodeJS.Timeout | null>(null);
+  const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (wheelTimeout.current) return;
