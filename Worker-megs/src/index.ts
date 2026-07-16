@@ -249,6 +249,8 @@ app.delete('/api/orders/:id', async (c) => {
 // --- SETTINGS ---
 app.get('/api/settings', async (c) => {
   try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
+    
     const { results } = await c.env.DB.prepare("SELECT * FROM settings").all();
     const settingsObj = results.reduce((acc: any, row: any) => {
       acc[row.key] = row.value;
@@ -264,6 +266,8 @@ app.put('/api/settings', async (c) => {
   try {
     const adminToken = c.req.header('X-Admin-Token');
     if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
     
     const body = await c.req.json();
     const stmts = [];
