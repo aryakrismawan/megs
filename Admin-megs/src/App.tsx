@@ -1067,7 +1067,7 @@ export default App;
 
 
 function AdminSettings() {
-  const [heroSlides, setHeroSlides] = useState<{ image: string, title: string, subtitle: string }[]>([]);
+  const [heroSlides, setHeroSlides] = useState<{ image: string, title: string, subtitle: string, duration?: string }[]>([]);
   const [aboutImage, setAboutImage] = useState('');
   const [aboutText, setAboutText] = useState('We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics.');
   const [status, setStatus] = useState('');
@@ -1205,7 +1205,7 @@ function AdminSettings() {
       if (res.ok) {
         setStatus('Settings saved successfully!');
       } else {
-        const errorText = await res.text();
+        await res.text();
         setStatus(`Error saving settings: File may be too large for database.`);
       }
     } catch (e: any) {
