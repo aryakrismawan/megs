@@ -3,6 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams } 
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
+
+const getYoutubeId = (url: string) => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 // --- HOOK FOR DRAGGABLE SCROLL ---
 function useDraggableScroll() {
   const ref = useRef<HTMLDivElement>(null);
@@ -51,7 +58,7 @@ function useDraggableScroll() {
     onMouseUp,
     onMouseMove,
     onClickCapture,
-    style: { 
+    style: {
       cursor: isDragging ? 'grabbing' : 'grab',
       scrollSnapType: isDragging ? 'none' : ''
     }
@@ -132,10 +139,9 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
                   <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Shop</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
-                    <Link to="/product?cat=Jersey" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Jersey</Link>
-                    <Link to="/product?cat=Kaos" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Kaos</Link>
-                    <Link to="/product?cat=Jaket" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Jaket</Link>
-                    <Link to="/product?cat=Vest" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Vest</Link>
+                    <Link to="/product?cat=all" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>All</Link>
+                    <Link to="/product?cat=tops" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Tops</Link>
+                    <Link to="/product?cat=bottoms" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Bottoms</Link>
                   </div>
                 </div>
 
@@ -198,11 +204,11 @@ function GlobalLoader() {
   useEffect(() => {
     setIsMounted(true);
     setIsVisible(true);
-    
+
     // Hold the loading screen for 1200ms
     const timerVisible = setTimeout(() => {
       setIsVisible(false); // trigger fade-out transition
-    }, 1200); 
+    }, 1200);
 
     // Unmount after fade-out completes (1200ms + 500ms transition)
     const timerMount = setTimeout(() => {
@@ -520,11 +526,23 @@ function HomeView() {
 
   useEffect(() => {
     if (heroSlides.length <= 1) return;
-    const interval = setInterval(() => {
+
+    const currentSlide = heroSlides[activeHero];
+    const isMp4 = currentSlide?.image?.startsWith('data:video/') || currentSlide?.image?.endsWith('.mp4') || currentSlide?.image?.endsWith('.webm');
+
+    // If it's a raw video and no custom duration is provided, let the onEnded event handle the slide transition
+    if (isMp4 && !currentSlide?.duration) {
+      return;
+    }
+
+    const duration = currentSlide?.duration ? parseInt(currentSlide.duration) * 1000 : 5000;
+
+    const timeout = setTimeout(() => {
       setActiveHero(prev => (prev + 1) % heroSlides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [heroSlides.length]);
+    }, duration);
+
+    return () => clearTimeout(timeout);
+  }, [heroSlides, activeHero]);
 
   useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
@@ -578,22 +596,118 @@ function HomeView() {
           transition: 'transform 0.8s cubic-bezier(0.65, 0, 0.35, 1)',
           transform: `translateX(-${activeHero * (100 / heroSlides.length)}%)`
         }}>
-          {heroSlides.map((slide, idx) => (
-            <div key={idx} className="hero-slide-item" style={{
-              width: `${100 / heroSlides.length}%`,
-              backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url('${slide.image}')`
-            }}>
-              <h1 className="hero-title">{slide.title}</h1>
-              <p className="hero-subtitle">{slide.subtitle}</p>
-            </div>
-          ))}
+          {heroSlides.map((slide, idx) => {
+            const ytId = getYoutubeId(slide.image);
+            return (
+              <div key={idx} className="hero-slide-item" style={{
+                width: `${100 / heroSlides.length}%`,
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {ytId ? (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: -1 }}>
+                    <iframe
+                      ref={el => {
+                        if (el && el.contentWindow) {
+                          if (activeHero === idx) {
+                            el.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                          } else {
+                            el.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                          }
+                        }
+                      }}
+                      onLoad={(e) => {
+                        if (activeHero !== idx) {
+                          (e.target as HTMLIFrameElement).contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                        }
+                      }}
+                      src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&enablejsapi=1`}
+                      style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.15)', pointerEvents: 'none' }}
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
+                    />
+                  </div>
+                ) : slide.image.startsWith('data:video/') || slide.image.endsWith('.mp4') || slide.image.endsWith('.webm') ? (
+                  <video
+                    ref={el => {
+                      if (el) {
+                        if (activeHero === idx) el.play().catch(() => { });
+                        else el.pause();
+                      }
+                    }}
+                    src={slide.image}
+                    autoPlay
+                    loop={heroSlides.length <= 1}
+                    muted
+                    playsInline
+                    onEnded={() => {
+                      if (heroSlides.length > 1) {
+                        setActiveHero(prev => (prev + 1) % heroSlides.length);
+                      }
+                    }}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -1 }}
+                  />
+                ) : (
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundImage: `url('${slide.image}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    zIndex: -1
+                  }} />
+                )}
+                {/* Gradient Overlay */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)',
+                  zIndex: 0
+                }} />
+                <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', textAlign: 'right', paddingBottom: '7vh', paddingRight: '2rem' }}>
+                  <h1 className="hero-title">{slide.title}</h1>
+                  <p className="hero-subtitle">{slide.subtitle}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Slider Indicators - Strip Lines */}
         {heroSlides.length > 1 && (
-          <div style={{ position: 'absolute', bottom: '3rem', display: 'flex', gap: '8px', left: '50%', transform: 'translateX(-50%)' }}>
+          <div style={{ position: 'absolute', bottom: '3rem', display: 'flex', gap: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+            <style>
+              {`
+                @keyframes heroProgress {
+                  0% { width: 0%; }
+                  100% { width: 100%; }
+                }
+              `}
+            </style>
             {heroSlides.map((_, idx) => (
-              <div key={idx} onClick={() => setActiveHero(idx)} style={{ width: '35px', height: '3px', background: activeHero === idx ? '#fff' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: '0.3s' }}></div>
+              <div
+                key={idx}
+                onClick={() => setActiveHero(idx)}
+                style={{
+                  width: activeHero === idx ? '50px' : '30px',
+                  height: '3px',
+                  background: 'rgba(255,255,255,0.2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '3px'
+                }}
+              >
+                {activeHero === idx && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    height: '100%',
+                    background: '#fff',
+                    animation: 'heroProgress 5s linear forwards'
+                  }} />
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -625,8 +739,8 @@ function HomeView() {
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>ARCHIVES</h2>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
-            <div 
-              className="archive-scroll-container" 
+            <div
+              className="archive-scroll-container"
               ref={archiveScroll.ref}
               onMouseDown={archiveScroll.onMouseDown}
               onMouseLeave={archiveScroll.onMouseLeave}
@@ -678,7 +792,7 @@ function HomeView() {
             </div>
 
             <style>{`.create-yours-scroll::-webkit-scrollbar { display: none; }`}</style>
-            <div 
+            <div
               className="create-yours-scroll"
               ref={createYoursScroll.ref}
               onMouseDown={createYoursScroll.onMouseDown}
@@ -717,74 +831,74 @@ function HomeView() {
         {!loading && products.length > 0 && (
           <>
             <div style={{ background: 'var(--color-bg-card)', padding: '0 0 5rem 0', borderTop: '1px solid var(--color-border)' }}>
-          <div style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'center' }}>
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
-          </div>
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=tops'}>
-              <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.38 3.46L16 2a8.59 8.59 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg>
+              <div style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'center' }}>
+                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
               </div>
-              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>TOPS</h3>
-            </div>
-            <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=bottoms'}>
-              <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4.5 21l1.5-15a1.5 1.5 0 0 1 1.5-1h9a1.5 1.5 0 0 1 1.5 1l1.5 15h-5.5l-2-10l-2 10z" />
-                  <path d="M12 5v5" />
-                </svg>
-              </div>
-              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>BOTTOMS</h3>
-            </div>
-          </div>
-        </div>
-
-        {/* FEATURED PRODUCTS */}
-        <div style={{ padding: '4rem 2rem 0 2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0 }}>NEW ARRIVALS</h2>
-          </div>
-        </div>
-
-        <div 
-          className="product-slider"
-          ref={productScroll.ref}
-          onMouseDown={productScroll.onMouseDown}
-          onMouseLeave={productScroll.onMouseLeave}
-          onMouseUp={productScroll.onMouseUp}
-          onMouseMove={productScroll.onMouseMove}
-          onClickCapture={productScroll.onClickCapture}
-          style={productScroll.style}
-        >
-          {products.slice(0, 5).map(product => {
-            let displayImg = product.img;
-            try {
-              const parsed = JSON.parse(product.img);
-              if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-            } catch (e) { }
-            return (
-              <div key={product.id} className="product-card">
-                <div className="new-badge">NEW</div>
-                <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="product-image-container">
-                    <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }} />
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=tops'}>
+                  <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.38 3.46L16 2a8.59 8.59 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg>
                   </div>
-                  <div className="product-info">
-                    <h3>{product.name}</h3>
-                    <p>Rp. {product.price}</p>
+                  <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>TOPS</h3>
+                </div>
+                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=bottoms'}>
+                  <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4.5 21l1.5-15a1.5 1.5 0 0 1 1.5-1h9a1.5 1.5 0 0 1 1.5 1l1.5 15h-5.5l-2-10l-2 10z" />
+                      <path d="M12 5v5" />
+                    </svg>
                   </div>
-                </Link>
-                <button onClick={(e) => { e.preventDefault(); addToCart(product); }} className="btn-secondary">ADD TO BAG</button>
+                  <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>BOTTOMS</h3>
+                </div>
               </div>
-            )
-          })}
-        </div>
+            </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
-          <Link to="/product" className="btn-secondary view-all-btn">VIEW ALL PRODUCTS</Link>
-        </div>
+            {/* FEATURED PRODUCTS */}
+            <div style={{ padding: '4rem 2rem 0 2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0 }}>NEW ARRIVALS</h2>
+              </div>
+            </div>
+
+            <div
+              className="product-slider"
+              ref={productScroll.ref}
+              onMouseDown={productScroll.onMouseDown}
+              onMouseLeave={productScroll.onMouseLeave}
+              onMouseUp={productScroll.onMouseUp}
+              onMouseMove={productScroll.onMouseMove}
+              onClickCapture={productScroll.onClickCapture}
+              style={productScroll.style}
+            >
+              {products.slice(0, 5).map(product => {
+                let displayImg = product.img;
+                try {
+                  const parsed = JSON.parse(product.img);
+                  if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                } catch (e) { }
+                return (
+                  <div key={product.id} className="product-card">
+                    <div className="new-badge">NEW</div>
+                    <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <div className="product-image-container">
+                        <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }} />
+                      </div>
+                      <div className="product-info">
+                        <h3>{product.name}</h3>
+                        <p>Rp. {product.price}</p>
+                      </div>
+                    </Link>
+                    <button onClick={(e) => { e.preventDefault(); addToCart(product); }} className="btn-secondary">ADD TO BAG</button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
+              <Link to="/product" className="btn-secondary view-all-btn">VIEW ALL PRODUCTS</Link>
+            </div>
           </>
         )}
 
@@ -882,8 +996,8 @@ function ProductListView() {
 
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', padding: '4rem 2rem' }}>
-          <button 
-            disabled={currentPage === 1} 
+          <button
+            disabled={currentPage === 1}
             onClick={() => {
               setCurrentPage(p => Math.max(1, p - 1));
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -892,13 +1006,13 @@ function ProductListView() {
           >
             ← PREV
           </button>
-          
+
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
             PAGE {currentPage} OF {totalPages}
           </div>
 
-          <button 
-            disabled={currentPage === totalPages} 
+          <button
+            disabled={currentPage === totalPages}
             onClick={() => {
               setCurrentPage(p => Math.min(totalPages, p + 1));
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1507,7 +1621,7 @@ function CreateYoursView() {
 
   const [items, setItems] = useState<any[]>([]);
   const [category, setCategory] = useState<string>(initialCategory || 'Jersey');
-  
+
   const [qty, setQty] = useState('');
   const [pants, setPants] = useState('Yes');
   const [paket, setPaket] = useState('Basic');

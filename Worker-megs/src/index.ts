@@ -7,12 +7,113 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+
 // Enable CORS for frontend applications
 app.use('/api/*', cors({
   origin: '*', // Allow all origins for dev, in production you should restrict this
   allowHeaders: ['Content-Type', 'X-Admin-Token'],
   allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
 }));
+
+async function hashPassword(password: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyAdmin(c: any): Promise<boolean> {
+  const token = c.req.header('X-Admin-Token');
+  if (!token) return false;
+  try {
+    const decoded = atob(token);
+    const [username, hash] = decoded.split(':');
+    if (!username || !hash) return false;
+    const admin = await c.env.DB.prepare("SELECT id FROM admins WHERE username = ? AND password_hash = ?").bind(username, hash).first();
+    return !!admin;
+  } catch(e) {
+    return false;
+  }
+}
+
+// --- AUTH & ADMINS ---
+app.post('/api/login', async (c) => {
+  try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)`).run();
+    
+    const { results } = await c.env.DB.prepare("SELECT * FROM admins").all();
+    if (results.length === 0) {
+      const defaultHash = await hashPassword('admin');
+      await c.env.DB.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").bind('admin', defaultHash).run();
+    }
+
+    const { username, password } = await c.req.json();
+    if (!username || !password) return c.json({ error: 'Missing credentials' }, 400);
+
+    const hash = await hashPassword(password);
+    const admin = await c.env.DB.prepare("SELECT * FROM admins WHERE username = ? AND password_hash = ?").bind(username, hash).first();
+
+    if (!admin) return c.json({ error: 'Invalid credentials' }, 401);
+
+    const token = btoa(`${username}:${hash}`);
+    return c.json({ success: true, token });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.get('/api/admins', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    const { results } = await c.env.DB.prepare("SELECT id, username FROM admins").all();
+    return c.json(results);
+  } catch(e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.post('/api/admins', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    const { username, password } = await c.req.json();
+    if (!username || !password) return c.json({ error: 'Missing fields' }, 400);
+    const hash = await hashPassword(password);
+    await c.env.DB.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").bind(username, hash).run();
+    return c.json({ success: true });
+  } catch(e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.delete('/api/admins/:id', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    const id = c.req.param('id');
+    await c.env.DB.prepare("DELETE FROM admins WHERE id = ?").bind(id).run();
+    return c.json({ success: true });
+  } catch(e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.put('/api/admins/:id', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    const id = c.req.param('id');
+    const { username, password } = await c.req.json();
+    if (!username) return c.json({ error: 'Missing username' }, 400);
+    
+    if (password) {
+      const hash = await hashPassword(password);
+      await c.env.DB.prepare("UPDATE admins SET username = ?, password_hash = ? WHERE id = ?").bind(username, hash, id).run();
+    } else {
+      await c.env.DB.prepare("UPDATE admins SET username = ? WHERE id = ?").bind(username, id).run();
+    }
+    return c.json({ success: true });
+  } catch(e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
 
 // --- PRODUCTS ---
 app.get('/api/products', async (c) => {
@@ -37,8 +138,7 @@ app.get('/api/products/:id', async (c) => {
 
 app.post('/api/products', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const body = await c.req.json();
     const { name, price, category, img, description, sizes } = body;
@@ -60,8 +160,7 @@ app.post('/api/products', async (c) => {
 
 app.put('/api/products/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -86,8 +185,7 @@ app.put('/api/products/:id', async (c) => {
 
 app.delete('/api/products/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
@@ -121,8 +219,7 @@ app.get('/api/articles/:id', async (c) => {
 
 app.post('/api/articles', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const body = await c.req.json();
     const { title, excerpt, content, images } = body;
@@ -141,8 +238,7 @@ app.post('/api/articles', async (c) => {
 
 app.put('/api/articles/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -163,8 +259,7 @@ app.put('/api/articles/:id', async (c) => {
 
 app.delete('/api/articles/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM articles WHERE id = ?").bind(id).run();
@@ -188,8 +283,7 @@ app.get('/api/create-yours', async (c) => {
 
 app.post('/api/create-yours', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
     const body = await c.req.json();
@@ -204,8 +298,7 @@ app.post('/api/create-yours', async (c) => {
 
 app.put('/api/create-yours/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -221,8 +314,7 @@ app.put('/api/create-yours/:id', async (c) => {
 
 app.delete('/api/create-yours/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM create_yours WHERE id = ?").bind(id).run();
@@ -270,8 +362,7 @@ app.post('/api/orders', async (c) => {
 
 app.put('/api/orders/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     const data = await c.req.json();
@@ -291,8 +382,7 @@ app.put('/api/orders/:id', async (c) => {
 
 app.delete('/api/orders/:id', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(id).run();
@@ -321,8 +411,7 @@ app.get('/api/settings', async (c) => {
 
 app.put('/api/settings', async (c) => {
   try {
-    const adminToken = c.req.header('X-Admin-Token');
-    if (adminToken !== 'MEGS2026') return c.json({ error: 'Unauthorized' }, 401);
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
     
