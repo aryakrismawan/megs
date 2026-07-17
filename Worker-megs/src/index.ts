@@ -429,4 +429,86 @@ app.put('/api/settings', async (c) => {
   }
 });
 
+// --- MEDIA UPLOAD (D1 CHUNKING) ---
+app.post('/api/upload', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media_chunks (media_id TEXT, chunk_index INTEGER, data TEXT, PRIMARY KEY (media_id, chunk_index))`).run();
+
+    const { file } = await c.req.json();
+    if (!file || typeof file !== 'string') return c.json({ error: 'Missing file data' }, 400);
+
+    // file is expected to be a data URL: data:video/mp4;base64,AAAA...
+    const match = file.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) return c.json({ error: 'Invalid file format' }, 400);
+
+    const mimeType = match[1];
+    const base64Data = match[2];
+    
+    const id = crypto.randomUUID();
+
+    // Chunk size: 700KB (700,000 chars of base64) to safely stay under D1's 1MB row limit
+    const CHUNK_SIZE = 700000;
+    const stmts = [];
+    
+    stmts.push(c.env.DB.prepare("INSERT INTO media (id, mime_type) VALUES (?, ?)").bind(id, mimeType));
+
+    for (let i = 0; i < base64Data.length; i += CHUNK_SIZE) {
+      const chunk = base64Data.slice(i, i + CHUNK_SIZE);
+      stmts.push(c.env.DB.prepare("INSERT INTO media_chunks (media_id, chunk_index, data) VALUES (?, ?, ?)").bind(id, i / CHUNK_SIZE, chunk));
+    }
+
+    await c.env.DB.batch(stmts);
+    
+    let ext = '';
+    if (mimeType.includes('video/mp4')) ext = '.mp4';
+    else if (mimeType.includes('video/webm')) ext = '.webm';
+    else if (mimeType.includes('image/png')) ext = '.png';
+    else if (mimeType.includes('image/webp')) ext = '.webp';
+    else if (mimeType.includes('image/jpeg')) ext = '.jpg';
+
+    return c.json({ success: true, url: `/api/media/${id}${ext}` });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.get('/api/media/:id', async (c) => {
+  try {
+    let id = c.req.param('id');
+    if (id.includes('.')) {
+      id = id.split('.')[0];
+    }
+    
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media_chunks (media_id TEXT, chunk_index INTEGER, data TEXT, PRIMARY KEY (media_id, chunk_index))`).run();
+    
+    const mediaRow = await c.env.DB.prepare("SELECT mime_type FROM media WHERE id = ?").bind(id).first();
+    if (!mediaRow) return c.json({ error: 'Not found' }, 404);
+
+    const { results } = await c.env.DB.prepare("SELECT data FROM media_chunks WHERE media_id = ? ORDER BY chunk_index ASC").bind(id).all();
+    if (!results || results.length === 0) return c.json({ error: 'Chunks not found' }, 404);
+
+    const base64Data = results.map((r: any) => r.data).join('');
+    
+    const binaryString = atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    return new Response(bytes.buffer, {
+      headers: {
+        'Content-Type': mediaRow.mime_type as string,
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      }
+    });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export default app;

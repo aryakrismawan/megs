@@ -735,8 +735,17 @@ function HomeView() {
         {/* ARCHIVES SECTION */}
         {!loading && articles.length > 0 && (
           <div style={{ padding: '4rem 0 0 0', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
-              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>ARCHIVES</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
+              <div />
+              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>ARCHIVES</h2>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+                <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              </div>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
             <div
@@ -785,9 +794,16 @@ function HomeView() {
         {/* CREATE YOURS SECTION */}
         {!loading && createYoursItems.length > 0 && (
           <div style={{ padding: '4rem 0', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
-              <div>
-                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0 }}>CREATE YOURS</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', marginBottom: '3rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
+              <div />
+              <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>CREATE YOURS</h2>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+                <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
               </div>
             </div>
 
@@ -855,8 +871,17 @@ function HomeView() {
 
             {/* FEATURED PRODUCTS */}
             <div style={{ padding: '4rem 2rem 0 2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0 }}>NEW ARRIVALS</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+                <div />
+                <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0, textAlign: 'center' }}>NEW ARRIVALS</h2>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                  <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                  </button>
+                  <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                </div>
               </div>
             </div>
 

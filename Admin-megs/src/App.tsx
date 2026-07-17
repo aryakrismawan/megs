@@ -25,6 +25,7 @@ function AdminLayout() {
   );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,21 +81,27 @@ function AdminLayout() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: 'var(--color-bg-main)', color: 'var(--color-text-main)' }}>
-      <aside style={{ width: '280px', background: 'var(--color-bg-card)', borderRight: '1px solid var(--color-border)', padding: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, color: 'var(--color-white)', marginBottom: '3rem', fontSize: '2rem', letterSpacing: '-0.05em' }}>MEGS OS</h2>
+    <div className="admin-layout">
+      <div className="admin-mobile-header">
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, color: 'var(--color-white)', fontSize: '1.5rem', letterSpacing: '-0.05em', margin: 0 }}>MEGS OS</h2>
+        <button className="admin-mobile-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          ☰
+        </button>
+      </div>
+      <aside className={`admin-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, color: 'var(--color-white)', marginBottom: '3rem', fontSize: '2rem', letterSpacing: '-0.05em', display: 'block' }}>MEGS OS</h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', fontFamily: 'var(--font-mono)' }}>
-          <Link to="/" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>DASHBOARD</Link>
-          <Link to="/orders" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>ORDERS</Link>
-          <Link to="/products" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCTS</Link>
-          <Link to="/articles" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>JOURNAL ARTICLES</Link>
-          <Link to="/create-yours" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>CREATE YOURS</Link>
-          <Link to="/settings" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>HOME SETTINGS</Link>
-          <Link to="/manage-admins" style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>MANAGE ADMINS</Link>
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>DASHBOARD</Link>
+          <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>ORDERS</Link>
+          <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCTS</Link>
+          <Link to="/articles" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>JOURNAL ARTICLES</Link>
+          <Link to="/create-yours" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>CREATE YOURS</Link>
+          <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>HOME SETTINGS</Link>
+          <Link to="/manage-admins" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>MANAGE ADMINS</Link>
           <button onClick={() => { sessionStorage.removeItem('megs_admin_token'); setIsAuthenticated(false); }} style={{ color: '#ff4444', fontSize: '0.8rem', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>LOGOUT</button>
         </nav>
       </aside>
-      <div style={{ flex: 1, padding: '3rem', overflowY: 'auto' }}>
+      <div className="admin-content">
         <Routes>
           <Route path="/" element={<h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase' }}>Overview</h2>} />
           <Route path="/orders" element={<AdminOrders />} />
@@ -172,7 +179,7 @@ function AdminOrders() {
 
           return (
             <div key={order.id} style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="admin-order-header">
                 <div>
                   <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>ORDER #{order.id}</h3>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>
@@ -197,7 +204,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+              <div className="admin-grid-2" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
                 <div>
                   <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>CUSTOMER INFO</h4>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: '0 0 0.2rem 0' }}><strong>Name:</strong> {order.customer_name}</p>
@@ -1018,7 +1025,7 @@ function ManageAdmins() {
       
       <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', marginBottom: '2rem' }}>
         <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, marginTop: 0 }}>Add New Admin</h3>
-        <form onSubmit={handleAddAdmin} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+        <form onSubmit={handleAddAdmin} className="admin-form-row">
           <div className="control-group" style={{ flex: 1 }}>
             <label>USERNAME</label>
             <input type="text" className="input-text" required value={username} onChange={e => setUsername(e.target.value)} />
@@ -1027,20 +1034,22 @@ function ManageAdmins() {
             <label>PASSWORD</label>
             <input type="password" className="input-text" required value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          <button type="submit" className="btn-primary" style={{ padding: '0.8rem 1.5rem' }}>ADD</button>
+          <button type="submit" className="btn-primary" style={{ padding: '0.8rem 1.5rem', whiteSpace: 'nowrap' }}>ADD ADMIN</button>
         </form>
         {status && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>{status}</p>}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {loading ? <p>Loading...</p> : admins.length === 0 ? <p>No admins found.</p> : admins.map(admin => (
-          <div key={admin.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--color-border)', background: 'var(--color-bg-main)' }}>
+          <div key={admin.id} className="admin-list-item">
             {editingId === admin.id ? (
-              <div style={{ display: 'flex', gap: '1rem', flex: 1, alignItems: 'center' }}>
+              <div className="admin-edit-row">
                 <input type="text" className="input-text" value={editUsername} onChange={e => setEditUsername(e.target.value)} style={{ flex: 1 }} />
-                <input type="password" className="input-text" placeholder="New password (leave blank to keep)" value={editPassword} onChange={e => setEditPassword(e.target.value)} style={{ flex: 1 }} />
-                <button onClick={() => handleSaveEdit(admin.id)} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>SAVE</button>
-                <button onClick={() => setEditingId(null)} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>CANCEL</button>
+                <input type="password" className="input-text" placeholder="New password (leave blank)" value={editPassword} onChange={e => setEditPassword(e.target.value)} style={{ flex: 1 }} />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => handleSaveEdit(admin.id)} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>SAVE</button>
+                  <button onClick={() => setEditingId(null)} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>CANCEL</button>
+                </div>
               </div>
             ) : (
               <>
@@ -1048,7 +1057,7 @@ function ManageAdmins() {
                   <p style={{ fontFamily: 'var(--font-mono)', margin: 0, fontWeight: 'bold' }}>{admin.username}</p>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>ID: {admin.id}</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="admin-list-actions">
                   <button onClick={() => handleEdit(admin)} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>EDIT</button>
                   {admins.length > 1 && (
                     <button onClick={() => handleDelete(admin.id)} style={{ background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>DELETE</button>
@@ -1092,57 +1101,75 @@ function AdminSettings() {
       });
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('video/')) {
-        if (file.size > 800 * 1024) {
-          alert('Ukuran video terlalu besar! Maksimal 800KB untuk database lokal. Silakan kompres video Anda atau masukkan URL eksternal ke dalam kotak isian teks.');
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (event) => {
+    if (!file) return;
+
+    const uploadFile = async (base64String: string) => {
+      setStatus('Mengunggah file... Mohon tunggu.');
+      try {
+        const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+          body: JSON.stringify({ file: base64String })
+        });
+        const data = await res.json();
+        if (data.url) {
           const newSlides = [...heroSlides];
-          newSlides[index].image = event.target?.result as string;
+          const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+          newSlides[index].image = apiUrl + data.url;
           setHeroSlides(newSlides);
-        };
-        reader.readAsDataURL(file);
+          setStatus('File berhasil diunggah! Jangan lupa klik SAVE SETTINGS.');
+        } else {
+          setStatus('Gagal mengunggah: ' + data.error);
+        }
+      } catch (err: any) {
+         setStatus('Error: ' + err.message);
+      }
+    };
+
+    if (file.type.startsWith('video/')) {
+      if (file.size > 25 * 1024 * 1024) {
+        alert('Ukuran video terlalu besar! Maksimal 25MB.');
         return;
       }
-      
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1920;
-          let width = img.width;
-          let height = img.height;
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          const newSlides = [...heroSlides];
-          let mimeType = 'image/jpeg';
-          let quality: number | undefined = 0.8;
-          if (file.type === 'image/png') {
-            mimeType = 'image/png';
-            quality = undefined;
-          } else if (file.type === 'image/webp') {
-            mimeType = 'image/webp';
-          }
-          newSlides[index].image = canvas.toDataURL(mimeType, quality);
-          setHeroSlides(newSlides);
-        };
-        img.src = event.target?.result as string;
-      };
+      reader.onload = (event) => uploadFile(event.target?.result as string);
       reader.readAsDataURL(file);
+      return;
     }
+    
+    // For images, resize first then upload
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1920;
+        let width = img.width;
+        let height = img.height;
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        let mimeType = 'image/jpeg';
+        let quality: number | undefined = 0.8;
+        if (file.type === 'image/png') {
+          mimeType = 'image/png';
+          quality = undefined;
+        } else if (file.type === 'image/webp') {
+          mimeType = 'image/webp';
+        }
+        uploadFile(canvas.toDataURL(mimeType, quality));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAboutImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
