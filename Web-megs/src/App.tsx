@@ -894,7 +894,7 @@ function HomeView() {
                 onMouseUp={archiveScroll.onMouseUp}
                 onMouseMove={archiveScroll.onMouseMove}
                 onClickCapture={archiveScroll.onClickCapture}
-                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', scrollPadding: '0 2rem', ...archiveScroll.style }}
+                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2rem', ...archiveScroll.style }}
               >
                 {articles.slice(0, 6).map(article => {
                   const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
@@ -953,7 +953,7 @@ function HomeView() {
                 onMouseUp={createYoursScroll.onMouseUp}
                 onMouseMove={createYoursScroll.onMouseMove}
                 onClickCapture={createYoursScroll.onClickCapture}
-                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', scrollPadding: '0 2rem', ...createYoursScroll.style }}
+                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2rem', ...createYoursScroll.style }}
               >
                 {createYoursItems.map(item => (
                   <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>

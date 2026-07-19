@@ -6,9 +6,6 @@ export function CartSidebar() {
   const navigate = useNavigate();
   const { cart, removeFromCart, isCartOpen, setIsCartOpen, clearCart } = useShop();
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form'>('cart');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
 
   // Reset step when cart opens/closes
   React.useEffect(() => {
@@ -18,63 +15,6 @@ export function CartSidebar() {
   }, [isCartOpen]);
 
   if (!isCartOpen) return null;
-
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-  
-  const handleWhatsAppCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Format cart items
-    const itemsText = cart.map(item => 
-      `- ${item.name} (${item.selectedSize ? `Size: ${item.selectedSize}` : 'No Size'}) x${item.quantity} (Rp. ${item.price})`
-    ).join('\n');
-    
-    // Calculate total price for DB
-    const totalPrice = cart.reduce((sum, item) => {
-      const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
-      return sum + (priceNum * item.quantity);
-    }, 0);
-    const totalFormatted = `Rp. ${totalPrice.toLocaleString('id-ID')}`;
-
-    try {
-      // Save order to database
-      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_name: name,
-          customer_phone: phone,
-          customer_address: address,
-          order_items: JSON.stringify(cart),
-          total_price: totalFormatted
-        })
-      });
-    } catch (e) {
-      console.error('Failed to save order to DB', e);
-    }
-
-    const text = `*NEW ORDER - MEGS*
-
-*Customer Details:*
-Name: ${name}
-Phone: ${phone}
-Address: ${address}
-
-*Order Items:*
-${itemsText}
-
-*Total:* ${totalFormatted}
-
-Please confirm my order and provide payment details. Thank you!`;
-
-    const encodedText = encodeURIComponent(text);
-    const waNumber = '6285863144773'; 
-    window.open(`https://wa.me/${waNumber}?text=${encodedText}`, '_blank');
-    
-    // Clear cart and close sidebar
-    if (clearCart) clearCart();
-    setIsCartOpen(false);
-  };
 
 
   return (
