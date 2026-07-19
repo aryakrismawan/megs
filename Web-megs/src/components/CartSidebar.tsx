@@ -4,15 +4,18 @@ import { useShop } from '../ShopContext';
 
 export function CartSidebar() {
   const navigate = useNavigate();
-  const { cart, removeFromCart, isCartOpen, setIsCartOpen, clearCart } = useShop();
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form'>('cart');
+  const { cart, removeFromCart, isCartOpen, setIsCartOpen } = useShop();
 
-  // Reset step when cart opens/closes
+  // Close sidebar on navigate
   React.useEffect(() => {
     if (!isCartOpen) {
-      setCheckoutStep('cart');
+      // Cleanup if needed
     }
   }, [isCartOpen]);
+
+  if (!isCartOpen) return null;
+
+  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   if (!isCartOpen) return null;
 
@@ -31,11 +34,8 @@ export function CartSidebar() {
       }}>
         <div style={{padding: '2rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-            {checkoutStep === 'form' && (
-              <button onClick={() => setCheckoutStep('cart')} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)'}}>←</button>
-            )}
             <h2 style={{fontFamily: 'var(--font-sans)', fontWeight: 900, textTransform: 'uppercase', fontSize: '1.5rem', margin: 0}}>
-              {checkoutStep === 'form' ? 'Checkout' : `Bag (${totalItems})`}
+              Bag ({totalItems})
             </h2>
           </div>
           <button onClick={() => setIsCartOpen(false)} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '1.5rem'}}>×</button>
