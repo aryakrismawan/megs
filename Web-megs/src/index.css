@@ -1071,7 +1071,7 @@ input[type=range]::-webkit-slider-runnable-track {
 
 /* Slider Nav Buttons (Desktop only) */
 .slider-nav-btn {
-  background: transparent;
+  background: var(--color-bg-main);
   color: var(--color-text-main);
   border: 1px solid var(--color-border);
   width: 48px;
@@ -1082,6 +1082,7 @@ input[type=range]::-webkit-slider-runnable-track {
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.3s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 .slider-nav-btn:hover {
   background: var(--color-text-main);

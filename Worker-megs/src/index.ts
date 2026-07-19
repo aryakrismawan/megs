@@ -337,7 +337,7 @@ app.get('/api/orders', async (c) => {
 app.post('/api/orders', async (c) => {
   try {
     const data = await c.req.json();
-    const { customer_name, customer_phone, customer_address, order_items, total_price } = data;
+    const { customer_name, customer_phone, customer_address, order_items, total_price, coupon_code } = data;
 
     if (!customer_name || !customer_phone || !customer_address || !order_items) {
       return c.json({ error: 'Missing required fields' }, 400);
@@ -353,6 +353,10 @@ app.post('/api/orders', async (c) => {
       typeof order_items === 'string' ? order_items : JSON.stringify(order_items),
       total_price || ''
     ).run();
+
+    if (coupon_code) {
+      await c.env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(coupon_code.toUpperCase()).run();
+    }
 
     return c.json({ success: true, id: info.meta.last_row_id });
   } catch (e: any) {
@@ -506,6 +510,65 @@ app.get('/api/media/:id', async (c) => {
         'Cache-Control': 'public, max-age=31536000, immutable'
       }
     });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+// --- COUPONS ---
+app.get('/api/coupons', async (c) => {
+  try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, discount_percentage INTEGER NOT NULL, valid_from DATETIME, valid_until DATETIME, usage_limit INTEGER, used_count INTEGER DEFAULT 0)`).run();
+    const { results } = await c.env.DB.prepare("SELECT * FROM coupons ORDER BY id DESC").all();
+    return c.json(results);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.post('/api/coupons', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, discount_percentage INTEGER NOT NULL, valid_from DATETIME, valid_until DATETIME, usage_limit INTEGER, used_count INTEGER DEFAULT 0)`).run();
+    const { code, discount_percentage, valid_from, valid_until, usage_limit } = await c.req.json();
+    if (!code || discount_percentage === undefined) return c.json({ error: 'Missing fields' }, 400);
+
+    const result = await c.env.DB.prepare(
+      "INSERT INTO coupons (code, discount_percentage, valid_from, valid_until, usage_limit, used_count) VALUES (?, ?, ?, ?, ?, 0)"
+    ).bind(code.toUpperCase(), discount_percentage, valid_from || null, valid_until || null, usage_limit || null).run();
+    
+    return c.json({ success: true, id: result.meta.last_row_id });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.delete('/api/coupons/:id', async (c) => {
+  try {
+    if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
+    const id = c.req.param('id');
+    await c.env.DB.prepare("DELETE FROM coupons WHERE id = ?").bind(id).run();
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.post('/api/verify-coupon', async (c) => {
+  try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, discount_percentage INTEGER NOT NULL, valid_from DATETIME, valid_until DATETIME, usage_limit INTEGER, used_count INTEGER DEFAULT 0)`).run();
+    const { code } = await c.req.json();
+    if (!code) return c.json({ error: 'Missing coupon code' }, 400);
+
+    const coupon = await c.env.DB.prepare("SELECT * FROM coupons WHERE code = ?").bind(code.toUpperCase()).first();
+    if (!coupon) return c.json({ error: 'Invalid coupon code' }, 404);
+
+    const now = new Date();
+    if (coupon.valid_from && new Date(coupon.valid_from) > now) return c.json({ error: 'Coupon is not active yet' }, 400);
+    if (coupon.valid_until && new Date(coupon.valid_until) < now) return c.json({ error: 'Coupon has expired' }, 400);
+    if (coupon.usage_limit && (coupon.used_count as number) >= (coupon.usage_limit as number)) return c.json({ error: 'Coupon usage limit reached' }, 400);
+
+    return c.json({ success: true, discount_percentage: coupon.discount_percentage, id: coupon.id, code: coupon.code });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }

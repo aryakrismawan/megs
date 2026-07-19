@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -96,6 +96,9 @@ function App() {
               <Route path="/journal/:id" element={<ArticleDetailView />} />
               <Route path="/contact" element={<ContactView />} />
               <Route path="/create-yours" element={<CreateYoursView />} />
+              <Route path="/how-to-shop" element={<HowToShopView />} />
+              <Route path="/faq" element={<FaqView />} />
+              <Route path="/checkout" element={<CheckoutView />} />
 
             </Routes>
           </main>
@@ -131,7 +134,7 @@ function App() {
                       textAlign: 'justify',
                     }}
                   >
-                    Since launching in 2026, MEGS develops technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics to help you unlock your best performance.
+                    Since launching in 2023, MEGS develops technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics to help you unlock your best performance.
                   </p>
                 </div>
 
@@ -149,11 +152,9 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
                   <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Help</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
-                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>FAQ</Link>
-                    <Link to="/track-order" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Delivery</Link>
-                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Return Policy</Link>
+                    <Link to="/faq" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>FAQ</Link>
+                    <Link to="/how-to-shop" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>How to Shop</Link>
                     <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Contact Us</Link>
-                    <span style={{ color: 'var(--color-text-main)', cursor: 'pointer' }}>Payment Options</span>
                   </div>
                 </div>
 
@@ -180,10 +181,7 @@ function App() {
                 {/* Right Aligned Links & Shipping */}
                 <div className="footer-bottom-links" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
-                    <span>&copy;2026 MEGS&reg;</span>
-                    <span style={{ cursor: 'pointer' }}>Manage Cookies</span>
-                    <span style={{ cursor: 'pointer' }}>Terms &amp; Conditions</span>
-                    <span style={{ cursor: 'pointer' }}>Privacy Policy</span>
+                    <span>&copy;2023 MEGS&reg;</span>
                   </div>
                 </div>
 
@@ -193,6 +191,126 @@ function App() {
         </div>
       </Router>
     </ShopProvider>
+  );
+}
+
+function FaqView() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const faqs = [
+    { question: "How long does shipping take?", answer: "Domestic orders typically take 3-5 business days. International shipping can take 7-14 business days depending on customs." },
+    { question: "What is your return policy?", answer: "We accept returns within 30 days of purchase for unworn, unwashed items with tags attached. Please visit our Return Policy page for more details." },
+    { question: "How do I care for my MEGS apparel?", answer: "Most of our technical apparel should be machine washed cold with like colors and tumble dried low. Avoid fabric softeners and bleach to maintain the fabric's performance properties." },
+    { question: "Do you ship internationally?", answer: "Yes, we ship to select international destinations. Shipping costs and delivery times will be calculated at checkout." },
+    { question: "How can I track my order?", answer: "Once your order ships, you will receive a confirmation email with a tracking number. You can also use the 'Track Order' link in our footer to check the status." }
+  ];
+
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  return (
+    <div style={{ padding: '6rem 2rem', minHeight: '80vh', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ maxWidth: '800px', width: '100%' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', textTransform: 'uppercase', marginBottom: '1rem' }}>FAQ</h1>
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', color: 'var(--color-text-muted)', marginBottom: '4rem' }}>
+          Frequently Asked Questions. If you can't find the answer you're looking for, please contact us.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {faqs.map((faq, index) => (
+            <div key={index} style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+              <button
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                style={{ width: '100%', background: 'none', border: 'none', padding: '1rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--color-text-main)' }}
+              >
+                <span>{faq.question}</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 300, transition: 'transform 0.3s ease', transform: openIndex === index ? 'rotate(45deg)' : 'rotate(0deg)' }}>+</span>
+              </button>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateRows: openIndex === index ? '1fr' : '0fr',
+                transition: 'grid-template-rows 0.3s ease'
+              }}>
+                <div style={{ overflow: 'hidden' }}>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.6, paddingBottom: '1rem', margin: 0 }}>
+                    {faq.answer}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HowToShopView() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <div style={{ padding: '6rem 2rem', minHeight: '80vh', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ maxWidth: '800px', width: '100%' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', textTransform: 'uppercase', marginBottom: '1rem' }}>How to Shop</h1>
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', color: 'var(--color-text-muted)', marginBottom: '4rem' }}>
+          Your guide to a seamless shopping experience at MEGS.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--color-border)', lineHeight: 1 }}>01</div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Discover Your Gear</h3>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.6 }}>
+                Browse our collection through the "Shop" section or explore "New Arrivals". Click on any product to view its details, available sizes, and color options. Select your preferred options and click "Add to Bag".
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--color-border)', lineHeight: 1 }}>02</div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Review Your Bag</h3>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.6 }}>
+                Click the shopping bag icon at the top right of your screen to review your selected items. You can adjust quantities or remove items before proceeding to checkout.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--color-border)', lineHeight: 1 }}>03</div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Checkout &amp; Payment</h3>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.6 }}>
+                Fill in your shipping information securely. We offer various payment methods for your convenience. Follow the prompt to complete your payment. Once successful, you'll receive an order confirmation email.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--color-border)', lineHeight: 1 }}>04</div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Track Your Order</h3>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-main)', lineHeight: 1.6 }}>
+                You can monitor your shipment status anytime. Simply visit the "Track Order" page from our footer and enter your order ID to get real-time updates on your delivery.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '5rem', paddingTop: '3rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
+          <div>
+            <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.5rem' }}>Need more help?</h4>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Our support team is ready to assist you.</p>
+          </div>
+          <Link to="/contact" className="btn-secondary" style={{ textDecoration: 'none' }}>CONTACT US</Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -264,6 +382,7 @@ function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products } = useShop();
   const [articles, setArticles] = useState<any[]>([]);
+  const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -295,12 +414,23 @@ function Navbar() {
         if (Array.isArray(data)) setArticles(data);
       })
       .catch(err => console.error(err));
+      
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
+      .then(async res => {
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { return []; }
+      })
+      .then(data => {
+        if (Array.isArray(data)) setCreateYoursItems(data);
+      })
+      .catch(err => console.error(err));
   }, []);
 
   if (location.pathname.startsWith('/admin')) return null;
 
   const recentProducts = products.slice(0, 4);
   const recentArticles = articles.slice(0, 4);
+  const recentCreateYours = createYoursItems.slice(0, 4);
 
   const isTransparentHero = !isScrolled && location.pathname === '/';
   const logoSrc = (theme === 'dark' || isTransparentHero) ? '/logo putih.png' : '/logo hitam.png';
@@ -339,6 +469,19 @@ function Navbar() {
           </div>
         </div>
 
+        <div className="nav-item">
+          <Link to="/create-yours" className={location.pathname === '/create-yours' ? 'active' : ''}>CREATE YOURS</Link>
+          <div className="nav-megamenu">
+            {recentCreateYours.map(item => (
+              <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="nav-megamenu-item">
+                <div className="nav-megamenu-img-wrapper">
+                  <img src={item.image} alt={item.name} style={{ objectFit: 'contain' }} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+                </div>
+                <div className="nav-megamenu-title">{item.name}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
 
         <div className="nav-item">
           <Link to="/product" className={location.pathname.startsWith('/product') ? 'active' : ''}>PRODUCTS</Link>
@@ -361,10 +504,6 @@ function Navbar() {
               );
             })}
           </div>
-        </div>
-
-        <div className="nav-item">
-          <Link to="/create-yours" className={location.pathname === '/create-yours' ? 'active' : ''}>CREATE YOURS</Link>
         </div>
 
         <div className="nav-item">
@@ -440,7 +579,8 @@ function Navbar() {
 }
 
 function HomeView() {
-  const { products, addToCart } = useShop();
+  const { products } = useShop();
+  const navigate = useNavigate();
   const [articles, setArticles] = useState<any[]>([]);
   const [heroSlides, setHeroSlides] = useState<any[]>([]);
   const [aboutImage, setAboutImage] = useState('');
@@ -735,54 +875,53 @@ function HomeView() {
         {/* ARCHIVES SECTION */}
         {!loading && articles.length > 0 && (
           <div style={{ padding: '4rem 0 0 0', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
-              <div />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>ARCHIVES</h2>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-                <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-                </button>
-              </div>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
-            <div
-              className="archive-scroll-container"
-              ref={archiveScroll.ref}
-              onMouseDown={archiveScroll.onMouseDown}
-              onMouseLeave={archiveScroll.onMouseLeave}
-              onMouseUp={archiveScroll.onMouseUp}
-              onMouseMove={archiveScroll.onMouseMove}
-              onClickCapture={archiveScroll.onClickCapture}
-              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...archiveScroll.style }}
-            >
-              {articles.slice(0, 6).map(article => {
-                const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
-                const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
-                return (
-                  <Link to={`/journal/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
-                    {coverImage ? (
-                      <img src={coverImage} alt={article.title} loading="lazy" className="archive-img" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+              <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-right" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+              <div
+                className="archive-scroll-container"
+                ref={archiveScroll.ref}
+                onMouseDown={archiveScroll.onMouseDown}
+                onMouseLeave={archiveScroll.onMouseLeave}
+                onMouseUp={archiveScroll.onMouseUp}
+                onMouseMove={archiveScroll.onMouseMove}
+                onClickCapture={archiveScroll.onClickCapture}
+                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', scrollPadding: '0 2rem', ...archiveScroll.style }}
+              >
+                {articles.slice(0, 6).map(article => {
+                  const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
+                  const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
+                  return (
+                    <Link to={`/journal/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
+                      {coverImage ? (
+                        <img src={coverImage} alt={article.title} loading="lazy" className="archive-img" />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
+                        </div>
+                      )}
+
+                      <div className="archive-overlay" />
+
+                      <div className="archive-content">
+                        <h3 className="archive-title">{article.title}</h3>
+                        <p className="archive-subtitle">
+                          {article.excerpt || new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                        </p>
+                        <div className="archive-btn">READ</div>
                       </div>
-                    )}
-
-                    <div className="archive-overlay" />
-
-                    <div className="archive-content">
-                      <h3 className="archive-title">{article.title}</h3>
-                      <p className="archive-subtitle">
-                        {article.excerpt || new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
-                      </p>
-                      <div className="archive-btn">READ</div>
-                    </div>
-                  </Link>
-                )
-              })}
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 2rem 4rem 2rem' }}>
@@ -794,51 +933,50 @@ function HomeView() {
         {/* CREATE YOURS SECTION */}
         {!loading && createYoursItems.length > 0 && (
           <div style={{ padding: '4rem 0', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', marginBottom: '3rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
-              <div />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>CREATE YOURS</h2>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-                <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-                </button>
-              </div>
             </div>
 
             <style>{`.create-yours-scroll::-webkit-scrollbar { display: none; }`}</style>
-            <div
-              className="create-yours-scroll"
-              ref={createYoursScroll.ref}
-              onMouseDown={createYoursScroll.onMouseDown}
-              onMouseLeave={createYoursScroll.onMouseLeave}
-              onMouseUp={createYoursScroll.onMouseUp}
-              onMouseMove={createYoursScroll.onMouseMove}
-              onClickCapture={createYoursScroll.onClickCapture}
-              style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', ...createYoursScroll.style }}
-            >
-              {createYoursItems.map(item => (
-                <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>
-                  {item.image ? (
-                    <img src={item.image} alt={item.name} loading="lazy" className="archive-img" />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
-                    </div>
-                  )}
-
-                  <div className="archive-overlay" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)' }} />
-
-                  <div className="archive-content" style={{ justifyContent: 'flex-end', paddingBottom: '3rem' }}>
-                    <h3 className="archive-title" style={{ color: '#fff' }}>{item.name}</h3>
-                    {item.description && (
-                      <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8, marginBottom: '1.5rem' }}>{item.description}</p>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+              <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-right" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+              <div
+                className="create-yours-scroll"
+                ref={createYoursScroll.ref}
+                onMouseDown={createYoursScroll.onMouseDown}
+                onMouseLeave={createYoursScroll.onMouseLeave}
+                onMouseUp={createYoursScroll.onMouseUp}
+                onMouseMove={createYoursScroll.onMouseMove}
+                onClickCapture={createYoursScroll.onClickCapture}
+                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', scrollPadding: '0 2rem', ...createYoursScroll.style }}
+              >
+                {createYoursItems.map(item => (
+                  <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} loading="lazy" className="archive-img" />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-main)', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NO IMAGE</span>
+                      </div>
                     )}
-                    <div className="archive-btn" style={{ background: '#fff', color: '#000' }}>START DESIGN</div>
-                  </div>
-                </Link>
-              ))}
+
+                    <div className="archive-overlay" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)' }} />
+
+                    <div className="archive-content" style={{ justifyContent: 'flex-end', paddingBottom: '3rem' }}>
+                      <h3 className="archive-title" style={{ color: '#fff' }}>{item.name}</h3>
+                      {item.description && (
+                        <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8, marginBottom: '1.5rem' }}>{item.description}</p>
+                      )}
+                      <div className="archive-btn" style={{ background: '#fff', color: '#000' }}>START DESIGN</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -871,54 +1009,53 @@ function HomeView() {
 
             {/* FEATURED PRODUCTS */}
             <div style={{ padding: '4rem 2rem 0 2rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-                <div />
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1, margin: 0, textAlign: 'center' }}>NEW ARRIVALS</h2>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                  <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-                  </button>
-                  <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-                  </button>
-                </div>
               </div>
             </div>
 
-            <div
-              className="product-slider"
-              ref={productScroll.ref}
-              onMouseDown={productScroll.onMouseDown}
-              onMouseLeave={productScroll.onMouseLeave}
-              onMouseUp={productScroll.onMouseUp}
-              onMouseMove={productScroll.onMouseMove}
-              onClickCapture={productScroll.onClickCapture}
-              style={productScroll.style}
-            >
-              {products.slice(0, 5).map(product => {
-                let displayImg = product.img;
-                try {
-                  const parsed = JSON.parse(product.img);
-                  if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-                } catch (e) { }
-                return (
-                  <div key={product.id} className="product-card">
-                    <div className="new-badge">NEW</div>
-                    <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <div className="product-image-container">
-                        <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }} />
-                      </div>
-                      <div className="product-info">
-                        <h3>{product.name}</h3>
-                        <p>Rp. {product.price}</p>
-                      </div>
-                    </Link>
-                    <button onClick={(e) => { e.preventDefault(); addToCart(product); }} className="btn-secondary">ADD TO BAG</button>
-                  </div>
-                )
-              })}
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+              <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-right" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+              <div
+                className="product-slider"
+                ref={productScroll.ref}
+                onMouseDown={productScroll.onMouseDown}
+                onMouseLeave={productScroll.onMouseLeave}
+                onMouseUp={productScroll.onMouseUp}
+                onMouseMove={productScroll.onMouseMove}
+                onClickCapture={productScroll.onClickCapture}
+                style={{ ...productScroll.style, scrollPadding: '0 2rem' }}
+              >
+                {products.slice(0, 5).map(product => {
+                  let displayImg = product.img;
+                  try {
+                    const parsed = JSON.parse(product.img);
+                    if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                  } catch (e) { }
+                  return (
+                    <div key={product.id} className="product-card">
+                      <div className="new-badge">NEW</div>
+                      <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="product-image-container">
+                          <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }} />
+                        </div>
+                        <div className="product-info">
+                          <h3>{product.name}</h3>
+                          <p>Rp. {product.price}</p>
+                        </div>
+                      </Link>
+                      <button onClick={(e) => { e.preventDefault(); navigate(`/product/${product.id}`); }} className="btn-secondary">CHOOSE SIZE</button>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
@@ -932,7 +1069,8 @@ function HomeView() {
   );
 }
 function ProductListView() {
-  const { products, addToCart } = useShop();
+  const { products } = useShop();
+  const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryFilter = searchParams.get('cat');
@@ -1013,7 +1151,7 @@ function ProductListView() {
                   <p>Rp. {product.price}</p>
                 </div>
               </Link>
-              <button onClick={(e) => { e.preventDefault(); addToCart(product); }} className="btn-secondary">ADD TO BAG</button>
+              <button onClick={(e) => { e.preventDefault(); navigate(`/product/${product.id}`); }} className="btn-secondary">CHOOSE SIZE</button>
             </div>
           )
         })}
@@ -1799,5 +1937,228 @@ function CreateYoursView() {
 }
 
 
+
+function CheckoutView() {
+  const { cart, clearCart, updateQuantity, removeFromCart } = useShop();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [province, setProvince] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [couponMessage, setCouponMessage] = useState('');
+
+  const provinces = [
+    'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Kepulauan Bangka Belitung', 'Kepulauan Riau',
+    'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten', 'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
+    'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara', 'Sulawesi Utara', 'Sulawesi Tengah',
+    'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat', 'Maluku', 'Maluku Utara', 'Papua Barat', 'Papua'
+  ];
+
+  const handleApplyCoupon = async () => {
+    try {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/verify-coupon`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDiscountPercent(data.discount_percentage);
+        setCouponMessage(`Coupon applied! ${data.discount_percentage}% off`);
+      } else {
+        setDiscountPercent(0);
+        setCouponMessage(data.error || 'Invalid coupon');
+      }
+    } catch (e) {
+      setCouponMessage('Error verifying coupon');
+    }
+  };
+
+  const handleWhatsAppCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cart.length === 0) return alert('Your cart is empty!');
+
+    const itemsText = cart.map(item => 
+      `- ${item.name} (${item.selectedSize ? `Size: ${item.selectedSize}` : 'No Size'}) x${item.quantity} (Rp. ${item.price})`
+    ).join('\n');
+    
+    const subtotal = cart.reduce((sum, item) => {
+      const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
+      return sum + (priceNum * item.quantity);
+    }, 0);
+    const discountAmount = Math.floor(subtotal * (discountPercent / 100));
+    const total = subtotal - discountAmount;
+    
+    const totalFormatted = `Rp. ${total.toLocaleString('id-ID')}`;
+    const subtotalFormatted = `Rp. ${subtotal.toLocaleString('id-ID')}`;
+
+    try {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: name,
+          customer_phone: phone,
+          customer_address: `${address}, ${province}, ${zipCode} (Email: ${email})`,
+          order_items: JSON.stringify(cart),
+          total_price: totalFormatted,
+          coupon_code: discountPercent > 0 ? couponCode : undefined
+        })
+      });
+    } catch (e) {
+      console.error('Failed to save order', e);
+    }
+
+    const text = `*NEW ORDER - MEGS*
+
+*Customer Details:*
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Address: ${address}, ${province}, ${zipCode}
+
+*Order Items:*
+${itemsText}
+
+*Subtotal:* ${subtotalFormatted}
+${discountPercent > 0 ? `*Discount (${discountPercent}%):* -Rp. ${discountAmount.toLocaleString('id-ID')}\n` : ''}*Total:* ${totalFormatted}
+
+Please confirm my order and provide payment details. Thank you!`;
+
+    const encodedText = encodeURIComponent(text);
+    const waNumber = '6285863144773'; 
+    window.open(`https://wa.me/${waNumber}?text=${encodedText}`, '_blank');
+    
+    if (clearCart) clearCart();
+    window.location.href = '/';
+  };
+
+  const subtotal = cart.reduce((sum, item) => {
+    const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
+    return sum + (priceNum * item.quantity);
+  }, 0);
+  const discountAmount = Math.floor(subtotal * (discountPercent / 100));
+  const total = subtotal - discountAmount;
+
+  return (
+    <div style={{ padding: '8rem 2rem 4rem 2rem', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', alignItems: 'start' }}>
+      <div>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, textTransform: 'uppercase', fontSize: '2.5rem', marginBottom: '2rem' }}>Checkout</h1>
+        <form id="checkout-form" onSubmit={handleWhatsAppCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginTop: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>Contact Information</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="control-group">
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL NAME *</label>
+              <input required className="input-text" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" />
+            </div>
+            <div className="control-group">
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL ADDRESS *</label>
+              <input required className="input-text" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" />
+            </div>
+          </div>
+
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>WHATSAPP NUMBER *</label>
+            <input required className="input-text" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="081234567890" />
+          </div>
+
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginTop: '2rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>Shipping Address</h3>
+
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL ADDRESS *</label>
+            <textarea required className="input-text" rows={3} value={address} onChange={e => setAddress(e.target.value)} placeholder="Street name, house number, etc." />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="control-group">
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINCE *</label>
+              <select required className="input-text" value={province} onChange={e => setProvince(e.target.value)} style={{ width: '100%', padding: '0.8rem', background: 'var(--color-bg-main)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)' }}>
+                <option value="">Select Province</option>
+                {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="control-group">
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>ZIP CODE *</label>
+              <input required className="input-text" type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="12345" />
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', position: 'sticky', top: '100px' }}>
+        <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginBottom: '1.5rem' }}>Order Summary</h3>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', maxHeight: '300px', overflowY: 'auto' }}>
+          {cart.map(item => {
+            let displayImg = item.img;
+            try {
+              const parsed = JSON.parse(item.img);
+              if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+            } catch (e) {}
+            return (
+              <div key={`${item.id}-${item.selectedSize}`} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <img src={displayImg} alt={item.name} style={{ width: '60px', height: '60px', objectFit: 'contain', background: 'var(--color-bg-main)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.selectedSize ? `Size: ${item.selectedSize}` : ''}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} style={{ background: 'var(--color-border)', border: 'none', width: '20px', height: '20px', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>-</button>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{item.quantity}</span>
+                    <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} style={{ background: 'var(--color-border)', border: 'none', width: '20px', height: '20px', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>+</button>
+                    <button type="button" onClick={() => removeFromCart(item.id, item.selectedSize)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '0.75rem', marginLeft: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>REMOVE</button>
+                  </div>
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>Rp. {item.price}</div>
+              </div>
+            )
+          })}
+          {cart.length === 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Your cart is empty</div>}
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input 
+              type="text" 
+              className="input-text" 
+              placeholder="Coupon code" 
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button type="button" className="btn-secondary" onClick={handleApplyCoupon} style={{ padding: '0.8rem 1rem' }}>APPLY</button>
+          </div>
+          {couponMessage && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', marginTop: '0.5rem', color: discountPercent > 0 ? '#00c853' : '#ff4444' }}>{couponMessage}</div>}
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Subtotal</span>
+            <span>Rp. {subtotal.toLocaleString('id-ID')}</span>
+          </div>
+          {discountPercent > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff4444' }}>
+              <span>Discount ({discountPercent}%)</span>
+              <span>-Rp. {discountAmount.toLocaleString('id-ID')}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem' }}>
+            <span>Total</span>
+            <span>Rp. {total.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+
+        <button form="checkout-form" type="submit" className="btn-primary" style={{ width: '100%', marginTop: '2rem' }} disabled={cart.length === 0}>
+          CONFIRM VIA WHATSAPP
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default App;

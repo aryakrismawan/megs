@@ -16,6 +16,7 @@ type ShopContextType = {
   cart: CartItem[];
   addToCart: (product: Product, size?: string) => void;
   removeFromCart: (productId: number, size?: string) => void;
+  updateQuantity: (productId: number, size: string | undefined, newQuantity: number) => void;
   clearCart: () => void;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
@@ -57,6 +58,18 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     setCart((prev) => prev.filter((item) => !(item.id === productId && item.selectedSize === size)));
   };
 
+  const updateQuantity = (productId: number, size: string | undefined, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId, size);
+      return;
+    }
+    setCart((prev) => prev.map(item => 
+      (item.id === productId && item.selectedSize === size) 
+        ? { ...item, quantity: newQuantity } 
+        : item
+    ));
+  };
+
   const clearCart = () => setCart([]);
 
   return (
@@ -65,6 +78,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       cart,
       addToCart,
       removeFromCart,
+      updateQuantity,
       clearCart,
       isCartOpen,
       setIsCartOpen,

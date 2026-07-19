@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useShop } from '../ShopContext';
 
 export function CartSidebar() {
+  const navigate = useNavigate();
   const { cart, removeFromCart, isCartOpen, setIsCartOpen, clearCart } = useShop();
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form'>('cart');
   const [name, setName] = useState('');
@@ -99,66 +101,37 @@ Please confirm my order and provide payment details. Thank you!`;
           <button onClick={() => setIsCartOpen(false)} style={{background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '1.5rem'}}>×</button>
         </div>
         
-        {checkoutStep === 'cart' ? (
-          <>
-            <div style={{flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
-              {cart.length === 0 ? (
-                <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem'}}>YOUR BAG IS EMPTY.</p>
-              ) : (
-                cart.map(item => {
-                  let displayImg = item.img;
-                  try {
-                    const parsed = JSON.parse(item.img);
-                    if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-                  } catch (e) {}
+        <div style={{flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+          {cart.length === 0 ? (
+            <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem'}}>YOUR BAG IS EMPTY.</p>
+          ) : (
+            cart.map(item => {
+              let displayImg = item.img;
+              try {
+                const parsed = JSON.parse(item.img);
+                if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+              } catch (e) {}
 
-                  return (
-                  <div key={`${item.id}-${item.selectedSize || 'none'}`} style={{display: 'flex', gap: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '1rem'}}>
-                    <img src={displayImg} alt={item.name} style={{width: '80px', height: '100px', objectFit: 'contain', background: 'var(--color-bg-card)'}} />
-                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
-                      <div>
-                        <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', margin: 0}}>{item.name}</h3>
-                        {item.selectedSize && <span style={{fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'inline-block', marginTop: '0.2rem', background: 'var(--color-text-main)', color: 'var(--color-bg-main)', padding: '2px 6px'}}>SIZE: {item.selectedSize}</span>}
-                        <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem'}}>Rp. {item.price} x {item.quantity}</p>
-                      </div>
-                      <button onClick={() => removeFromCart(item.id, item.selectedSize)} style={{alignSelf: 'flex-start', background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0}}>REMOVE</button>
-                    </div>
+              return (
+              <div key={`${item.id}-${item.selectedSize || 'none'}`} style={{display: 'flex', gap: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '1rem'}}>
+                <img src={displayImg} alt={item.name} style={{width: '80px', height: '100px', objectFit: 'contain', background: 'var(--color-bg-card)'}} />
+                <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+                  <div>
+                    <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', margin: 0}}>{item.name}</h3>
+                    {item.selectedSize && <span style={{fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'inline-block', marginTop: '0.2rem', background: 'var(--color-text-main)', color: 'var(--color-bg-main)', padding: '2px 6px'}}>SIZE: {item.selectedSize}</span>}
+                    <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem'}}>Rp. {item.price} x {item.quantity}</p>
                   </div>
-                )})
-              )}
-            </div>
+                  <button onClick={() => removeFromCart(item.id, item.selectedSize)} style={{alignSelf: 'flex-start', background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0}}>REMOVE</button>
+                </div>
+              </div>
+            )})
+          )}
+        </div>
 
-            {cart.length > 0 && (
-              <div style={{padding: '2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)'}}>
-                <button onClick={() => setCheckoutStep('form')} className="btn-primary" style={{width: '100%'}}>PROCEED TO CHECKOUT</button>
-              </div>
-            )}
-          </>
-        ) : (
-          <form onSubmit={handleWhatsAppCheckout} style={{flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto'}}>
-            <div style={{padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
-              <p style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)'}}>Please provide your details for delivery. We will process your order via WhatsApp.</p>
-              
-              <div className="control-group">
-                <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem'}}>FULL NAME</label>
-                <input required className="input-text" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" />
-              </div>
-              
-              <div className="control-group">
-                <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem'}}>WHATSAPP NUMBER</label>
-                <input required className="input-text" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 081234567890" />
-              </div>
-              
-              <div className="control-group">
-                <label style={{fontFamily: 'var(--font-mono)', fontSize: '0.8rem'}}>FULL ADDRESS</label>
-                <textarea required className="input-text" rows={4} value={address} onChange={e => setAddress(e.target.value)} placeholder="Street, City, Zip Code..." />
-              </div>
-            </div>
-            
-            <div style={{padding: '2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)'}}>
-              <button type="submit" className="btn-primary" style={{width: '100%'}}>CONFIRM VIA WHATSAPP</button>
-            </div>
-          </form>
+        {cart.length > 0 && (
+          <div style={{padding: '2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)'}}>
+            <button onClick={() => { setIsCartOpen(false); navigate('/checkout'); }} className="btn-primary" style={{width: '100%'}}>PROCEED TO CHECKOUT</button>
+          </div>
         )}
       </div>
     </>

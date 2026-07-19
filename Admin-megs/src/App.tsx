@@ -98,6 +98,7 @@ function AdminLayout() {
           <Link to="/create-yours" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>CREATE YOURS</Link>
           <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>HOME SETTINGS</Link>
           <Link to="/manage-admins" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>MANAGE ADMINS</Link>
+          <Link to="/coupons" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>COUPONS</Link>
           <button onClick={() => { sessionStorage.removeItem('megs_admin_token'); setIsAuthenticated(false); }} style={{ color: '#ff4444', fontSize: '0.8rem', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>LOGOUT</button>
         </nav>
       </aside>
@@ -116,6 +117,7 @@ function AdminLayout() {
           <Route path="/create-yours/edit/:id" element={<AdminCreateYoursForm />} />
           <Route path="/settings" element={<AdminSettings />} />
           <Route path="/manage-admins" element={<ManageAdmins />} />
+          <Route path="/coupons" element={<AdminCoupons />} />
         </Routes>
       </div>
     </div>
@@ -1067,6 +1069,154 @@ function ManageAdmins() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminCoupons() {
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [code, setCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [validFrom, setValidFrom] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [usageLimit, setUsageLimit] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchCoupons = () => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/coupons`)
+      .then(res => res.json())
+      .then(data => setCoupons(data))
+      .catch(e => console.error(e));
+  };
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/coupons`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || ''
+        },
+        body: JSON.stringify({ 
+          code, 
+          discount_percentage: parseInt(discountPercent), 
+          valid_from: validFrom || null, 
+          valid_until: validUntil || null, 
+          usage_limit: usageLimit ? parseInt(usageLimit) : null 
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Coupon added successfully');
+        setCode('');
+        setDiscountPercent('');
+        setValidFrom('');
+        setValidUntil('');
+        setUsageLimit('');
+        fetchCoupons();
+      } else {
+        alert('Failed to add coupon: ' + data.error);
+      }
+    } catch (e) {
+      alert('Error adding coupon');
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    try {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/coupons/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchCoupons();
+      } else {
+        alert('Failed to delete coupon: ' + data.error);
+      }
+    } catch (e) {
+      alert('Error deleting coupon');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, textTransform: 'uppercase', fontSize: '2.5rem' }}>Coupons Management</h1>
+      </div>
+
+      <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', marginBottom: '3rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginBottom: '1.5rem' }}>Add New Coupon</h2>
+        <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>COUPON CODE *</label>
+            <input required className="input-text" type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. MEGS10" />
+          </div>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>DISCOUNT PERCENTAGE *</label>
+            <input required className="input-text" type="number" min="1" max="100" value={discountPercent} onChange={e => setDiscountPercent(e.target.value)} placeholder="10" />
+          </div>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>VALID FROM</label>
+            <input className="input-text" type="datetime-local" value={validFrom} onChange={e => setValidFrom(e.target.value)} />
+          </div>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>VALID UNTIL</label>
+            <input className="input-text" type="datetime-local" value={validUntil} onChange={e => setValidUntil(e.target.value)} />
+          </div>
+          <div className="control-group">
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>USAGE LIMIT</label>
+            <input className="input-text" type="number" min="1" value={usageLimit} onChange={e => setUsageLimit(e.target.value)} placeholder="Unlimited" />
+          </div>
+          <div className="control-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
+              {loading ? 'ADDING...' : 'ADD COUPON'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>CODE</th>
+              <th>DISCOUNT</th>
+              <th>VALIDITY</th>
+              <th>USAGE</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coupons.map(coupon => (
+              <tr key={coupon.id}>
+                <td>#{coupon.id}</td>
+                <td><span style={{ fontFamily: 'var(--font-mono)', background: 'var(--color-bg-card)', padding: '2px 6px', border: '1px solid var(--color-border)' }}>{coupon.code}</span></td>
+                <td>{coupon.discount_percentage}%</td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  {coupon.valid_from ? new Date(coupon.valid_from).toLocaleDateString() : 'Always'} - {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString() : 'Forever'}
+                </td>
+                <td>{coupon.used_count} / {coupon.usage_limit || '∞'}</td>
+                <td>
+                  <button onClick={() => handleDelete(coupon.id)} style={{ color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>DELETE</button>
+                </td>
+              </tr>
+            ))}
+            {coupons.length === 0 && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>NO COUPONS FOUND</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
