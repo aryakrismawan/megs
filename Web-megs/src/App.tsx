@@ -602,7 +602,7 @@ function Navbar() {
 }
 
 function HomeView() {
-  const { products, addToCart } = useShop();
+  const { products } = useShop();
   const [articles, setArticles] = useState<any[]>([]);
   const [heroSlides, setHeroSlides] = useState<any[]>([]);
   const [aboutImage, setAboutImage] = useState('');
@@ -1091,7 +1091,7 @@ function HomeView() {
   );
 }
 function ProductListView() {
-  const { products, addToCart } = useShop();
+  const { products } = useShop();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryFilter = searchParams.get('cat');
