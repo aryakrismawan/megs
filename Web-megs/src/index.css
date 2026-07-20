@@ -75,29 +75,29 @@ a {
   z-index: 1000;
 }
 
-.navbar-scrolled {
-  background: rgba(10, 12, 16, 0.4);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 3rem;
+.navbar-scrolled, .navbar:has(.nav-item:hover), .navbar-search-open {
+  background: color-mix(in srgb, var(--color-bg-main) 60%, transparent) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 1rem 3rem !important;
 }
 
-/* Navbar Hero Override (For bright legibility over images in Light Mode) */
-.navbar-hero .brand-name,
-.navbar-hero nav a,
-.navbar-hero .nav-controls button {
+/* Navbar Font Override (Always white for bright legibility over images/dark backgrounds) */
+.navbar .brand-name,
+.navbar nav a,
+.navbar .nav-controls button {
   color: #ffffff !important;
 }
-.navbar-hero .mobile-toggle span {
+.navbar .mobile-toggle span {
   background-color: #ffffff !important;
 }
-.navbar-hero .nav-controls svg {
+.navbar .nav-controls svg {
   stroke: #ffffff;
 }
 
 .megs-logo-svg {
-  color: var(--color-text-main);
+  color: #ffffff !important;
 }
 
 .nav-btn-highlight {
@@ -195,10 +195,29 @@ a {
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   position: relative;
+  text-decoration: none;
+}
+
+.navbar nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 .navbar nav a:hover, .navbar nav a.active {
   color: var(--color-white);
+}
+
+.navbar nav a:hover::after, .navbar nav a.active::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 .admin-link {
@@ -808,20 +827,34 @@ input[type=range]::-webkit-slider-runnable-track {
   top: 75px;
   left: 0;
   width: 100vw;
-  background: rgba(10, 12, 16, 0.6);
+  background: color-mix(in srgb, var(--color-bg-main) 85%, transparent);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
   padding: 3rem 10vw;
-  display: none;
+  display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
   z-index: 998;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  
+  /* Curtain Effect */
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  clip-path: inset(0 0 100% 0);
+  transform: translateY(-10px);
+  transition: clip-path 0.6s cubic-bezier(0.77, 0, 0.175, 1), 
+              opacity 0.4s ease, 
+              transform 0.6s cubic-bezier(0.77, 0, 0.175, 1),
+              visibility 0.6s;
 }
 .nav-item:hover .nav-megamenu {
-  display: grid;
-  animation: slideDown 0.2s ease-out forwards;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  clip-path: inset(0 0 0 0);
+  transform: translateY(0);
 }
 .nav-megamenu-item {
   display: flex;

@@ -4,22 +4,12 @@ import { useShop } from '../ShopContext';
 
 export function CartSidebar() {
   const navigate = useNavigate();
-  const { cart, removeFromCart, isCartOpen, setIsCartOpen } = useShop();
-
-  // Close sidebar on navigate
-  React.useEffect(() => {
-    if (!isCartOpen) {
-      // Cleanup if needed
-    }
-  }, [isCartOpen]);
+  const { cart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen } = useShop();
 
   if (!isCartOpen) return null;
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-
-  if (!isCartOpen) return null;
-
-
+  
   return (
     <>
       <div 
@@ -61,7 +51,14 @@ export function CartSidebar() {
                     {item.selectedSize && <span style={{fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'inline-block', marginTop: '0.2rem', background: 'var(--color-text-main)', color: 'var(--color-bg-main)', padding: '2px 6px'}}>SIZE: {item.selectedSize}</span>}
                     <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem'}}>Rp. {item.price} x {item.quantity}</p>
                   </div>
-                  <button onClick={() => removeFromCart(item.id, item.selectedSize)} style={{alignSelf: 'flex-start', background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0}}>REMOVE</button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-bg-main)', padding: '2px 6px', border: '1px solid var(--color-border)' }}>
+                      <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>-</button>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>+</button>
+                    </div>
+                    <button onClick={() => removeFromCart(item.id, item.selectedSize)} style={{background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0}}>REMOVE</button>
+                  </div>
                 </div>
               </div>
             )})
@@ -70,7 +67,15 @@ export function CartSidebar() {
 
         {cart.length > 0 && (
           <div style={{padding: '2rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)'}}>
-            <button onClick={() => { setIsCartOpen(false); navigate('/checkout'); }} className="btn-primary" style={{width: '100%'}}>PROCEED TO CHECKOUT</button>
+            <button 
+              onClick={() => {
+                setIsCartOpen(false);
+                navigate('/checkout');
+              }} 
+              className="btn-primary" style={{width: '100%'}}
+            >
+              PROCEED TO CHECKOUT
+            </button>
           </div>
         )}
       </div>

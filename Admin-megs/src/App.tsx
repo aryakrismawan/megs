@@ -104,7 +104,7 @@ function AdminLayout() {
       </aside>
       <div className="admin-content">
         <Routes>
-          <Route path="/" element={<h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase' }}>Overview</h2>} />
+          <Route path="/" element={<AdminDashboard />} />
           <Route path="/orders" element={<AdminOrders />} />
           <Route path="/products" element={<AdminProductList />} />
           <Route path="/products/new" element={<AdminProductForm />} />
@@ -119,6 +119,96 @@ function AdminLayout() {
           <Route path="/manage-admins" element={<ManageAdmins />} />
           <Route path="/coupons" element={<AdminCoupons />} />
         </Routes>
+      </div>
+    </div>
+  );
+}
+
+function AdminDashboard() {
+  const [stats, setStats] = useState({ totalOrders: 0, pendingOrders: 0, totalRevenue: 0 });
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const totalOrders = data.length;
+          const pendingOrders = data.filter(o => o.status === 'menunggu pembayaran').length;
+          const totalRevenue = data
+            .filter(o => o.status === 'selesai' || o.status === 'dikirim')
+            .reduce((sum, order) => sum + (parseInt(order.total_price) || 0), 0);
+          
+          setStats({ totalOrders, pendingOrders, totalRevenue });
+          setRecentOrders(data.slice(0, 5));
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p style={{ fontFamily: 'var(--font-mono)' }}>Loading overview...</p>;
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '2rem' }}>Overview</h2>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-text-main)' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>TOTAL REVENUE (Dikirim/Selesai)</h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '2rem', fontWeight: 900, margin: 0 }}>Rp. {stats.totalRevenue.toLocaleString('id-ID')}</p>
+        </div>
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid #ff9900' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>PENDING ORDERS (Menunggu Pembayaran)</h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '2rem', fontWeight: 900, margin: 0 }}>{stats.pendingOrders}</p>
+        </div>
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid #4CAF50' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>TOTAL ORDERS (All Status)</h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '2rem', fontWeight: 900, margin: 0 }}>{stats.totalOrders}</p>
+        </div>
+      </div>
+
+      <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem', textTransform: 'uppercase' }}>Recent Orders</h3>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
+              <th style={{ padding: '1rem 0', color: 'var(--color-text-muted)' }}>ID</th>
+              <th style={{ padding: '1rem 0', color: 'var(--color-text-muted)' }}>DATE</th>
+              <th style={{ padding: '1rem 0', color: 'var(--color-text-muted)' }}>CUSTOMER</th>
+              <th style={{ padding: '1rem 0', color: 'var(--color-text-muted)' }}>STATUS</th>
+              <th style={{ padding: '1rem 0', color: 'var(--color-text-muted)' }}>TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentOrders.map(order => (
+              <tr key={order.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <td style={{ padding: '1rem 0' }}>#{order.id}</td>
+                <td style={{ padding: '1rem 0' }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                <td style={{ padding: '1rem 0' }}>{order.customer_name}</td>
+                <td style={{ padding: '1rem 0' }}>
+                  <span style={{ 
+                    padding: '0.2rem 0.5rem', 
+                    background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : order.status === 'menunggu pembayaran' ? '#ff9900' : 'var(--color-border)', 
+                    color: '#fff', 
+                    borderRadius: '4px',
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase'
+                  }}>
+                    {order.status}
+                  </span>
+                </td>
+                <td style={{ padding: '1rem 0' }}>Rp. {(parseInt(order.total_price) || 0).toLocaleString('id-ID')}</td>
+              </tr>
+            ))}
+            {recentOrders.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>No recent orders found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -193,13 +283,14 @@ function AdminOrders() {
                     value={order.status}
                     onChange={e => updateStatus(order.id, e.target.value)}
                     style={{
-                      background: order.status === 'selesai' ? '#4CAF50' : order.status === 'sedang dikirim' ? '#FF9800' : 'var(--color-bg-main)',
+                      background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : 'var(--color-bg-main)',
                       color: order.status === 'menunggu pembayaran' ? 'var(--color-text-main)' : 'white',
                       border: '1px solid var(--color-border)', padding: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 'bold'
                     }}
                   >
                     <option value="menunggu pembayaran">MENUNGGU PEMBAYARAN</option>
-                    <option value="sedang dikirim">SEDANG DIKIRIM</option>
+                    <option value="diproses">DIPROSES</option>
+                    <option value="dikirim">DIKIRIM</option>
                     <option value="selesai">SELESAI</option>
                   </select>
                   <button onClick={() => handleDelete(order.id)} style={{ background: 'red', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>DELETE</button>
@@ -817,6 +908,7 @@ function AdminCreateYoursForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', image: '', description: '' });
+  const [formFields, setFormFields] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -825,7 +917,14 @@ function AdminCreateYoursForm() {
         .then(data => {
           if (Array.isArray(data)) {
             const item = data.find(i => i.id === Number(id));
-            if (item) setFormData({ name: item.name, image: item.image, description: item.description || '' });
+            if (item) {
+              setFormData({ name: item.name, image: item.image, description: item.description || '' });
+              if (item.form_config) {
+                try {
+                  setFormFields(JSON.parse(item.form_config));
+                } catch(e) {}
+              }
+            }
           }
         });
     }
@@ -840,7 +939,7 @@ function AdminCreateYoursForm() {
       await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, form_config: JSON.stringify(formFields) })
       });
       navigate('/create-yours');
     } catch (err) {
@@ -917,7 +1016,114 @@ function AdminCreateYoursForm() {
           <textarea className="input-text" style={{ minHeight: '100px' }} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
         </div>
 
-        <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }}>SAVE ITEM</button>
+        <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem', textTransform: 'uppercase' }}>FORM BUILDER & PRICING</h3>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+            Tambahkan field (seperti "Bahan", "Paket") dan atur pilihan beserta harga tambahannya (additive pricing).
+          </p>
+
+          {formFields.map((field, fieldIdx) => (
+            <div key={fieldIdx} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
+              <button 
+                type="button" 
+                onClick={() => setFormFields(formFields.filter((_, i) => i !== fieldIdx))}
+                style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-white)', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+              >
+                HAPUS FIELD
+              </button>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem', maxWidth: '300px' }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NAMA FIELD (Contoh: PANTS / NAMA PAKET)</label>
+                <input 
+                  type="text" 
+                  className="input-text" 
+                  value={field.label} 
+                  onChange={e => {
+                    const newFields = [...formFields];
+                    newFields[fieldIdx].label = e.target.value;
+                    setFormFields(newFields);
+                  }} 
+                />
+              </div>
+
+              <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', marginBottom: '1rem' }}>PILIHAN (OPTIONS)</h4>
+              
+              {field.options.map((option: any, optIdx: number) => (
+                <div key={optIdx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1', minWidth: '150px' }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>LABEL (Contoh: BASIC)</label>
+                    <input 
+                      type="text" 
+                      className="input-text" 
+                      value={option.label}
+                      onChange={e => {
+                        const newFields = [...formFields];
+                        newFields[fieldIdx].options[optIdx].label = e.target.value;
+                        newFields[fieldIdx].options[optIdx].value = e.target.value;
+                        setFormFields(newFields);
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: '1', minWidth: '150px' }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>HARGA TAMBAHAN (+/- Rp)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>Rp</span>
+                      <input 
+                        type="number" 
+                        className="input-text" 
+                        value={option.priceModifier === 0 ? '' : option.priceModifier}
+                        onChange={e => {
+                          const newFields = [...formFields];
+                          const val = e.target.value;
+                          newFields[fieldIdx].options[optIdx].priceModifier = val === '' ? 0 : parseInt(val, 10);
+                          setFormFields(newFields);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn-secondary"
+                    onClick={() => {
+                      const newFields = [...formFields];
+                      newFields[fieldIdx].options = newFields[fieldIdx].options.filter((_: any, i: number) => i !== optIdx);
+                      setFormFields(newFields);
+                    }}
+                    style={{ padding: '0.7rem', color: '#ff4444', borderColor: '#ff4444' }}
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
+
+              <button 
+                type="button" 
+                className="btn-secondary"
+                style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}
+                onClick={() => {
+                  const newFields = [...formFields];
+                  newFields[fieldIdx].options.push({ label: '', value: '', priceModifier: 0 });
+                  setFormFields(newFields);
+                }}
+              >
+                + TAMBAH PILIHAN
+              </button>
+            </div>
+          ))}
+
+          <button 
+            type="button" 
+            className="btn-secondary" 
+            style={{ width: '100%' }}
+            onClick={() => {
+              setFormFields([...formFields, { id: `f_${Date.now()}`, label: '', type: 'select', options: [{ label: '', value: '', priceModifier: 0 }] }]);
+            }}
+          >
+            + TAMBAH FIELD BARU
+          </button>
+        </div>
+
+        <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start', marginTop: '1rem' }}>SAVE ITEM</button>
       </form>
     </div>
   );
@@ -1226,12 +1432,26 @@ export default App;
 
 
 function AdminSettings() {
+  const defaultPricing = {
+    atasan_celana: {
+      basic: { non: 120000, half: 135000, full: 145000 },
+      standard: { non: 130000, half: 145000, full: 155000 },
+      premium: { non: 140000, half: 155000, full: 165000 }
+    },
+    atasan_saja: {
+      basic: { non: 90000, half: 105000, full: 115000 },
+      standard: { non: 100000, half: 115000, full: 125000 },
+      premium: { non: 110000, half: 125000, full: 135000 }
+    }
+  };
+
   const [heroSlides, setHeroSlides] = useState<{ image: string, title: string, subtitle: string, duration?: string }[]>([]);
   const [aboutImage, setAboutImage] = useState('');
   const [aboutText, setAboutText] = useState('We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics.');
+  const [pricing, setPricing] = useState<any>(defaultPricing);
   const [status, setStatus] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'hero' | 'about'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'pricing'>('hero');
 
   useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`)
@@ -1248,6 +1468,9 @@ function AdminSettings() {
         }
         if (data.about_image) setAboutImage(data.about_image);
         if (data.about_text) setAboutText(data.about_text);
+        if (data.create_yours_pricing) {
+          try { setPricing(JSON.parse(data.create_yours_pricing)); } catch(e) {}
+        }
       });
   }, []);
 
@@ -1376,7 +1599,8 @@ function AdminSettings() {
         body: JSON.stringify({
           hero_slides: JSON.stringify(heroSlides),
           about_image: aboutImage,
-          about_text: aboutText
+          about_text: aboutText,
+          create_yours_pricing: JSON.stringify(pricing)
         })
       });
       if (res.ok) {
@@ -1418,6 +1642,13 @@ function AdminSettings() {
           style={{ padding: '0.8rem 2rem', background: activeTab === 'about' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           ABOUT SECTION
+        </button>
+        <button 
+          type="button"
+          onClick={() => setActiveTab('pricing')}
+          style={{ padding: '0.8rem 2rem', background: activeTab === 'pricing' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
+        >
+          HARGA JERSEY (CREATE YOURS)
         </button>
       </div>
 
@@ -1520,6 +1751,62 @@ function AdminSettings() {
               <div style={{ position: 'relative', overflow: 'hidden' }}>
                 <button type="button" className="btn-secondary" style={{ width: '100%' }}>+ UPLOAD ABOUT IMAGE</button>
                 <input type="file" accept="image/*" onChange={handleAboutImageUpload} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'pricing' && (
+          <>
+            <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem' }}>HARGA JERSEY (CREATE YOURS)</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+              {/* Atasan + Celana */}
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', marginBottom: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>ATASAN + CELANA</h4>
+                {['basic', 'standard', 'premium'].map((paket) => (
+                  <div key={`celana-${paket}`} style={{ marginBottom: '1.5rem' }}>
+                    <h5 style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>PAKET {paket}</h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {['non', 'half', 'full'].map((print) => (
+                        <div key={`celana-${paket}-${print}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <label style={{ width: '120px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{print.toUpperCase()} PRINT</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            <span>Rp.</span>
+                            <input type="number" className="input-text" style={{ padding: '0.5rem' }} value={pricing.atasan_celana?.[paket]?.[print] || ''} onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setPricing((prev: any) => ({ ...prev, atasan_celana: { ...prev.atasan_celana, [paket]: { ...prev.atasan_celana[paket], [print]: val } } }));
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Atasan Saja */}
+              <div>
+                <h4 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', marginBottom: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>ATASAN SAJA</h4>
+                {['basic', 'standard', 'premium'].map((paket) => (
+                  <div key={`saja-${paket}`} style={{ marginBottom: '1.5rem' }}>
+                    <h5 style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>PAKET {paket}</h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {['non', 'half', 'full'].map((print) => (
+                        <div key={`saja-${paket}-${print}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <label style={{ width: '120px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{print.toUpperCase()} PRINT</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            <span>Rp.</span>
+                            <input type="number" className="input-text" style={{ padding: '0.5rem' }} value={pricing.atasan_saja?.[paket]?.[print] || ''} onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setPricing((prev: any) => ({ ...prev, atasan_saja: { ...prev.atasan_saja, [paket]: { ...prev.atasan_saja[paket], [print]: val } } }));
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </>

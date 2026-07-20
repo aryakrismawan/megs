@@ -65,11 +65,35 @@ function useDraggableScroll() {
   };
 }
 
+function DynamicTitle() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    let title = 'MEGS';
+
+    if (path === '/') title = 'MEGS | Home';
+    else if (path.startsWith('/product')) title = 'MEGS | Products';
+    else if (path.startsWith('/journal')) title = 'MEGS | Archives';
+    else if (path.startsWith('/create-yours')) title = 'MEGS | Create Yours';
+    else if (path.startsWith('/checkout')) title = 'MEGS | Checkout';
+    else if (path.startsWith('/track-order')) title = 'MEGS | Track Order';
+    else if (path.startsWith('/how-to-shop')) title = 'MEGS | How to Shop';
+    else if (path.startsWith('/faq')) title = 'MEGS | FAQ';
+    else if (path.startsWith('/contact')) title = 'MEGS | Contact';
+
+    document.title = title;
+  }, [location]);
+
+  return null;
+}
+
 // --- MAIN APP COMPONENT ---
 function App() {
   return (
     <ShopProvider>
       <Router>
+        <DynamicTitle />
         <div className="app-container">
           <GlobalLoader />
           <Navbar />
@@ -99,7 +123,6 @@ function App() {
               <Route path="/how-to-shop" element={<HowToShopView />} />
               <Route path="/faq" element={<FaqView />} />
               <Route path="/checkout" element={<CheckoutView />} />
-
             </Routes>
           </main>
           <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
@@ -134,7 +157,7 @@ function App() {
                       textAlign: 'justify',
                     }}
                   >
-                    Since launching in 2023, MEGS develops technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics to help you unlock your best performance.
+                    Since November 2024, MEGS Apparel creates modern sportswear that blends performance, comfort, and style on and off the field.
                   </p>
                 </div>
 
@@ -414,7 +437,7 @@ function Navbar() {
         if (Array.isArray(data)) setArticles(data);
       })
       .catch(err => console.error(err));
-      
+
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
       .then(async res => {
         const text = await res.text();
@@ -436,7 +459,7 @@ function Navbar() {
   const logoSrc = (theme === 'dark' || isTransparentHero) ? '/logo putih.png' : '/logo hitam.png';
 
   return (
-    <header className={`navbar ${isScrolled ? 'navbar-scrolled' : ''} ${isTransparentHero ? 'navbar-hero' : ''}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
+    <header className={`navbar ${isScrolled ? 'navbar-scrolled' : ''} ${isSearchOpen ? 'navbar-search-open' : ''} ${isTransparentHero ? 'navbar-hero' : ''}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
       <Link to="/" className="logo-container" style={{ zIndex: 200, textDecoration: 'none' }}>
         <img src={logoSrc} alt="MEGS Logo" className="brand-logo" />
       </Link>
@@ -579,8 +602,7 @@ function Navbar() {
 }
 
 function HomeView() {
-  const { products } = useShop();
-  const navigate = useNavigate();
+  const { products, addToCart } = useShop();
   const [articles, setArticles] = useState<any[]>([]);
   const [heroSlides, setHeroSlides] = useState<any[]>([]);
   const [aboutImage, setAboutImage] = useState('');
@@ -909,14 +931,14 @@ function HomeView() {
                         </div>
                       )}
 
-                      <div className="archive-overlay" />
+                      <div className="archive-overlay" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.0) 100%)' }} />
 
-                      <div className="archive-content">
-                        <h3 className="archive-title">{article.title}</h3>
-                        <p className="archive-subtitle">
+                      <div className="archive-content" style={{ justifyContent: 'flex-end', paddingBottom: '3rem' }}>
+                        <h3 className="archive-title" style={{ color: '#fff' }}>{article.title}</h3>
+                        <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8 }}>
                           {article.excerpt || new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
                         </p>
-                        <div className="archive-btn">READ</div>
+                        <div className="archive-btn" style={{ background: '#fff', color: '#000', marginTop: '1rem' }}>READ</div>
                       </div>
                     </Link>
                   )
@@ -972,7 +994,7 @@ function HomeView() {
                       {item.description && (
                         <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8, marginBottom: '1.5rem' }}>{item.description}</p>
                       )}
-                      <div className="archive-btn" style={{ background: '#fff', color: '#000' }}>START DESIGN</div>
+                      <div className="archive-btn" style={{ background: '#fff', color: '#000' }}>START PRE ORDER</div>
                     </div>
                   </Link>
                 ))}
@@ -1051,7 +1073,7 @@ function HomeView() {
                           <p>Rp. {product.price}</p>
                         </div>
                       </Link>
-                      <button onClick={(e) => { e.preventDefault(); navigate(`/product/${product.id}`); }} className="btn-secondary">CHOOSE SIZE</button>
+                      <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1rem' }}>CHOOSE OPTIONS</Link>
                     </div>
                   )
                 })}
@@ -1069,8 +1091,7 @@ function HomeView() {
   );
 }
 function ProductListView() {
-  const { products } = useShop();
-  const navigate = useNavigate();
+  const { products, addToCart } = useShop();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryFilter = searchParams.get('cat');
@@ -1151,7 +1172,7 @@ function ProductListView() {
                   <p>Rp. {product.price}</p>
                 </div>
               </Link>
-              <button onClick={(e) => { e.preventDefault(); navigate(`/product/${product.id}`); }} className="btn-secondary">CHOOSE SIZE</button>
+              <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1rem' }}>CHOOSE OPTIONS</Link>
             </div>
           )
         })}
@@ -1786,15 +1807,15 @@ function CreateYoursView() {
   const [category, setCategory] = useState<string>(initialCategory || 'Jersey');
 
   const [qty, setQty] = useState('');
-  const [pants, setPants] = useState('Yes');
-  const [paket, setPaket] = useState('Basic');
-  const [bahan, setBahan] = useState('Basic');
-  const [print, setPrint] = useState('Print');
-  const [sablon, setSablon] = useState('');
   const [sizeChart, setSizeChart] = useState('');
   const [addOn, setAddOn] = useState('');
 
+  const [formFields, setFormFields] = useState<any[]>([]);
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [estimatedPrice, setEstimatedPrice] = useState<number>(0);
+
   useEffect(() => {
+    // Fetch Items
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
       .then(res => res.json())
       .then(data => {
@@ -1811,30 +1832,64 @@ function CreateYoursView() {
     if (initialCategory) setCategory(initialCategory);
   }, [initialCategory]);
 
-  // Update default bahan if category changes
+  // Update formFields when category changes
   useEffect(() => {
-    if (category.toLowerCase() === 'jersey') {
-      setBahan('Basic');
+    const selectedItem = items.find(i => i.name === category);
+    if (selectedItem && selectedItem.form_config) {
+      try {
+        const parsedFields = JSON.parse(selectedItem.form_config);
+        setFormFields(parsedFields);
+        const newFormValues: Record<string, string> = {};
+        parsedFields.forEach((field: any) => {
+          newFormValues[field.id] = '';
+        });
+        setFormValues(newFormValues);
+      } catch (e) {
+        setFormFields([]);
+        setFormValues({});
+      }
     } else {
-      setBahan('');
+      setFormFields([]);
+      setFormValues({});
     }
-  }, [category]);
+  }, [category, items]);
+
+  // Calculate estimated price
+  useEffect(() => {
+    let totalModifier = 0;
+    formFields.forEach(field => {
+      const selectedValue = formValues[field.id];
+      const selectedOption = field.options?.find((o: any) => o.value === selectedValue);
+      if (selectedOption && selectedOption.priceModifier) {
+        totalModifier += parseInt(selectedOption.priceModifier);
+      }
+    });
+
+    const quantity = parseInt(qty) || 0;
+    setEstimatedPrice(totalModifier * quantity);
+  }, [formValues, formFields, qty]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    let text = `*CREATE YOURS - ${category.toUpperCase()}*\n\n`;
-    text += `*QTY:* ${qty}\n`;
-    if (category.toLowerCase() === 'jersey') {
-      text += `*Pants:* ${pants}\n`;
-      text += `*Nama Paket:* ${paket}\n`;
-      text += `*Bahan:* ${bahan}\n`;
-      text += `*Print:* ${print}\n`;
-    } else {
-      text += `*Bahan:* ${bahan}\n`;
-      text += `*Sablon:* ${sablon}\n`;
+    let text = `Halo Admin, saya ingin melakukan Pre-Order (PO) untuk custom apparel. Berikut detail pesanan saya:\n\n`;
+    text += `*Kategori:* ${category.toUpperCase()}\n`;
+    text += `*Quantity:* ${qty} pcs\n\n`;
+
+    text += `*Spesifikasi:*\n`;
+    formFields.forEach(field => {
+      if (formValues[field.id]) {
+        text += `- ${field.label}: ${formValues[field.id]}\n`;
+      }
+    });
+
+    text += `\n*Size Chart:*\n${sizeChart}\n`;
+    text += `\n*Catatan Tambahan (Add On):*\n${addOn || '-'}`;
+
+    if (estimatedPrice > 0) {
+      text += `\n\n*Estimasi Harga Total:* Rp. ${estimatedPrice.toLocaleString('id-ID')}`;
     }
-    text += `*Size Chart:* ${sizeChart}\n`;
-    text += `*Add On:* ${addOn || '-'}`;
+
+    text += `\n\nMohon informasi lebih lanjut mengenai ketersediaan dan proses pembayarannya. Terima kasih!`;
 
     const encodedText = encodeURIComponent(text);
     const waNumber = '6285863144773'; // Admin WhatsApp
@@ -1871,51 +1926,53 @@ function CreateYoursView() {
             <input required className="input-text" type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 24" />
           </div>
 
-          {category.toLowerCase() === 'jersey' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PANTS</label>
-                <select className="input-text" value={pants} onChange={e => setPants(e.target.value)}>
-                  <option value="Yes">YES</option>
-                  <option value="No">NO</option>
-                </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', marginTop: '1rem', marginBottom: '1rem' }}>
+            {formFields.map(field => (
+              <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '2px solid var(--color-text-main)', paddingBottom: '0.5rem' }}>
+                  <label style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', fontWeight: 900, textTransform: 'uppercase' }}>
+                    {field.label}
+                  </label>
+                  {formValues[field.id] !== '' && (
+                    <button
+                      type="button"
+                      onClick={() => setFormValues({ ...formValues, [field.id]: '' })}
+                      style={{ background: 'none', border: 'none', color: '#ff4444', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}
+                    >
+                      [ BATAL PILIH ]
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                  {field.options?.map((opt: any, idx: number) => {
+                    const isSelected = formValues[field.id] === opt.value;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setFormValues({ ...formValues, [field.id]: opt.value })}
+                        style={{
+                          border: isSelected ? '2px solid var(--color-text-main)' : '1px solid var(--color-border)',
+                          background: isSelected ? 'var(--color-text-main)' : 'var(--color-bg-main)',
+                          color: isSelected ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                          padding: '1.5rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <h4 style={{ fontFamily: 'var(--font-sans)', margin: 0, fontSize: '1.1rem', textTransform: 'uppercase', lineHeight: 1.2 }}>{opt.label}</h4>
+                        <p style={{ fontFamily: 'var(--font-mono)', margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>
+                          + Rp. {parseInt(opt.priceModifier || 0).toLocaleString('id-ID')} <span style={{ fontSize: '0.7rem' }}>/pcs</span>
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NAMA PAKET</label>
-                <select className="input-text" value={paket} onChange={e => setPaket(e.target.value)}>
-                  <option value="Basic">BASIC</option>
-                  <option value="Standard">STANDARD</option>
-                  <option value="Premium">PREMIUM</option>
-                </select>
-              </div>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>BAHAN</label>
-                <select className="input-text" value={bahan} onChange={e => setBahan(e.target.value)}>
-                  <option value="Basic">BASIC</option>
-                  <option value="Standard">STANDARD</option>
-                  <option value="Premium">PREMIUM</option>
-                </select>
-              </div>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PRINT OR NON PRINT</label>
-                <select className="input-text" value={print} onChange={e => setPrint(e.target.value)}>
-                  <option value="Print">PRINT</option>
-                  <option value="Non Print">NON PRINT</option>
-                </select>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>BAHAN</label>
-                <input required className="input-text" type="text" value={bahan} onChange={e => setBahan(e.target.value)} placeholder={`Bahan ${category}`} />
-              </div>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>SABLON</label>
-                <input required className="input-text" type="text" value={sablon} onChange={e => setSablon(e.target.value)} placeholder={`Tipe Sablon`} />
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
           <div className="control-group">
             <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>SIZE CHART</label>
@@ -1927,6 +1984,15 @@ function CreateYoursView() {
             <textarea className="input-text" rows={2} value={addOn} onChange={e => setAddOn(e.target.value)} placeholder="Any additional requirements or notes?" />
           </div>
 
+          {estimatedPrice > 0 && (
+            <div style={{ padding: '1.5rem', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', textAlign: 'center', marginTop: '1rem' }}>
+              <h4 style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>ESTIMASI HARGA TOTAL</h4>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '2rem', color: 'var(--color-white)', margin: 0 }}>
+                Rp. {estimatedPrice.toLocaleString('id-ID')}
+              </p>
+            </div>
+          )}
+
           <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
             SEND FORM VIA WHATSAPP
           </button>
@@ -1936,28 +2002,51 @@ function CreateYoursView() {
   );
 }
 
-
-
 function CheckoutView() {
   const { cart, clearCart, updateQuantity, removeFromCart } = useShop();
+  const navigate = useNavigate();
+
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [province, setProvince] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+
   const [couponCode, setCouponCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [couponMessage, setCouponMessage] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string, discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+
+  // redirect if cart is empty
+  useEffect(() => {
+    if (cart.length === 0) {
+      navigate('/product');
+    }
+  }, [cart, navigate]);
 
   const provinces = [
     'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Kepulauan Bangka Belitung', 'Kepulauan Riau',
-    'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten', 'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
-    'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara', 'Sulawesi Utara', 'Sulawesi Tengah',
-    'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat', 'Maluku', 'Maluku Utara', 'Papua Barat', 'Papua'
-  ];
+    'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten',
+    'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
+    'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
+    'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat',
+    'Maluku', 'Maluku Utara', 'Papua Barat', 'Papua', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya'
+  ].sort();
+
+  // calculate subtotal
+  const subtotal = cart.reduce((sum, item) => {
+    const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
+    return sum + (priceNum * item.quantity);
+  }, 0);
+
+  const discountAmount = appliedCoupon ? Math.floor(subtotal * (appliedCoupon.discount / 100)) : 0;
+  const grandTotal = subtotal - discountAmount;
 
   const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsVerifyingCoupon(true);
+    setCouponError('');
     try {
       const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/verify-coupon`, {
         method: 'POST',
@@ -1965,35 +2054,31 @@ function CheckoutView() {
         body: JSON.stringify({ code: couponCode })
       });
       const data = await res.json();
-      if (data.success) {
-        setDiscountPercent(data.discount_percentage);
-        setCouponMessage(`Coupon applied! ${data.discount_percentage}% off`);
+      if (res.ok && data.success) {
+        setAppliedCoupon({ code: data.code, discount: data.discount_percentage });
       } else {
-        setDiscountPercent(0);
-        setCouponMessage(data.error || 'Invalid coupon');
+        setCouponError(data.error || 'Invalid coupon');
+        setAppliedCoupon(null);
       }
     } catch (e) {
-      setCouponMessage('Error verifying coupon');
+      setCouponError('Failed to verify coupon');
+    } finally {
+      setIsVerifyingCoupon(false);
     }
   };
 
   const handleWhatsAppCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0) return alert('Your cart is empty!');
+    if (!province) {
+      alert('Mohon pilih provinsi');
+      return;
+    }
 
-    const itemsText = cart.map(item => 
+    const itemsText = cart.map(item =>
       `- ${item.name} (${item.selectedSize ? `Size: ${item.selectedSize}` : 'No Size'}) x${item.quantity} (Rp. ${item.price})`
     ).join('\n');
-    
-    const subtotal = cart.reduce((sum, item) => {
-      const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
-      return sum + (priceNum * item.quantity);
-    }, 0);
-    const discountAmount = Math.floor(subtotal * (discountPercent / 100));
-    const total = subtotal - discountAmount;
-    
-    const totalFormatted = `Rp. ${total.toLocaleString('id-ID')}`;
-    const subtotalFormatted = `Rp. ${subtotal.toLocaleString('id-ID')}`;
+
+    const totalFormatted = `Rp. ${grandTotal.toLocaleString('id-ID')}`;
 
     try {
       await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
@@ -2002,160 +2087,191 @@ function CheckoutView() {
         body: JSON.stringify({
           customer_name: name,
           customer_phone: phone,
-          customer_address: `${address}, ${province}, ${zipCode} (Email: ${email})`,
+          customer_address: `${address}\nProvinsi: ${province}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email}` : ''}`,
           order_items: JSON.stringify(cart),
-          total_price: totalFormatted,
-          coupon_code: discountPercent > 0 ? couponCode : undefined
+          total_price: grandTotal.toString(),
+          coupon_code: appliedCoupon?.code
         })
       });
     } catch (e) {
-      console.error('Failed to save order', e);
+      console.error('Failed to save order to DB', e);
     }
 
-    const text = `*NEW ORDER - MEGS*
+    let text = `Halo Admin, saya ingin memesan beberapa produk dari katalog MEGS. Berikut detail pesanan saya:\n\n`;
 
-*Customer Details:*
-Name: ${name}
-Email: ${email}
-Phone: ${phone}
-Address: ${address}, ${province}, ${zipCode}
+    text += `*Daftar Produk:*\n${itemsText}\n\n`;
 
-*Order Items:*
-${itemsText}
+    text += `*Subtotal:* Rp. ${subtotal.toLocaleString('id-ID')}\n`;
+    if (appliedCoupon) {
+      text += `*Discount (${appliedCoupon.discount}%):* -Rp. ${discountAmount.toLocaleString('id-ID')}\n`;
+    }
 
-*Subtotal:* ${subtotalFormatted}
-${discountPercent > 0 ? `*Discount (${discountPercent}%):* -Rp. ${discountAmount.toLocaleString('id-ID')}\n` : ''}*Total:* ${totalFormatted}
+    text += `*GRAND TOTAL:* ${totalFormatted}\n\n`;
 
-Please confirm my order and provide payment details. Thank you!`;
+    text += `*Data Pengiriman:*\n`;
+    text += `Nama: ${name}\n`;
+    text += `No. WA: ${phone}\n`;
+    if (email) text += `Email: ${email}\n`;
+    text += `Alamat Lengkap: ${address}\n`;
+    text += `Provinsi: ${province}\n`;
+    text += `Kode Pos: ${postalCode}\n\n`;
+
+    text += `Mohon konfirmasi pesanan saya dan informasi rekening untuk pembayaran. Terima kasih!`;
 
     const encodedText = encodeURIComponent(text);
-    const waNumber = '6285863144773'; 
+    const waNumber = '6285863144773';
     window.open(`https://wa.me/${waNumber}?text=${encodedText}`, '_blank');
-    
+
     if (clearCart) clearCart();
-    window.location.href = '/';
+    navigate('/');
   };
 
-  const subtotal = cart.reduce((sum, item) => {
-    const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
-    return sum + (priceNum * item.quantity);
-  }, 0);
-  const discountAmount = Math.floor(subtotal * (discountPercent / 100));
-  const total = subtotal - discountAmount;
+  if (cart.length === 0) return null;
 
   return (
-    <div style={{ padding: '8rem 2rem 4rem 2rem', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', alignItems: 'start' }}>
-      <div>
-        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, textTransform: 'uppercase', fontSize: '2.5rem', marginBottom: '2rem' }}>Checkout</h1>
-        <form id="checkout-form" onSubmit={handleWhatsAppCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginTop: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>Contact Information</h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="control-group">
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL NAME *</label>
-              <input required className="input-text" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" />
-            </div>
-            <div className="control-group">
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL ADDRESS *</label>
-              <input required className="input-text" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" />
-            </div>
-          </div>
+    <div className="page-content" style={{ paddingTop: '100px', paddingBottom: '5rem', minHeight: '80vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '3rem' }}>
+          Checkout
+        </h1>
 
-          <div className="control-group">
-            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>WHATSAPP NUMBER *</label>
-            <input required className="input-text" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="081234567890" />
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
 
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginTop: '2rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>Shipping Address</h3>
+          {/* LEFT: Shipping Form */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: 0, textTransform: 'uppercase' }}>Shipping Information</h2>
 
-          <div className="control-group">
-            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL ADDRESS *</label>
-            <textarea required className="input-text" rows={3} value={address} onChange={e => setAddress(e.target.value)} placeholder="Street name, house number, etc." />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="control-group">
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINCE *</label>
-              <select required className="input-text" value={province} onChange={e => setProvince(e.target.value)} style={{ width: '100%', padding: '0.8rem', background: 'var(--color-bg-main)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)' }}>
-                <option value="">Select Province</option>
-                {provinces.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="control-group">
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>ZIP CODE *</label>
-              <input required className="input-text" type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="12345" />
-            </div>
-          </div>
-
-        </form>
-      </div>
-
-      <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', position: 'sticky', top: '100px' }}>
-        <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem', marginBottom: '1.5rem' }}>Order Summary</h3>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', maxHeight: '300px', overflowY: 'auto' }}>
-          {cart.map(item => {
-            let displayImg = item.img;
-            try {
-              const parsed = JSON.parse(item.img);
-              if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-            } catch (e) {}
-            return (
-              <div key={`${item.id}-${item.selectedSize}`} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <img src={displayImg} alt={item.name} style={{ width: '60px', height: '60px', objectFit: 'contain', background: 'var(--color-bg-main)' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.selectedSize ? `Size: ${item.selectedSize}` : ''}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} style={{ background: 'var(--color-border)', border: 'none', width: '20px', height: '20px', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>-</button>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{item.quantity}</span>
-                    <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} style={{ background: 'var(--color-border)', border: 'none', width: '20px', height: '20px', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>+</button>
-                    <button type="button" onClick={() => removeFromCart(item.id, item.selectedSize)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '0.75rem', marginLeft: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>REMOVE</button>
-                  </div>
-                </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>Rp. {item.price}</div>
+            <form id="checkout-form" onSubmit={handleWhatsAppCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL NAME *</label>
+                <input required className="input-text" type="text" value={name} onChange={e => setName(e.target.value)} />
               </div>
-            )
-          })}
-          {cart.length === 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Your cart is empty</div>}
-        </div>
 
-        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input 
-              type="text" 
-              className="input-text" 
-              placeholder="Coupon code" 
-              value={couponCode}
-              onChange={e => setCouponCode(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button type="button" className="btn-secondary" onClick={handleApplyCoupon} style={{ padding: '0.8rem 1rem' }}>APPLY</button>
-          </div>
-          {couponMessage && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', marginTop: '0.5rem', color: discountPercent > 0 ? '#00c853' : '#ff4444' }}>{couponMessage}</div>}
-        </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="control-group">
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>WHATSAPP NUMBER *</label>
+                  <input required className="input-text" type="tel" pattern="[0-9]*" inputMode="numeric" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} />
+                </div>
+                <div className="control-group">
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL (OPTIONAL)</label>
+                  <input className="input-text" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                </div>
+              </div>
 
-        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Subtotal</span>
-            <span>Rp. {subtotal.toLocaleString('id-ID')}</span>
+              <div className="control-group">
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL ADDRESS *</label>
+                <textarea required className="input-text" rows={4} value={address} onChange={e => setAddress(e.target.value)} placeholder="Street, building, house number..." />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="control-group">
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINCE *</label>
+                  <select required className="input-text" value={province} onChange={e => setProvince(e.target.value)}>
+                    <option value="">Select Province</option>
+                    {provinces.map(prov => (
+                      <option key={prov} value={prov}>{prov}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="control-group">
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>POSTAL CODE *</label>
+                  <input required className="input-text" type="text" pattern="[0-9]*" inputMode="numeric" value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))} />
+                </div>
+              </div>
+            </form>
           </div>
-          {discountPercent > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff4444' }}>
-              <span>Discount ({discountPercent}%)</span>
-              <span>-Rp. {discountAmount.toLocaleString('id-ID')}</span>
+
+          {/* RIGHT: Order Summary */}
+          <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', height: 'fit-content' }}>
+            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: '0 0 2rem 0', textTransform: 'uppercase' }}>Order Summary</h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+              {cart.map(item => {
+                let displayImg = item.img;
+                try {
+                  const parsed = JSON.parse(item.img);
+                  if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                } catch (e) { }
+
+                return (
+                  <div key={`${item.id}-${item.selectedSize}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <img src={displayImg} alt={item.name} style={{ width: '60px', height: '80px', objectFit: 'contain', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)' }} />
+                      <div>
+                        <h4 style={{ fontFamily: 'var(--font-sans)', margin: 0 }}>{item.name}</h4>
+                        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                          {item.selectedSize ? `Size: ${item.selectedSize}` : ''} x {item.quantity}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)' }}>
+                        Rp. {(parseInt(item.price.replace(/\D/g, ''), 10) * item.quantity).toLocaleString('id-ID')}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-bg-main)', padding: '2px 6px', border: '1px solid var(--color-border)' }}>
+                          <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>-</button>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{item.quantity}</span>
+                          <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>+</button>
+                        </div>
+                        <button type="button" onClick={() => removeFromCart(item.id, item.selectedSize)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0 }}>REMOVE</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '1.2rem' }}>
-            <span>Total</span>
-            <span>Rp. {total.toLocaleString('id-ID')}</span>
-          </div>
-        </div>
 
-        <button form="checkout-form" type="submit" className="btn-primary" style={{ width: '100%', marginTop: '2rem' }} disabled={cart.length === 0}>
-          CONFIRM VIA WHATSAPP
-        </button>
+            <div style={{ padding: '2rem 0', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <input
+                  type="text"
+                  className="input-text"
+                  placeholder="COUPON CODE"
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value)}
+                  disabled={!!appliedCoupon}
+                  style={{ textTransform: 'uppercase' }}
+                />
+                {!appliedCoupon ? (
+                  <button type="button" className="btn-secondary" onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponCode.trim()}>
+                    {isVerifyingCoupon ? '...' : 'APPLY'}
+                  </button>
+                ) : (
+                  <button type="button" className="btn-secondary" onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} style={{ color: '#ff4444', borderColor: '#ff4444' }}>
+                    REMOVE
+                  </button>
+                )}
+              </div>
+              {couponError && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#ff4444', margin: '0.5rem 0 0 0' }}>{couponError}</p>}
+              {appliedCoupon && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#4CAF50', margin: '0.5rem 0 0 0' }}>Coupon applied: {appliedCoupon.discount}% OFF!</p>}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
+                <span>Subtotal</span>
+                <span>Rp. {subtotal.toLocaleString('id-ID')}</span>
+              </div>
+
+              {appliedCoupon && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4CAF50' }}>
+                  <span>Discount ({appliedCoupon.discount}%)</span>
+                  <span>-Rp. {discountAmount.toLocaleString('id-ID')}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)' }}>
+                <span>GRAND TOTAL</span>
+                <span>Rp. {grandTotal.toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+
+            <button type="submit" form="checkout-form" className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>
+              CONFIRM VIA WHATSAPP
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );

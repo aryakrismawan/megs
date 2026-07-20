@@ -48,7 +48,7 @@ export function SearchOverlay() {
       {/* Dropdown Search Bar under Navbar */}
       <div style={{
         position: 'fixed', top: '75px', left: 0, width: '100vw', 
-        background: 'rgba(10, 12, 16, 0.6)', backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)', 
+        background: 'color-mix(in srgb, var(--color-bg-main) 85%, transparent)', backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)', 
         color: 'var(--color-text-main)', borderBottom: '1px solid var(--color-border)', zIndex: 999,
         padding: '1.5rem 3rem',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
