@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useShop } from '../ShopContext';
 
 export function SearchOverlay() {
-  const { isSearchOpen, setIsSearchOpen, products } = useShop();
+  const { isSearchOpen, setIsSearchOpen, products, articles, createYoursItems } = useShop();
   const [query, setQuery] = useState('');
 
   // Menutup pencarian jika tombol Escape ditekan
@@ -20,14 +20,58 @@ export function SearchOverlay() {
 
   if (!isSearchOpen) return null;
 
-  const filteredProducts = query 
-    ? products.filter(p => {
-        const lowerQuery = query.toLowerCase();
-        const inName = p.name?.toLowerCase().includes(lowerQuery);
-        const inDesc = (p as any).description?.toLowerCase().includes(lowerQuery);
-        return inName || inDesc;
-      })
-    : [];
+  const searchResults = query ? (() => {
+    const lowerQuery = query.toLowerCase();
+    const results: any[] = [];
+
+    // Search Products
+    products?.forEach(p => {
+      if (p.name?.toLowerCase().includes(lowerQuery) || (p as any).description?.toLowerCase().includes(lowerQuery) || p.category?.toLowerCase().includes(lowerQuery)) {
+        let img = p.img;
+        try { const parsed = JSON.parse(p.img); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0]; } catch {}
+        results.push({
+          id: `prod-${p.id}`,
+          type: 'PRODUCT',
+          title: p.name,
+          subtitle: p.price,
+          image: img,
+          link: `/product/${p.id}`
+        });
+      }
+    });
+
+    // Search Articles
+    articles?.forEach(a => {
+      if (a.title?.toLowerCase().includes(lowerQuery) || a.content?.toLowerCase().includes(lowerQuery)) {
+        let img = a.images;
+        try { const parsed = JSON.parse(a.images); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0]; } catch {}
+        results.push({
+          id: `art-${a.id}`,
+          type: 'ARCHIVES',
+          title: a.title,
+          subtitle: new Date(a.created_at).toLocaleDateString(),
+          image: img,
+          link: `/journal/${a.id}`
+        });
+      }
+    });
+
+    // Search Create Yours
+    createYoursItems?.forEach(c => {
+      if (c.name?.toLowerCase().includes(lowerQuery) || c.category?.toLowerCase().includes(lowerQuery)) {
+        results.push({
+          id: `cy-${c.id}`,
+          type: 'CREATE YOURS',
+          title: c.name,
+          subtitle: c.category || 'Custom Design',
+          image: c.image,
+          link: `/create-yours?category=${encodeURIComponent(c.name)}`
+        });
+      }
+    });
+
+    return results;
+  })() : [];
 
   const handleClose = () => {
     setIsSearchOpen(false);
@@ -48,7 +92,7 @@ export function SearchOverlay() {
       {/* Dropdown Search Bar under Navbar */}
       <div style={{
         position: 'fixed', top: '75px', left: 0, width: '100vw', 
-        background: 'color-mix(in srgb, var(--color-bg-main) 85%, transparent)', backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)', 
+        background: 'color-mix(in srgb, var(--color-bg-main) 95%, transparent)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', 
         color: 'var(--color-text-main)', borderBottom: '1px solid var(--color-border)', zIndex: 999,
         padding: '1.5rem 3rem',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -67,7 +111,7 @@ export function SearchOverlay() {
           </svg>
           <input 
             type="text" 
-            placeholder="Search products, articles, FAQ ect." 
+            placeholder="Search products, archives, and custom designs..." 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -99,45 +143,40 @@ export function SearchOverlay() {
             width: '100%', maxWidth: '1000px', marginTop: '2rem',
             maxHeight: '50vh', overflowY: 'auto'
           }}>
-            {filteredProducts.length === 0 ? (
+            {searchResults.length === 0 ? (
               <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem'}}>
                 No results found for "{query}".
               </p>
             ) : (
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem'}}>
-                {filteredProducts.map(product => {
-                  let displayImg = product.img;
-                  try {
-                    const parsed = JSON.parse(product.img);
-                    if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-                  } catch (e) {}
-
-                  return (
-                    <Link 
-                      to={`/product/${product.id}`} 
-                      key={product.id} 
-                      onClick={handleClose}
-                      style={{display: 'flex', gap: '1rem', textDecoration: 'none', color: 'inherit'}}
-                    >
-                      <div style={{width: '60px', height: '80px', flexShrink: 0, overflow: 'hidden', background: 'var(--color-bg-card)'}}>
-                        <img 
-                          src={displayImg} 
-                          alt={product.name} 
-                          style={{width: '100%', height: '100%', objectFit: 'contain'}} 
-                          onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                        />
-                      </div>
-                      <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-                        <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', margin: 0}}>
-                          {product.name}
-                        </h3>
-                        <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '0.2rem'}}>
-                          {product.price}
-                        </p>
-                      </div>
-                    </Link>
-                  )
-                })}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem'}}>
+                {searchResults.map(item => (
+                  <Link 
+                    to={item.link} 
+                    key={item.id} 
+                    onClick={handleClose}
+                    style={{display: 'flex', gap: '1rem', textDecoration: 'none', color: 'inherit'}}
+                  >
+                    <div style={{width: '60px', height: '80px', flexShrink: 0, overflow: 'hidden', background: 'var(--color-bg-card)', borderRadius: '4px'}}>
+                      <img 
+                        src={item.image} 
+                        alt={item.title} 
+                        style={{width: '100%', height: '100%', objectFit: 'cover'}} 
+                        onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                      />
+                    </div>
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                      <span style={{fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-text-muted)', letterSpacing: '0.05em', marginBottom: '0.2rem'}}>
+                        {item.type}
+                      </span>
+                      <h3 style={{fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', margin: 0, lineHeight: 1.2}}>
+                        {item.title}
+                      </h3>
+                      <p style={{fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '0.3rem'}}>
+                        {item.subtitle}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
           </div>

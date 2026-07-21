@@ -13,6 +13,8 @@ type CartItem = Product & { quantity: number; selectedSize?: string };
 
 type ShopContextType = {
   products: Product[];
+  articles: any[];
+  createYoursItems: any[];
   cart: CartItem[];
   addToCart: (product: Product, size?: string) => void;
   removeFromCart: (productId: number, size?: string) => void;
@@ -31,6 +33,8 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
 
   React.useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`)
@@ -41,6 +45,26 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(err => console.error('Failed to load products', err));
+
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
+      .then(async res => {
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { return []; }
+      })
+      .then(data => {
+        if (Array.isArray(data)) setArticles(data);
+      })
+      .catch(err => console.error(err));
+
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
+      .then(async res => {
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { return []; }
+      })
+      .then(data => {
+        if (Array.isArray(data)) setCreateYoursItems(data);
+      })
+      .catch(err => console.error(err));
   }, []);
 
   const addToCart = (product: Product, size?: string) => {
@@ -75,6 +99,8 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   return (
     <ShopContext.Provider value={{
       products,
+      articles,
+      createYoursItems,
       cart,
       addToCart,
       removeFromCart,
