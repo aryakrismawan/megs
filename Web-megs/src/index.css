@@ -83,25 +83,38 @@ a {
   padding: 1rem 3rem !important;
 }
 
-/* Navbar Font Override (Legibility Trick: Drop shadow ensures visibility on bright backgrounds) */
+/* Navbar Font Override (Adapts to Light/Dark Mode while keeping shadow for legibility) */
 .navbar .brand-name,
 .navbar nav a,
 .navbar .nav-controls button {
-  color: #ffffff !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  color: var(--color-text-main) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .navbar .mobile-toggle span {
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  background-color: var(--color-text-main) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .navbar .nav-controls svg {
-  stroke: #ffffff;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+  stroke: var(--color-text-main);
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.4));
+}
+
+/* Override for Transparent Hero on Homepage (Always White) */
+.navbar-hero .brand-name,
+.navbar-hero nav a,
+.navbar-hero .nav-controls button {
+  color: #ffffff !important;
+}
+.navbar-hero .mobile-toggle span {
+  background-color: #ffffff !important;
+}
+.navbar-hero .nav-controls svg {
+  stroke: #ffffff !important;
 }
 
 .megs-logo-svg {
-  color: #ffffff !important;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+  color: var(--color-text-main) !important;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.4));
 }
 
 .nav-btn-highlight {
@@ -735,33 +748,49 @@ input[type=range]::-webkit-slider-runnable-track {
   top: 100%;
   left: 0;
   width: 100vw;
-  background: rgba(10, 12, 16, 0.85);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-bottom: 1px solid var(--color-border);
+  height: 100vh;
+  background: color-mix(in srgb, var(--color-bg-main) 95%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 99;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 3rem 0;
-  transform-origin: top;
-  animation: slideDown 0.3s ease-out forwards;
+  align-items: flex-start;
+  padding: 2rem 2rem;
+  animation: fadeInDownMenu 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes slideDown {
-  from { transform: scaleY(0); opacity: 0; }
-  to { transform: scaleY(1); opacity: 1; }
+@keyframes fadeInDownMenu {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .mobile-menu a {
   font-family: var(--font-sans);
-  font-weight: 900;
-  font-size: 1.5rem;
-  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+  color: var(--color-text-main) !important;
   text-transform: uppercase;
   text-decoration: none;
+  width: 100%;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--color-border);
+  opacity: 0;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mobile-menu a:nth-child(1) { animation-delay: 0.1s; }
+.mobile-menu a:nth-child(2) { animation-delay: 0.15s; }
+.mobile-menu a:nth-child(3) { animation-delay: 0.2s; }
+.mobile-menu a:nth-child(4) { animation-delay: 0.25s; }
+.mobile-menu a:nth-child(5) { animation-delay: 0.3s; }
+.mobile-menu a:nth-child(6) { animation-delay: 0.35s; }
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .desktop-nav {
