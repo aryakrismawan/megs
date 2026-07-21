@@ -83,21 +83,25 @@ a {
   padding: 1rem 3rem !important;
 }
 
-/* Navbar Font Override (Always white for bright legibility over images/dark backgrounds) */
+/* Navbar Font Override (Legibility Trick: Drop shadow ensures visibility on bright backgrounds) */
 .navbar .brand-name,
 .navbar nav a,
 .navbar .nav-controls button {
   color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 .navbar .mobile-toggle span {
   background-color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 .navbar .nav-controls svg {
   stroke: #ffffff;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
 }
 
 .megs-logo-svg {
   color: #ffffff !important;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
 }
 
 .nav-btn-highlight {

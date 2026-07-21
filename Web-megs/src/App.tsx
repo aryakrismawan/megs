@@ -1574,8 +1574,8 @@ Message: ${message}`;
             <div>
               <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.2rem', marginBottom: '0.5rem' }}>HEADQUARTERS</h3>
               <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                123 Fashion District<br />
-                South Jakarta, Indonesia 12190
+                MEGS Apparel<br />
+                Tenjoayu, Kec. Cicurug, Kabupaten Sukabumi, Jawa Barat 43359
               </p>
             </div>
 
