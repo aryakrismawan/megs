@@ -288,7 +288,7 @@ export default function MegsStyleView() {
 
                 let totalStock = 1;
                 try {
-                  const parsedSizes = JSON.parse(product.sizes);
+                  const parsedSizes = JSON.parse(product.sizes || '[]');
                   if (Array.isArray(parsedSizes)) {
                     totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
                   }
