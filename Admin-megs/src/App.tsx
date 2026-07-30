@@ -94,9 +94,11 @@ function AdminLayout() {
           <Link to="/" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>DASHBOARD</Link>
           <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>ORDERS</Link>
           <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCTS</Link>
+          <Link to="/products-thrive" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCT MEGS THRIVES</Link>
           <Link to="/articles" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>JOURNAL ARTICLES</Link>
           <Link to="/create-yours" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>CREATE YOURS</Link>
           <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>HOME SETTINGS</Link>
+          <Link to="/megs-thrive" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>MEGS THRIVE</Link>
           <Link to="/manage-admins" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>MANAGE ADMINS</Link>
           <Link to="/coupons" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>COUPONS</Link>
           <button onClick={() => { sessionStorage.removeItem('megs_admin_token'); setIsAuthenticated(false); }} style={{ color: '#ff4444', fontSize: '0.8rem', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>LOGOUT</button>
@@ -106,9 +108,12 @@ function AdminLayout() {
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
           <Route path="/orders" element={<AdminOrders />} />
-          <Route path="/products" element={<AdminProductList />} />
-          <Route path="/products/new" element={<AdminProductForm />} />
-          <Route path="/products/edit/:id" element={<AdminProductForm />} />
+          <Route path="/products" element={<AdminProductList type="origin" />} />
+          <Route path="/products/new" element={<AdminProductForm type="origin" />} />
+          <Route path="/products/edit/:id" element={<AdminProductForm type="origin" />} />
+          <Route path="/products-thrive" element={<AdminProductList type="thrive" />} />
+          <Route path="/products-thrive/new" element={<AdminProductForm type="thrive" />} />
+          <Route path="/products-thrive/edit/:id" element={<AdminProductForm type="thrive" />} />
           <Route path="/articles" element={<AdminArticleList />} />
           <Route path="/articles/new" element={<AdminArticleForm />} />
           <Route path="/articles/edit/:id" element={<AdminArticleForm />} />
@@ -116,6 +121,7 @@ function AdminLayout() {
           <Route path="/create-yours/new" element={<AdminCreateYoursForm />} />
           <Route path="/create-yours/edit/:id" element={<AdminCreateYoursForm />} />
           <Route path="/settings" element={<AdminSettings />} />
+          <Route path="/megs-thrive" element={<AdminMegsThrive />} />
           <Route path="/manage-admins" element={<ManageAdmins />} />
           <Route path="/coupons" element={<AdminCoupons />} />
         </Routes>
@@ -328,25 +334,30 @@ function AdminOrders() {
   );
 }
 
-function AdminProductList() {
+function AdminProductList({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProducts = async () => {
+  const fetchProducts = React.useCallback(async () => {
     try {
       const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`);
       const data = await res.json();
-      setProducts(data);
+      if (Array.isArray(data)) {
+        const filtered = type === 'thrive'
+          ? data.filter(p => p.category.startsWith('thrive_'))
+          : data.filter(p => !p.category.startsWith('thrive_'));
+        setProducts(filtered);
+      }
     } catch {
       console.error('Failed to load products');
     } finally {
       setLoading(false);
     }
-  };
+  }, [type]);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Delete this product?')) return;
@@ -364,8 +375,10 @@ function AdminProductList() {
   return (
     <div style={{ maxWidth: '1000px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>Products</h2>
-        <Link to="/products/new" className="btn-primary" style={{ padding: '0.8rem 1.5rem' }}>+ ADD NEW</Link>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>
+          {type === 'thrive' ? 'Products Megs Thrive' : 'Products Origin'}
+        </h2>
+        <Link to={type === 'thrive' ? "/products-thrive/new" : "/products/new"} className="btn-primary" style={{ padding: '0.8rem 1.5rem' }}>+ ADD NEW</Link>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -385,7 +398,7 @@ function AdminProductList() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Link to={`/products/edit/${product.id}`} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>EDIT</Link>
+                <Link to={type === 'thrive' ? `/products-thrive/edit/${product.id}` : `/products/edit/${product.id}`} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>EDIT</Link>
                 <button onClick={() => handleDelete(product.id)} style={{ background: '#ff4444', color: 'white', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>DELETE</button>
               </div>
             </div>
@@ -396,16 +409,19 @@ function AdminProductList() {
   );
 }
 
-function AdminProductForm() {
+function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('tops');
+  const [category, setCategory] = useState(type === 'thrive' ? 'thrive_tops' : 'tops');
   const [description, setDescription] = useState('');
-  const [sizes, setSizes] = useState('S, M, L, XL');
+  const [stockS, setStockS] = useState(0);
+  const [stockM, setStockM] = useState(0);
+  const [stockL, setStockL] = useState(0);
+  const [stockXL, setStockXL] = useState(0);
   const [images, setImages] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
@@ -423,9 +439,26 @@ function AdminProductForm() {
           if (data.sizes) {
             try {
               const parsedSizes = JSON.parse(data.sizes);
-              setSizes(Array.isArray(parsedSizes) ? parsedSizes.join(', ') : 'S, M, L, XL');
+              if (Array.isArray(parsedSizes)) {
+                let s = 0, m = 0, l = 0, xl = 0;
+                parsedSizes.forEach(item => {
+                  if (typeof item === 'string') {
+                    if (item.toUpperCase() === 'S') s = 1;
+                    if (item.toUpperCase() === 'M') m = 1;
+                    if (item.toUpperCase() === 'L') l = 1;
+                    if (item.toUpperCase() === 'XL') xl = 1;
+                  } else {
+                    const size = item.size?.toUpperCase();
+                    if (size === 'S') s = item.stock || 0;
+                    if (size === 'M') m = item.stock || 0;
+                    if (size === 'L') l = item.stock || 0;
+                    if (size === 'XL') xl = item.stock || 0;
+                  }
+                });
+                setStockS(s); setStockM(m); setStockL(l); setStockXL(xl);
+              }
             } catch (e) {
-              setSizes(data.sizes);
+              // ignore
             }
           }
 
@@ -438,8 +471,16 @@ function AdminProductForm() {
             }
           }
         });
+    } else {
+      setName('');
+      setPrice('');
+      setCategory(type === 'thrive' ? 'thrive_tops' : 'tops');
+      setDescription('');
+      setStockS(0); setStockM(0); setStockL(0); setStockXL(0);
+      setImages([]);
+      setStatus('');
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, type]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -480,7 +521,12 @@ function AdminProductForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('Submitting...');
-    const sizesArray = sizes.split(',').map(s => s.trim()).filter(Boolean);
+    const sizesArray = [
+      { size: 'S', stock: stockS },
+      { size: 'M', stock: stockM },
+      { size: 'L', stock: stockL },
+      { size: 'XL', stock: stockXL }
+    ];
     try {
       const url = isEdit ? `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}` : `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`;
       const method = isEdit ? 'PUT' : 'POST';
@@ -499,9 +545,9 @@ function AdminProductForm() {
       if (res.ok) {
         setStatus(isEdit ? 'Product updated successfully!' : 'Product added successfully!');
         if (!isEdit) {
-          setName(''); setPrice(''); setImages([]); setDescription(''); setSizes('S, M, L, XL');
+          setName(''); setPrice(''); setImages([]); setDescription(''); setStockS(0); setStockM(0); setStockL(0); setStockXL(0);
         }
-        setTimeout(() => navigate('/products'), 1500);
+        setTimeout(() => navigate(type === 'thrive' ? '/products-thrive' : '/products'), 1500);
       } else {
         setStatus('Error saving product');
       }
@@ -525,7 +571,7 @@ function AdminProductForm() {
   return (
     <div style={{ maxWidth: '800px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <Link to="/products" style={{ textDecoration: 'none', color: 'var(--color-text-muted)' }}>←</Link>
+        <Link to={type === 'thrive' ? "/products-thrive" : "/products"} style={{ textDecoration: 'none', color: 'var(--color-text-muted)' }}>←</Link>
         <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>
           {isEdit ? 'Edit Product' : 'Add Product'}
         </h2>
@@ -543,8 +589,18 @@ function AdminProductForm() {
         <div className="control-group">
           <label>CATEGORY</label>
           <select className="input-text" value={category} onChange={e => setCategory(e.target.value)} style={{ background: 'var(--color-bg-main)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', padding: '1rem', fontFamily: 'var(--font-mono)' }}>
-            <option value="tops">Tops</option>
-            <option value="bottoms">Bottoms</option>
+            {type === 'thrive' ? (
+              <>
+                <option value="thrive_tops">Tops</option>
+                <option value="thrive_bottoms">Bottoms</option>
+              </>
+            ) : (
+              <>
+                <option value="tops">Tops</option>
+                <option value="bottoms">Bottoms</option>
+                <option value="accessories">Accessories</option>
+              </>
+            )}
           </select>
         </div>
         <div className="control-group">
@@ -552,8 +608,25 @@ function AdminProductForm() {
           <textarea className="input-text" required value={description} onChange={e => setDescription(e.target.value)} placeholder="Product description..." style={{ minHeight: '100px' }} />
         </div>
         <div className="control-group">
-          <label>AVAILABLE SIZES (comma separated)</label>
-          <input className="input-text" type="text" required value={sizes} onChange={e => setSizes(e.target.value)} placeholder="e.g. S, M, L, XL" />
+          <label>STOCK PER SIZE</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+            <div>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Size S</label>
+              <input className="input-text" type="number" min="0" value={stockS} onChange={e => setStockS(parseInt(e.target.value) || 0)} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Size M</label>
+              <input className="input-text" type="number" min="0" value={stockM} onChange={e => setStockM(parseInt(e.target.value) || 0)} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Size L</label>
+              <input className="input-text" type="number" min="0" value={stockL} onChange={e => setStockL(parseInt(e.target.value) || 0)} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Size XL</label>
+              <input className="input-text" type="number" min="0" value={stockXL} onChange={e => setStockXL(parseInt(e.target.value) || 0)} style={{ width: '100%' }} />
+            </div>
+          </div>
         </div>
         <div className="control-group">
           <label>PRODUCT IMAGES</label>
@@ -665,6 +738,7 @@ function AdminArticleForm() {
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [createdAt, setCreatedAt] = useState('');
   const [status, setStatus] = useState('');
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
 
@@ -676,6 +750,9 @@ function AdminArticleForm() {
           setTitle(data.title || '');
           setExcerpt(data.excerpt || '');
           setContent(data.content || '');
+          if (data.created_at) {
+            setCreatedAt(data.created_at.replace(' ', 'T').substring(0, 16));
+          }
           if (data.images) {
             try {
               const parsed = typeof data.images === 'string' ? JSON.parse(data.images) : data.images;
@@ -736,12 +813,12 @@ function AdminArticleForm() {
           'Content-Type': 'application/json',
           'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || ''
         },
-        body: JSON.stringify({ title, excerpt, content, images })
+        body: JSON.stringify({ title, excerpt, content, images, created_at: createdAt ? createdAt.replace('T', ' ') + ':00' : undefined })
       });
       if (res.ok) {
         setStatus(isEdit ? 'Article updated successfully!' : 'Article posted successfully!');
         if (!isEdit) {
-          setTitle(''); setExcerpt(''); setContent(''); setImages([]);
+          setTitle(''); setExcerpt(''); setContent(''); setImages([]); setCreatedAt('');
         }
         setTimeout(() => navigate('/articles'), 1500);
       } else {
@@ -782,6 +859,10 @@ function AdminArticleForm() {
         <div className="control-group">
           <label>TITLE</label>
           <input className="input-text" type="text" required value={title} onChange={e => setTitle(e.target.value)} />
+        </div>
+        <div className="control-group">
+          <label>DATE (CREATED AT)</label>
+          <input className="input-text" type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)} />
         </div>
         <div className="control-group">
           <label>IMAGES (GALLERY)</label>
@@ -1814,6 +1895,191 @@ function AdminSettings() {
 
         <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start', marginTop: '2rem' }}>SAVE SETTINGS</button>
         {status && <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>{status}</p>}
+      </form>
+    </div>
+  );
+}
+
+export function AdminMegsThrive() {
+  const [config, setConfig] = useState({
+    heroTitle: 'ENGINEERED FOR THE ELEMENTS.',
+    heroSubtitle: 'Technical fabrics combined with utilitarian design. Premium activewear that moves with you, whatever the environment throws your way.',
+    heroBtnText: 'EXPLORE THE COLLECTION',
+    heroBgImg: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2000&auto=format&fit=crop',
+    heroBgLink: '',
+    promoTitle: 'MEGS THRIVE TRAIL RUN',
+    promoSubtitle: 'Feel the miles fly by.',
+    promo1Img: 'https://images.unsplash.com/photo-1542840410-3092f99611a3?q=80&w=1200&auto=format&fit=crop',
+    promo1Link: '',
+    promo2Img: 'https://images.unsplash.com/photo-1552674605-15c9ef04305c?q=80&w=1200&auto=format&fit=crop',
+    promo2Link: '',
+    productTitle: 'Shop Everything MEGS THRIVE',
+    product1: { name: 'STORM SHELL JACKET', category: 'Men\'s Outerwear', price: 'Rp 1.899.000', img: 'https://images.unsplash.com/photo-1542840410-3092f99611a3?q=80&w=800&auto=format&fit=crop' },
+    product2: { name: 'TRAIL CARGO PANTS', category: 'Men\'s Bottoms', price: 'Rp 1.299.000', img: 'https://images.unsplash.com/photo-1622370725510-9f056d6d84ce?q=80&w=800&auto=format&fit=crop' },
+    product3: { name: 'TREK 30L BACKPACK', category: 'Accessories & Gear', price: 'Rp 2.199.000', img: 'https://images.unsplash.com/photo-1575428652377-a2d80b2273fc?q=80&w=800&auto=format&fit=crop' },
+    manifestoTitle: "NATURE DOESN'T COMPROMISE.<br/>NEITHER DO WE.",
+    manifestoText: 'Every piece in the MEGS THRIVE collection is rigorously tested in the elements. We combine technical fabrics with utilitarian design to create gear that performs anywhere on earth.',
+    manifestoBgImg: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2000&auto=format&fit=crop',
+    manifestoLink: '',
+    marqueeText: 'GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • '
+  });
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.megs_thrive_settings) {
+          try {
+            setConfig(JSON.parse(data.megs_thrive_settings));
+          } catch(e) {}
+        }
+        setLoading(false);
+      });
+  }, []);
+
+  const handleChange = (key: string, val: string) => {
+    setConfig(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        let width = img.width;
+        let height = img.height;
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        let mimeType = 'image/jpeg';
+        let quality: number | undefined = 0.8;
+        if (file.type === 'image/png') { mimeType = 'image/png'; quality = undefined; }
+        else if (file.type === 'image/webp') { mimeType = 'image/webp'; }
+        handleChange(key, canvas.toDataURL(mimeType, quality));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProductChange = (index: number, key: string, val: string) => {
+    setConfig(prev => ({
+      ...prev,
+      [`product${index}`]: { ...(prev as any)[`product${index}`], [key]: val }
+    }));
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('Saving...');
+    try {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+        body: JSON.stringify({ megs_thrive_settings: JSON.stringify(config) })
+      });
+      setStatus('Saved successfully!');
+      setTimeout(() => setStatus(''), 3000);
+    } catch (e) {
+      setStatus('Error saving settings.');
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
+
+  return (
+    <div style={{ paddingBottom: '4rem' }}>
+      <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', marginBottom: '2rem' }}>MEGS THRIVE SETTINGS</h2>
+      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px' }}>
+        
+        {/* HERO */}
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>HERO SECTION</h3>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Title</label><input type="text" className="input-text" value={config.heroTitle} onChange={e => handleChange('heroTitle', e.target.value)} /></div>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><textarea className="input-text" rows={3} value={config.heroSubtitle} onChange={e => handleChange('heroSubtitle', e.target.value)} /></div>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Button Text</label><input type="text" className="input-text" value={config.heroBtnText} onChange={e => handleChange('heroBtnText', e.target.value)} /></div>
+          
+          <div className="control-group" style={{ marginBottom: '1rem' }}>
+            <label>Background Image URL / Upload</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input type="text" className="input-text" value={config.heroBgImg} onChange={e => handleChange('heroBgImg', e.target.value)} style={{ flex: 1 }} />
+              <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'heroBgImg')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
+            </div>
+            {config.heroBgImg && <img src={config.heroBgImg} alt="Hero preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
+          </div>
+          
+          <div className="control-group"><label>Background Image Link</label><input type="text" className="input-text" value={config.heroBgLink || ''} onChange={e => handleChange('heroBgLink', e.target.value)} placeholder="e.g. /products-thrive" /></div>
+        </div>
+
+        {/* PROMO */}
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>PROMO SECTION</h3>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Section Title</label><input type="text" className="input-text" value={config.promoTitle} onChange={e => handleChange('promoTitle', e.target.value)} /></div>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><input type="text" className="input-text" value={config.promoSubtitle} onChange={e => handleChange('promoSubtitle', e.target.value)} /></div>
+          
+          <div className="control-group" style={{ marginBottom: '1rem' }}>
+            <label>Promo 1 Image URL / Upload</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input type="text" className="input-text" value={config.promo1Img} onChange={e => handleChange('promo1Img', e.target.value)} style={{ flex: 1 }} />
+              <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'promo1Img')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
+            </div>
+            {config.promo1Img && <img src={config.promo1Img} alt="Promo 1 preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
+          </div>
+          <div className="control-group" style={{ marginBottom: '1rem' }}><label>Promo 1 Link</label><input type="text" className="input-text" value={config.promo1Link || ''} onChange={e => handleChange('promo1Link', e.target.value)} placeholder="e.g. /products-thrive/1" /></div>
+          
+          <div className="control-group" style={{ marginBottom: '1rem' }}>
+            <label>Promo 2 Image URL / Upload</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input type="text" className="input-text" value={config.promo2Img} onChange={e => handleChange('promo2Img', e.target.value)} style={{ flex: 1 }} />
+              <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'promo2Img')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
+            </div>
+            {config.promo2Img && <img src={config.promo2Img} alt="Promo 2 preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
+          </div>
+          <div className="control-group"><label>Promo 2 Link</label><input type="text" className="input-text" value={config.promo2Link || ''} onChange={e => handleChange('promo2Link', e.target.value)} placeholder="e.g. /products-thrive/2" /></div>
+        </div>
+
+        {/* PRODUCTS (Now managed via main Products menu) */}
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>FEATURED PRODUCTS</h3>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            Products are now dynamically loaded. To add a product to the Megs Thrive section, go to the main "Products" menu and set the category to "MEGS THRIVE".
+          </p>
+        </div>
+
+        {/* MANIFESTO */}
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>MANIFESTO SECTION</h3>
+          
+          <div className="control-group" style={{ marginBottom: '1rem' }}>
+            <label>Background Image URL / Upload</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input type="text" className="input-text" value={config.manifestoBgImg} onChange={e => handleChange('manifestoBgImg', e.target.value)} style={{ flex: 1 }} />
+              <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'manifestoBgImg')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
+            </div>
+            {config.manifestoBgImg && <img src={config.manifestoBgImg} alt="Manifesto preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
+          </div>
+          <div className="control-group"><label>Background Image Link</label><input type="text" className="input-text" value={config.manifestoLink || ''} onChange={e => handleChange('manifestoLink', e.target.value)} placeholder="e.g. /products-thrive" /></div>
+        </div>
+
+        {/* MARQUEE */}
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>MARQUEE</h3>
+          <div className="control-group"><label>Scrolling Text</label><input type="text" className="input-text" value={config.marqueeText} onChange={e => handleChange('marqueeText', e.target.value)} /></div>
+        </div>
+
+        <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }}>SAVE MEGS THRIVE SETTINGS</button>
+        {status && <p style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>{status}</p>}
       </form>
     </div>
   );

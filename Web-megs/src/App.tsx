@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams, u
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
+import MegsStyleView from './MegsStyleView';
+import ThriveProductListView from './ThriveProductListView';
 
 const getYoutubeId = (url: string) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -123,6 +125,8 @@ function App() {
               <Route path="/how-to-shop" element={<HowToShopView />} />
               <Route path="/faq" element={<FaqView />} />
               <Route path="/checkout" element={<CheckoutView />} />
+              <Route path="/megs-style" element={<MegsStyleView />} />
+              <Route path="/megs-thrive-products" element={<ThriveProductListView />} />
             </Routes>
           </main>
           <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
@@ -369,7 +373,10 @@ function GlobalLoader() {
 
   // Mendapatkan tema aktif langsung dari HTML root element
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const logoSrc = currentTheme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
+  let logoSrc = currentTheme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
+  if (location.pathname === '/megs-style') {
+    logoSrc = currentTheme === 'dark' ? '/MEGS COKOR PUTIH.png' : '/MEGS COKOR BLACK.png';
+  }
 
   return (
     <div style={{
@@ -401,12 +408,12 @@ function GlobalLoader() {
 
 function Navbar() {
   const location = useLocation();
-  const [theme, setTheme] = useState(localStorage.getItem('megs_theme') || 'dark');
+  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products, theme, setTheme } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products } = useShop();
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isNavbarHovered, setIsNavbarHovered] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -417,11 +424,6 @@ function Navbar() {
   }, []);
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('megs_theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -455,11 +457,24 @@ function Navbar() {
   const recentArticles = articles.slice(0, 4);
   const recentCreateYours = createYoursItems.slice(0, 4);
 
-  const isTransparentHero = !isScrolled && location.pathname === '/';
-  const logoSrc = (theme === 'dark' || isTransparentHero) ? '/logo putih.png' : '/logo hitam.png';
+  const isMegsStyle = location.pathname === '/megs-style';
+  const isTransparentHero = !isScrolled && location.pathname === '/' && !isMegsStyle;
+  let logoSrc = theme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
+  if (isTransparentHero && !isNavbarHovered && !isSearchOpen) {
+    logoSrc = '/logo putih.png';
+  }
+  if (isMegsStyle) {
+    logoSrc = '/logo hitam.png';
+  }
+  const navbarClasses = `navbar ${isScrolled && !isMegsStyle ? 'navbar-scrolled' : ''} ${isSearchOpen ? 'navbar-search-open' : ''} ${isTransparentHero ? 'navbar-hero' : ''} ${isMegsStyle ? 'navbar-megs-style' : ''} ${(isMegsStyle && isScrolled) ? 'navbar-hidden' : ''}`;
 
   return (
-    <header className={`navbar ${isScrolled ? 'navbar-scrolled' : ''} ${isSearchOpen ? 'navbar-search-open' : ''} ${isTransparentHero ? 'navbar-hero' : ''}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
+    <header 
+      className={navbarClasses} 
+      style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}
+      onMouseEnter={() => setIsNavbarHovered(true)}
+      onMouseLeave={() => setIsNavbarHovered(false)}
+    >
       <Link to="/" className="logo-container" style={{ zIndex: 200, textDecoration: 'none' }}>
         <img src={logoSrc} alt="MEGS Logo" className="brand-logo" />
       </Link>
@@ -498,7 +513,7 @@ function Navbar() {
             {recentCreateYours.map(item => (
               <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="nav-megamenu-item">
                 <div className="nav-megamenu-img-wrapper">
-                  <img src={item.image} alt={item.name} style={{ objectFit: 'contain' }} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+                  <img src={item.image} alt={item.name} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                 </div>
                 <div className="nav-megamenu-title">{item.name}</div>
               </Link>
@@ -508,24 +523,26 @@ function Navbar() {
 
         <div className="nav-item">
           <Link to="/product" className={location.pathname.startsWith('/product') ? 'active' : ''}>PRODUCTS</Link>
-          <div className="nav-megamenu">
-            {recentProducts.map(product => {
-              let displayImg = product.img;
-              try {
-                const parsed = JSON.parse(product.img);
-                if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-              } catch (e) { }
+          <div className="nav-megamenu nav-product-split" style={{ gridTemplateColumns: '1fr 1fr', gap: '4rem', padding: '4rem 15vw' }}>
 
-              return (
-                <Link to={`/product/${product.id}`} key={product.id} className="nav-megamenu-item">
-                  <div className="nav-megamenu-img-wrapper">
-                    <img src={displayImg} alt={product.name} style={{ objectFit: 'contain' }} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
-                  </div>
-                  <div className="nav-megamenu-title">{product.name}</div>
-                  <div className="nav-megamenu-subtitle">{product.price}</div>
-                </Link>
-              );
-            })}
+            {/* MEGS ORIGIN */}
+            <Link to="/product" className="nav-split-card" style={{ textDecoration: 'none', color: 'var(--color-text-main)' }}>
+              <div className="nav-split-inner" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-card)', padding: '3rem', border: '1px solid var(--color-border)', height: '100%', transition: 'all 0.3s' }}>
+                <img src={theme === 'dark' ? '/logo putih.png' : '/logo hitam.png'} alt="MEGS Origin" style={{ width: '150px', objectFit: 'contain', marginBottom: '2rem' }} />
+                <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.02em', margin: 0 }}>MEGS ORIGIN</h3>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>Core Collection & Essentials</p>
+              </div>
+            </Link>
+
+            {/* MEGS STYLE */}
+            <Link to="/megs-style" className="nav-split-card" style={{ textDecoration: 'none', color: 'var(--color-text-main)' }}>
+              <div className="nav-split-inner" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-card)', padding: '3rem', border: '1px solid var(--color-border)', height: '100%', transition: 'all 0.3s' }}>
+                <img src={theme === 'dark' ? '/MEGS COKOR PUTIH.png' : '/MEGS COKOR BLACK.png'} alt="MEGS Thrive" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem' }} />
+                <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.02em', margin: 0 }}>MEGS THRIVE</h3>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>Outdoor & Active Lifestyle</p>
+              </div>
+            </Link>
+
           </div>
         </div>
 
@@ -557,29 +574,6 @@ function Navbar() {
             </span>
           )}
         </button>
-        <button
-          onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', padding: '0.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}
-        >
-          {theme === 'dark' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          )}
-        </button>
-
         <button className={`mobile-toggle ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           <span></span>
           <span></span>
@@ -901,7 +895,7 @@ function HomeView() {
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>ARCHIVES</h2>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
-            <div style={{ position: 'relative' }}>
+            <div className="slider-wrapper" style={{ position: 'relative' }}>
               <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
               </button>
@@ -938,7 +932,6 @@ function HomeView() {
                         <p className="archive-subtitle" style={{ color: '#fff', opacity: 0.8 }}>
                           {article.excerpt || new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
                         </p>
-                        <div className="archive-btn" style={{ background: '#fff', color: '#000', marginTop: '1rem' }}>READ</div>
                       </div>
                     </Link>
                   )
@@ -960,7 +953,7 @@ function HomeView() {
             </div>
 
             <style>{`.create-yours-scroll::-webkit-scrollbar { display: none; }`}</style>
-            <div style={{ position: 'relative' }}>
+            <div className="slider-wrapper" style={{ position: 'relative' }}>
               <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
               </button>
@@ -1036,7 +1029,7 @@ function HomeView() {
               </div>
             </div>
 
-            <div style={{ position: 'relative' }}>
+            <div className="slider-wrapper" style={{ position: 'relative' }}>
               <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
               </button>
@@ -1059,10 +1052,20 @@ function HomeView() {
                     const parsed = JSON.parse(product.img);
                     if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
                   } catch (e) { }
+
+                  let totalStock = 1;
+                  try {
+                    const parsedSizes = JSON.parse(product.sizes);
+                    if (Array.isArray(parsedSizes)) {
+                      totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
+                    }
+                  } catch(e) {}
+                  const isSoldOut = totalStock === 0;
+
                   return (
-                    <div key={product.id} className="product-card">
-                      <div className="new-badge">NEW</div>
-                      <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div key={product.id} className={`product-card ${isSoldOut ? 'sold-out' : ''}`}>
+                      {isSoldOut ? <div className="new-badge" style={{ background: '#ff4444', color: 'white' }}>SOLD OUT</div> : <div className="new-badge">NEW</div>}
+                      <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: isSoldOut ? 0.6 : 1 }}>
                         <div className="product-image-container">
                           <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
@@ -1073,7 +1076,9 @@ function HomeView() {
                           <p>Rp. {product.price}</p>
                         </div>
                       </Link>
-                      <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1rem' }}>CHOOSE OPTIONS</Link>
+                      <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', pointerEvents: isSoldOut ? 'none' : 'auto' }}>
+                        {isSoldOut ? 'SOLD OUT' : 'CHOOSE OPTIONS'}
+                      </Link>
                     </div>
                   )
                 })}
@@ -1103,9 +1108,10 @@ function ProductListView() {
     setCurrentPage(1);
   }, [categoryFilter]);
 
+  const originProducts = products.filter(p => !p.category.startsWith('thrive_'));
   const filteredProducts = categoryFilter
-    ? products.filter(p => p.category.toLowerCase() === categoryFilter.toLowerCase())
-    : products;
+    ? originProducts.filter(p => p.category.toLowerCase() === categoryFilter.toLowerCase())
+    : originProducts;
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const currentProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -1217,7 +1223,7 @@ function ProductDetailView() {
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const { addToCart } = useShop();
+  const { addToCart, setTheme } = useShop();
 
   // Carousel & Zoom State
   const [touchStart, setTouchStart] = useState(0);
@@ -1231,6 +1237,9 @@ function ProductDetailView() {
       .then(res => res.json())
       .then(data => {
         setProduct(data);
+        if (data && data.category && data.category.startsWith('thrive_')) {
+          setTheme('light');
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -1255,11 +1264,11 @@ function ProductDetailView() {
     if (product.img) images = [product.img];
   }
 
-  let sizes: string[] = [];
+  let sizes: any[] = [];
   try {
     if (product.sizes) {
       const parsed = JSON.parse(product.sizes);
-      sizes = Array.isArray(parsed) ? parsed : [];
+      sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? {size: s, stock: 1} : s) : [];
     }
   } catch (e) { }
 
@@ -1356,13 +1365,13 @@ function ProductDetailView() {
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => (prev - 1 + images.length) % images.length); }}
-                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#000', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, fontSize: '2rem', filter: 'drop-shadow(0 2px 4px rgba(255,255,255,0.8))' }}
               >
                 ←
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => (prev + 1) % images.length); }}
-                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.8)', color: '#000', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#000', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, fontSize: '2rem', filter: 'drop-shadow(0 2px 4px rgba(255,255,255,0.8))' }}
               >
                 →
               </button>
@@ -1404,24 +1413,28 @@ function ProductDetailView() {
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               {sizes.map(s => (
                 <button
-                  key={s}
-                  onClick={() => setSelectedSize(s)}
+                  key={s.size}
+                  onClick={() => s.stock > 0 && setSelectedSize(s.size)}
+                  disabled={s.stock === 0}
                   style={{
                     padding: '0.8rem 1.5rem',
-                    background: selectedSize === s ? 'var(--color-text-main)' : 'transparent',
-                    color: selectedSize === s ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                    background: selectedSize === s.size ? 'var(--color-text-main)' : 'transparent',
+                    color: selectedSize === s.size ? 'var(--color-bg-main)' : 'var(--color-text-main)',
                     border: '1px solid var(--color-border)',
                     fontFamily: 'var(--font-mono)',
                     fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    cursor: s.stock === 0 ? 'not-allowed' : 'pointer',
+                    opacity: s.stock === 0 ? 0.3 : 1,
+                    transition: 'all 0.2s',
+                    textDecoration: s.stock === 0 ? 'line-through' : 'none'
                   }}
                 >
-                  {s}
+                  {s.size}
                 </button>
               ))}
             </div>
-            {!selectedSize && <p style={{ color: '#ff4444', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', marginTop: '0.5rem' }}>Please select a size to continue</p>}
+            {!selectedSize && sizes.some(s => s.stock > 0) && <p style={{ color: '#ff4444', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', marginTop: '0.5rem' }}>Please select a size to continue</p>}
+            {sizes.every(s => s.stock === 0) && <p style={{ color: '#ff4444', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', marginTop: '0.5rem' }}>OUT OF STOCK</p>}
           </div>
         )}
 
@@ -1431,10 +1444,10 @@ function ProductDetailView() {
             addToCart(product, selectedSize || undefined);
           }}
           className="btn-primary"
-          style={{ padding: '1.5rem', fontSize: '1.1rem', marginBottom: '3rem', opacity: (sizes.length > 0 && !selectedSize) ? 0.5 : 1 }}
-          disabled={sizes.length > 0 && !selectedSize}
+          style={{ padding: '1.5rem', fontSize: '1.1rem', marginBottom: '3rem', opacity: ((sizes.length > 0 && !selectedSize) || sizes.every(s => s.stock === 0)) ? 0.5 : 1 }}
+          disabled={(sizes.length > 0 && !selectedSize) || sizes.every(s => s.stock === 0)}
         >
-          ADD TO BAG
+          {sizes.every(s => s.stock === 0) ? 'SOLD OUT' : 'ADD TO BAG'}
         </button>
 
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>

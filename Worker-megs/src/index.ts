@@ -222,13 +222,22 @@ app.post('/api/articles', async (c) => {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     
     const body = await c.req.json();
-    const { title, excerpt, content, images } = body;
+    const { title, excerpt, content, images, created_at } = body;
     
-    const info = await c.env.DB.prepare(
-      "INSERT INTO articles (title, excerpt, content, images) VALUES (?, ?, ?, ?)"
-    ).bind(
-      title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images)
-    ).run();
+    let info;
+    if (created_at) {
+      info = await c.env.DB.prepare(
+        "INSERT INTO articles (title, excerpt, content, images, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).bind(
+        title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images), created_at
+      ).run();
+    } else {
+      info = await c.env.DB.prepare(
+        "INSERT INTO articles (title, excerpt, content, images) VALUES (?, ?, ?, ?)"
+      ).bind(
+        title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images)
+      ).run();
+    }
 
     return c.json({ success: true, id: info.meta.last_row_id });
   } catch (e: any) {
@@ -242,13 +251,22 @@ app.put('/api/articles/:id', async (c) => {
     
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { title, excerpt, content, images } = body;
+    const { title, excerpt, content, images, created_at } = body;
 
-    const result = await c.env.DB.prepare(
-      "UPDATE articles SET title = ?, excerpt = ?, content = ?, images = ? WHERE id = ?"
-    ).bind(
-      title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images), id
-    ).run();
+    let result;
+    if (created_at) {
+      result = await c.env.DB.prepare(
+        "UPDATE articles SET title = ?, excerpt = ?, content = ?, images = ?, created_at = ? WHERE id = ?"
+      ).bind(
+        title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images), created_at, id
+      ).run();
+    } else {
+      result = await c.env.DB.prepare(
+        "UPDATE articles SET title = ?, excerpt = ?, content = ?, images = ? WHERE id = ?"
+      ).bind(
+        title, excerpt, content, typeof images === 'string' ? images : JSON.stringify(images), id
+      ).run();
+    }
 
     if (result.meta.changes === 0) return c.json({ error: 'Article not found' }, 404);
     return c.json({ success: true });

@@ -24,17 +24,35 @@ type ShopContextType = {
   setIsCartOpen: (isOpen: boolean) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (isOpen: boolean) => void;
+  theme: string;
+  setTheme: (theme: string | ((prev: string) => string)) => void;
 };
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export function ShopProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('megs_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
+  const [theme, setTheme] = useState('light');
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  React.useEffect(() => {
+    localStorage.setItem('megs_cart', JSON.stringify(cart));
+  }, [cart]);
 
   React.useEffect(() => {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products`)
@@ -109,7 +127,9 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       isCartOpen,
       setIsCartOpen,
       isSearchOpen,
-      setIsSearchOpen
+      setIsSearchOpen,
+      theme,
+      setTheme
     }}>
       {children}
     </ShopContext.Provider>
