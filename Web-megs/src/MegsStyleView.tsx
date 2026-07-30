@@ -243,7 +243,11 @@ export default function MegsStyleView() {
       </section>
 
       {/* NEW ARRIVALS GRID */}
-      <section style={{ padding: '6rem 5vw', background: '#fff' }}>
+      {(() => {
+        const thriveProductsForHome = products.filter(p => p.category.startsWith('thrive_')).slice(0, 10);
+        if (thriveProductsForHome.length === 0) return null;
+        return (
+          <section style={{ padding: '6rem 5vw', background: '#fff' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
@@ -279,7 +283,7 @@ export default function MegsStyleView() {
               onClickCapture={productScroll.onClickCapture}
               style={{ ...productScroll.style, scrollPadding: '0 2rem' }}
             >
-              {products.filter(p => p.category.startsWith('thrive_')).slice(0, 10).map(product => {
+              {thriveProductsForHome.map(product => {
                 let displayImg = product.img;
                 try {
                   const parsed = JSON.parse(product.img);
@@ -318,7 +322,9 @@ export default function MegsStyleView() {
             </div>
           </div>
         </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* LIFESTYLE MARQUEE */}
       <section style={{ width: '100%', background: '#F5F5F0', padding: '3rem 0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
