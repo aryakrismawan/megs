@@ -70,7 +70,7 @@ export default function MegsStyleView() {
     marqueeText: 'GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • '
   });
 
-  const renderLink = (link: string | undefined, children: React.ReactNode, isSection = false) => {
+  const renderLink = (link: string | undefined, children: React.ReactNode) => {
     if (!link) return children;
     const style: React.CSSProperties = { display: 'block', width: '100%', textDecoration: 'none', color: 'inherit' };
     if (link.startsWith('http')) {

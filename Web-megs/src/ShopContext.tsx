@@ -7,6 +7,7 @@ export type Product = {
   price: string;
   category: string;
   description?: string;
+  sizes?: string;
 };
 
 type CartItem = Product & { quantity: number; selectedSize?: string };

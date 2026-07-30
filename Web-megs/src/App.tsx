@@ -408,7 +408,7 @@ function GlobalLoader() {
 
 function Navbar() {
   const location = useLocation();
-  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products, theme, setTheme } = useShop();
+  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products, theme } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
@@ -453,7 +453,7 @@ function Navbar() {
 
   if (location.pathname.startsWith('/admin')) return null;
 
-  const recentProducts = products.slice(0, 4);
+
   const recentArticles = articles.slice(0, 4);
   const recentCreateYours = createYoursItems.slice(0, 4);
 
