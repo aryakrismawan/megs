@@ -1973,12 +1973,7 @@ export function AdminMegsThrive() {
     reader.readAsDataURL(file);
   };
 
-  const handleProductChange = (index: number, key: string, val: string) => {
-    setConfig(prev => ({
-      ...prev,
-      [`product${index}`]: { ...(prev as any)[`product${index}`], [key]: val }
-    }));
-  };
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
