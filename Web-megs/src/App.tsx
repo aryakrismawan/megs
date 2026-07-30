@@ -408,7 +408,7 @@ function GlobalLoader() {
 
 function Navbar() {
   const location = useLocation();
-  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, products, theme } = useShop();
+  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, theme } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
