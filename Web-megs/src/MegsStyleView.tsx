@@ -354,10 +354,10 @@ export default function MegsStyleView() {
         <section style={{ width: '100%', display: 'flex', background: '#000', transition: 'transform 0.3s' }}
           onMouseOver={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(0.99)')}
           onMouseOut={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(1)')}>
-        <div style={{ overflow: 'hidden' }}>
-          <picture>
+        <div style={{ width: '100%', overflow: 'hidden', display: 'flex', justifyContent: 'center', background: 'var(--color-bg-main)' }}>
+          <picture style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             <source media="(max-width: 768px)" srcSet={config.manifestoMobileBgImg || config.manifestoBgImg} />
-            <img src={config.manifestoBgImg} alt="Manifesto" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            <img src={config.manifestoBgImg} alt="Manifesto" style={{ width: '100%', maxWidth: '2000px', height: 'auto', objectFit: 'contain', display: 'block' }} />
           </picture>
         </div>
         </section>
