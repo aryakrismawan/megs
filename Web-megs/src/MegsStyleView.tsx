@@ -67,6 +67,7 @@ export default function MegsStyleView() {
     manifestoTitle: "NATURE DOESN'T COMPROMISE.<br/>NEITHER DO WE.",
     manifestoText: 'Every piece in the MEGS THRIVE collection is rigorously tested in the elements. We combine technical fabrics with utilitarian design to create gear that performs anywhere on earth.',
     manifestoBgImg: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2000&auto=format&fit=crop',
+    manifestoMobileBgImg: '',
     manifestoLink: '',
     marqueeText: 'GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • '
   });
@@ -353,7 +354,12 @@ export default function MegsStyleView() {
         <section style={{ width: '100%', display: 'flex', background: '#000', transition: 'transform 0.3s' }}
           onMouseOver={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(0.99)')}
           onMouseOut={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(1)')}>
-          <img src={config.manifestoBgImg} alt="Manifesto" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <div style={{ overflow: 'hidden' }}>
+          <picture>
+            <source media="(max-width: 768px)" srcSet={config.manifestoMobileBgImg || config.manifestoBgImg} />
+            <img src={config.manifestoBgImg} alt="Manifesto" style={{ width: '100%', height: 'auto', display: 'block' }} />
+          </picture>
+        </div>
         </section>
       ))}
 

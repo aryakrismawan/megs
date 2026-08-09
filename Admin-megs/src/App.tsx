@@ -1807,6 +1807,7 @@ export function AdminMegsThrive() {
     manifestoTitle: "NATURE DOESN'T COMPROMISE.<br/>NEITHER DO WE.",
     manifestoText: 'Every piece in the MEGS THRIVE collection is rigorously tested in the elements. We combine technical fabrics with utilitarian design to create gear that performs anywhere on earth.',
     manifestoBgImg: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=2000&auto=format&fit=crop',
+    manifestoMobileBgImg: '',
     manifestoLink: '',
     marqueeText: 'GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • GET OUT THERE • ALL CONDITIONS • MEGS THRIVE • '
   });
@@ -1924,13 +1925,23 @@ export function AdminMegsThrive() {
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>MANIFESTO SECTION</h3>
           
           <div className="control-group" style={{ marginBottom: '1rem' }}>
-            <label>Background Image URL / Upload</label>
+            <label>Background Image URL / Upload (Desktop)</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <input type="text" className="input-text" value={config.manifestoBgImg} onChange={e => handleChange('manifestoBgImg', e.target.value)} style={{ flex: 1 }} />
               <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'manifestoBgImg')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
             </div>
             {config.manifestoBgImg && <img src={config.manifestoBgImg} alt="Manifesto preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
+          
+          <div className="control-group" style={{ marginBottom: '1rem' }}>
+            <label>Background Image URL / Upload (Mobile)</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input type="text" className="input-text" value={config.manifestoMobileBgImg || ''} onChange={e => handleChange('manifestoMobileBgImg', e.target.value)} style={{ flex: 1 }} placeholder="Optional mobile override" />
+              <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'manifestoMobileBgImg')} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} />
+            </div>
+            {config.manifestoMobileBgImg && <img src={config.manifestoMobileBgImg} alt="Manifesto Mobile preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
+          </div>
+
           <div className="control-group"><label>Background Image Link</label><input type="text" className="input-text" value={config.manifestoLink || ''} onChange={e => handleChange('manifestoLink', e.target.value)} placeholder="e.g. /products-thrive" /></div>
         </div>
 
