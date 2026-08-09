@@ -51,7 +51,7 @@ export function SearchOverlay() {
           title: a.title,
           subtitle: new Date(a.created_at).toLocaleDateString(),
           image: img,
-          link: `/journal/${a.id}`
+          link: `/archive/${a.id}`
         });
       }
     });

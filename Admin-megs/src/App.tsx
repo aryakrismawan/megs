@@ -489,26 +489,7 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
         return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800;
-              const scaleSize = MAX_WIDTH / img.width;
-              canvas.width = MAX_WIDTH;
-              canvas.height = img.height * scaleSize;
-              const ctx = canvas.getContext('2d');
-              ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-              let mimeType = 'image/jpeg';
-              let quality: number | undefined = 0.8;
-              if (file.type === 'image/png') {
-                mimeType = 'image/png';
-                quality = undefined;
-              } else if (file.type === 'image/webp') {
-                mimeType = 'image/webp';
-              }
-              resolve(canvas.toDataURL(mimeType, quality));
-            };
-            img.src = event.target?.result as string;
+            resolve(event.target?.result as string);
           };
           reader.readAsDataURL(file);
         });
@@ -772,26 +753,7 @@ function AdminArticleForm() {
         return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800;
-              const scaleSize = MAX_WIDTH / img.width;
-              canvas.width = MAX_WIDTH;
-              canvas.height = img.height * scaleSize;
-              const ctx = canvas.getContext('2d');
-              ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-              let mimeType = 'image/jpeg';
-              let quality: number | undefined = 0.7;
-              if (file.type === 'image/png') {
-                mimeType = 'image/png';
-                quality = undefined;
-              } else if (file.type === 'image/webp') {
-                mimeType = 'image/webp';
-              }
-              resolve(canvas.toDataURL(mimeType, quality));
-            };
-            img.src = event.target?.result as string;
+            resolve(event.target?.result as string);
           };
           reader.readAsDataURL(file);
         });
@@ -1053,32 +1015,7 @@ function AdminCreateYoursForm() {
               if (!file) return;
               const reader = new FileReader();
               reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                  const canvas = document.createElement('canvas');
-                  const MAX_WIDTH = 800;
-                  let width = img.width;
-                  let height = img.height;
-                  if (width > MAX_WIDTH) {
-                    height = Math.round((height * MAX_WIDTH) / width);
-                    width = MAX_WIDTH;
-                  }
-                  canvas.width = width;
-                  canvas.height = height;
-                  const ctx = canvas.getContext('2d');
-                  ctx?.drawImage(img, 0, 0, width, height);
-
-                  let mimeType = 'image/jpeg';
-                  let quality: number | undefined = 0.8;
-                  if (file.type === 'image/png') {
-                    mimeType = 'image/png';
-                    quality = undefined;
-                  } else if (file.type === 'image/webp') {
-                    mimeType = 'image/webp';
-                  }
-                  setFormData({ ...formData, image: canvas.toDataURL(mimeType, quality) });
-                };
-                img.src = event.target?.result as string;
+                setFormData({ ...formData, image: event.target?.result as string });
               };
               reader.readAsDataURL(file);
             }}
@@ -1593,35 +1530,10 @@ function AdminSettings() {
       return;
     }
     
-    // For images, resize first then upload
+    // For images, do not resize to keep HD quality
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1920;
-        let width = img.width;
-        let height = img.height;
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        let mimeType = 'image/jpeg';
-        let quality: number | undefined = 0.8;
-        if (file.type === 'image/png') {
-          mimeType = 'image/png';
-          quality = undefined;
-        } else if (file.type === 'image/webp') {
-          mimeType = 'image/webp';
-        }
-        uploadFile(canvas.toDataURL(mimeType, quality));
-      };
-      img.src = event.target?.result as string;
+      uploadFile(event.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -1631,32 +1543,7 @@ function AdminSettings() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          let width = img.width;
-          let height = img.height;
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          let mimeType = 'image/jpeg';
-          let quality: number | undefined = 0.8;
-          if (file.type === 'image/png') {
-            mimeType = 'image/png';
-            quality = undefined;
-          } else if (file.type === 'image/webp') {
-            mimeType = 'image/webp';
-          }
-          setAboutImage(canvas.toDataURL(mimeType, quality));
-        };
-        img.src = event.target?.result as string;
+        setAboutImage(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -1948,27 +1835,7 @@ export function AdminMegsThrive() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        let width = img.width;
-        let height = img.height;
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        let mimeType = 'image/jpeg';
-        let quality: number | undefined = 0.8;
-        if (file.type === 'image/png') { mimeType = 'image/png'; quality = undefined; }
-        else if (file.type === 'image/webp') { mimeType = 'image/webp'; }
-        handleChange(key, canvas.toDataURL(mimeType, quality));
-      };
-      img.src = event.target?.result as string;
+      handleChange(key, event.target?.result as string);
     };
     reader.readAsDataURL(file);
   };

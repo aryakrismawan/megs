@@ -62,7 +62,7 @@ function useDraggableScroll() {
     onClickCapture,
     style: {
       cursor: isDragging ? 'grabbing' : 'grab',
-      scrollSnapType: isDragging ? 'none' : ''
+      scrollSnapType: isDragging ? 'none' : 'x mandatory'
     }
   };
 }
@@ -76,7 +76,7 @@ function DynamicTitle() {
 
     if (path === '/') title = 'MEGS | Home';
     else if (path.startsWith('/product')) title = 'MEGS | Products';
-    else if (path.startsWith('/journal')) title = 'MEGS | Archives';
+    else if (path.startsWith('/archive')) title = 'MEGS | Archives';
     else if (path.startsWith('/create-yours')) title = 'MEGS | Create Yours';
     else if (path.startsWith('/checkout')) title = 'MEGS | Checkout';
     else if (path.startsWith('/track-order')) title = 'MEGS | Track Order';
@@ -118,14 +118,14 @@ function App() {
               <Route path="/track-order" element={<TrackOrderView />} />
               <Route path="/product" element={<ProductListView />} />
               <Route path="/product/:id" element={<ProductDetailView />} />
-              <Route path="/journal" element={<JournalView />} />
-              <Route path="/journal/:id" element={<ArticleDetailView />} />
+              <Route path="/archive" element={<JournalView />} />
+              <Route path="/archive/:id" element={<ArticleDetailView />} />
               <Route path="/contact" element={<ContactView />} />
               <Route path="/create-yours" element={<CreateYoursView />} />
               <Route path="/how-to-shop" element={<HowToShopView />} />
               <Route path="/faq" element={<FaqView />} />
               <Route path="/checkout" element={<CheckoutView />} />
-              <Route path="/megs-style" element={<MegsStyleView />} />
+              <Route path="/megs-thrive" element={<MegsStyleView />} />
               <Route path="/megs-thrive-products" element={<ThriveProductListView />} />
             </Routes>
           </main>
@@ -374,7 +374,7 @@ function GlobalLoader() {
   // Mendapatkan tema aktif langsung dari HTML root element
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   let logoSrc = currentTheme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
-  if (location.pathname === '/megs-style') {
+  if (location.pathname === '/megs-thrive') {
     logoSrc = currentTheme === 'dark' ? '/MEGS COKOR PUTIH.png' : '/MEGS COKOR BLACK.png';
   }
 
@@ -408,7 +408,7 @@ function GlobalLoader() {
 
 function Navbar() {
   const location = useLocation();
-  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, theme } = useShop();
+  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, theme, setTheme } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
@@ -457,7 +457,7 @@ function Navbar() {
   const recentArticles = articles.slice(0, 4);
   const recentCreateYours = createYoursItems.slice(0, 4);
 
-  const isMegsStyle = location.pathname === '/megs-style';
+  const isMegsStyle = location.pathname === '/megs-thrive';
   const isTransparentHero = !isScrolled && location.pathname === '/' && !isMegsStyle;
   let logoSrc = theme === 'dark' ? '/logo putih.png' : '/logo hitam.png';
   if (isTransparentHero && !isNavbarHovered && !isSearchOpen) {
@@ -485,7 +485,7 @@ function Navbar() {
         </div>
 
         <div className="nav-item">
-          <Link to="/journal" className={location.pathname.startsWith('/journal') ? 'active' : ''}>ARCHIVES</Link>
+          <Link to="/archive" className={location.pathname.startsWith('/archive') ? 'active' : ''}>ARCHIVES</Link>
           <div className="nav-megamenu">
             {recentArticles.map(article => {
               let displayImg = article.images;
@@ -495,7 +495,7 @@ function Navbar() {
               } catch (e) { }
 
               return (
-                <Link to={`/journal/${article.id}`} key={article.id} className="nav-megamenu-item">
+                <Link to={`/archive/${article.id}`} key={article.id} className="nav-megamenu-item">
                   <div className="nav-megamenu-img-wrapper">
                     <img src={displayImg} alt={article.title} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                   </div>
@@ -535,7 +535,7 @@ function Navbar() {
             </Link>
 
             {/* MEGS STYLE */}
-            <Link to="/megs-style" className="nav-split-card" style={{ textDecoration: 'none', color: 'var(--color-text-main)' }}>
+            <Link to="/megs-thrive" className="nav-split-card" style={{ textDecoration: 'none', color: 'var(--color-text-main)' }}>
               <div className="nav-split-inner" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-card)', padding: '3rem', border: '1px solid var(--color-border)', height: '100%', transition: 'all 0.3s' }}>
                 <img src={theme === 'dark' ? '/MEGS COKOR PUTIH.png' : '/MEGS COKOR BLACK.png'} alt="MEGS Thrive" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem' }} />
                 <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.02em', margin: 0 }}>MEGS THRIVE</h3>
@@ -556,6 +556,27 @@ function Navbar() {
       </nav>
 
       <div className="nav-controls">
+        {location.pathname !== '/megs-thrive' && location.pathname !== '/megs-thrive-products' && (
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }} title="Toggle Theme">
+            {theme === 'dark' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            )}
+          </button>
+        )}
         <button onClick={() => setIsSearchOpen(!isSearchOpen)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
@@ -584,7 +605,7 @@ function Navbar() {
       {isMobileMenuOpen && (
         <div className="mobile-menu">
           <Link to="/">HOME</Link>
-          <Link to="/journal">ARCHIVES</Link>
+          <Link to="/archive">ARCHIVES</Link>
           <Link to="/product">PRODUCTS</Link>
           <Link to="/create-yours">CREATE YOURS</Link>
           <Link to="/track-order">TRACK ORDER</Link>
@@ -818,7 +839,7 @@ function HomeView() {
                   background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)',
                   zIndex: 0
                 }} />
-                <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', textAlign: 'right', paddingBottom: '7vh', paddingRight: '2rem' }}>
+                <div className="hero-slide-content">
                   <h1 className="hero-title">{slide.title}</h1>
                   <p className="hero-subtitle">{slide.subtitle}</p>
                 </div>
@@ -916,7 +937,7 @@ function HomeView() {
                   const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
                   const coverImage = imagesArr.length > 0 ? imagesArr[0] : null;
                   return (
-                    <Link to={`/journal/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
+                    <Link to={`/archive/${article.id}`} key={article.id} className="archive-card slider-item slider-item-archive">
                       {coverImage ? (
                         <img src={coverImage} alt={article.title} loading="lazy" className="archive-img" />
                       ) : (
@@ -940,7 +961,7 @@ function HomeView() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 2rem 4rem 2rem' }}>
-              <Link to="/journal" className="btn-secondary view-all-btn">VIEW ALL ARCHIVES</Link>
+              <Link to="/archive" className="btn-secondary view-all-btn">VIEW ALL ARCHIVES</Link>
             </div>
           </div>
         )}
@@ -1685,7 +1706,7 @@ function JournalView() {
                   <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
                     {article.excerpt}
                   </p>
-                  <Link to={`/journal/${article.id}`} className="btn-secondary">READ FULL STORY</Link>
+                  <Link to={`/archive/${article.id}`} className="btn-secondary">READ FULL STORY</Link>
                 </div>
                 <div style={{ flex: 1, minWidth: '300px', background: 'var(--color-accent)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {coverImage ? (
@@ -1740,7 +1761,7 @@ function ArticleDetailView() {
 
   return (
     <div className="page-content" style={{ paddingTop: '120px', paddingBottom: '5rem' }}>
-      <Link to="/journal" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-main)', textDecoration: 'underline', marginBottom: '2rem', display: 'inline-block', position: 'relative', zIndex: 10 }}>← BACK TO ARCHIVES</Link>
+      <Link to="/archive" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-main)', textDecoration: 'underline', marginBottom: '2rem', display: 'inline-block', position: 'relative', zIndex: 10 }}>← BACK TO ARCHIVES</Link>
 
       <div className="article-detail-container">
 

@@ -47,6 +47,7 @@ import { useShop } from './ShopContext';
 export default function MegsStyleView() {
   const { setTheme, products } = useShop();
   const productScroll = useDraggableScroll();
+  const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<any>({
     heroTitle: 'MEGS THRIVE',
     heroSubtitle: 'Technical fabrics combined with utilitarian design. Premium activewear that moves with you, whatever the environment throws your way.',
@@ -91,8 +92,17 @@ export default function MegsStyleView() {
           } catch (e) { }
         }
       })
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => setLoading(false));
   }, []);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5F5F0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <img src="/MEGS COKOR BLACK.png" alt="Loading" className="loader-logo-img" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: '#F5F5F0', color: '#111', minHeight: '100vh', fontFamily: 'var(--font-sans)', position: 'relative' }}>
@@ -106,14 +116,14 @@ export default function MegsStyleView() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '5rem 5vw 2rem 5vw',
+        padding: '2rem 5vw 2rem 5vw',
         background: '#F5F5F0',
         textAlign: 'center'
       }}>
         <h1 style={{
           color: '#111',
-          fontSize: 'clamp(3rem, 12vw, 10rem)',
-          fontWeight: 900,
+          fontSize: 'clamp(2rem, 8vw, 6rem)',
+          fontWeight: 800,
           lineHeight: 1,
           letterSpacing: '0.02em',
           margin: '0',
@@ -154,7 +164,7 @@ export default function MegsStyleView() {
         <img src={config.heroBgImg} alt="Hero" style={{ width: '100%', height: 'auto', display: 'block', minHeight: '50vh', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)', zIndex: 1 }}></div>
 
-        <div style={{ position: 'absolute', bottom: '6rem', left: '5vw', zIndex: 2, textAlign: 'left', width: '100%', maxWidth: '800px' }}>
+        <div style={{ position: 'absolute', bottom: 'clamp(2rem, 8vw, 6rem)', left: '5vw', zIndex: 2, textAlign: 'left', width: '90%', maxWidth: '800px' }}>
           <h2 style={{
             color: '#fff',
             fontSize: 'clamp(2rem, 5vw, 4rem)',
@@ -182,13 +192,13 @@ export default function MegsStyleView() {
           <Link to="/megs-thrive-products" style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '1rem',
+            gap: '0.6rem',
             background: '#666666',
             color: '#fff',
-            padding: '1.2rem 2.5rem',
+            padding: '0.8rem 1.8rem',
             textDecoration: 'none',
             fontWeight: 'bold',
-            fontSize: '1rem',
+            fontSize: '0.85rem',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
             borderRadius: '50px',
@@ -207,7 +217,7 @@ export default function MegsStyleView() {
               e.currentTarget.style.boxShadow = '0 8px 24px rgba(102,102,102,0.3)';
             }}>
             {config.heroBtnText}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
@@ -216,27 +226,27 @@ export default function MegsStyleView() {
       </section>
 
       {/* PROMO / HIGHLIGHTS SECTION */}
-      <section style={{ padding: '8rem 0 0 0', background: '#fff', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 900, color: '#666666', letterSpacing: '-0.02em', margin: '0 0 0.5rem 0', lineHeight: 1 }}>
+      <section style={{ padding: '4rem 0 2rem 0', background: '#fff', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 'clamp(1.2rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#666666', letterSpacing: '-0.02em', margin: '0 0 0.15rem 0', lineHeight: 1 }}>
           {config.promoTitle}
         </h2>
-        <p style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)', fontWeight: 800, color: '#111', margin: '0 0 4rem 0', letterSpacing: '-0.04em' }}>
+        <p style={{ fontSize: 'clamp(1.1rem, 3vw, 2rem)', fontWeight: 800, color: '#111', margin: '0 0 2rem 0', letterSpacing: '-0.04em' }}>
           {config.promoSubtitle}
         </p>
 
         <div className="acg-grid-2" style={{ padding: '2rem', background: '#000', alignItems: 'flex-start' }}>
           {renderLink(config.promo1Link, (
-            <div style={{ position: 'relative', width: '100%', transition: 'transform 0.3s' }}
+            <div style={{ position: 'relative', width: '100%', height: '100%', transition: 'transform 0.3s' }}
               onMouseOver={e => config.promo1Link && (e.currentTarget.style.transform = 'scale(0.98)')}
               onMouseOut={e => config.promo1Link && (e.currentTarget.style.transform = 'scale(1)')}>
-              <img src={config.promo1Img} style={{ width: '100%', height: 'auto', display: 'block' }} alt="Promo 1" />
+              <img src={config.promo1Img} style={{ width: '100%', height: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} alt="Promo 1" />
             </div>
           ))}
           {renderLink(config.promo2Link, (
-            <div style={{ position: 'relative', width: '100%', transition: 'transform 0.3s' }}
+            <div style={{ position: 'relative', width: '100%', height: '100%', transition: 'transform 0.3s' }}
               onMouseOver={e => config.promo2Link && (e.currentTarget.style.transform = 'scale(0.98)')}
               onMouseOut={e => config.promo2Link && (e.currentTarget.style.transform = 'scale(1)')}>
-              <img src={config.promo2Img} style={{ width: '100%', height: 'auto', display: 'block' }} alt="Promo 2" />
+              <img src={config.promo2Img} style={{ width: '100%', height: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} alt="Promo 2" />
             </div>
           ))}
         </div>
@@ -248,80 +258,80 @@ export default function MegsStyleView() {
         if (thriveProductsForHome.length === 0) return null;
         return (
           <section style={{ padding: '6rem 5vw', background: '#fff' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#666666', margin: 0, letterSpacing: '-0.02em' }}>
-              {config.productTitle}
-            </h2>
-            <Link to="/megs-thrive-products" style={{
-              fontWeight: 'bold',
-              color: '#111',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              Shop <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#f0f0f0', borderRadius: '50%', fontSize: '1.2rem' }}>&rarr;</span>
-            </Link>
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#666666', margin: 0, letterSpacing: '-0.02em' }}>
+                  {config.productTitle}
+                </h2>
+                <Link to="/megs-thrive-products" style={{
+                  fontWeight: 'bold',
+                  color: '#111',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  Shop <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', background: '#f0f0f0', borderRadius: '50%', fontSize: '1.2rem' }}>&rarr;</span>
+                </Link>
+              </div>
 
-          <div className="slider-wrapper" style={{ position: 'relative' }}>
-            <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10, color: '#111', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            </button>
-            <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-right" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10, color: '#111', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-            </button>
-            <div
-              className="product-slider"
-              ref={productScroll.ref}
-              onMouseDown={productScroll.onMouseDown}
-              onMouseLeave={productScroll.onMouseLeave}
-              onMouseUp={productScroll.onMouseUp}
-              onMouseMove={productScroll.onMouseMove}
-              onClickCapture={productScroll.onClickCapture}
-              style={{ ...productScroll.style, scrollPadding: '0 2rem' }}
-            >
-              {thriveProductsForHome.map(product => {
-                let displayImg = product.img;
-                try {
-                  const parsed = JSON.parse(product.img);
-                  if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
-                } catch (e) { }
+              <div className="slider-wrapper" style={{ position: 'relative' }}>
+                <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10, color: '#111', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+                <button onClick={() => { if (productScroll.ref.current) productScroll.ref.current.scrollBy({ left: 400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-right" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10, color: '#111', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+                <div
+                  className="product-slider"
+                  ref={productScroll.ref}
+                  onMouseDown={productScroll.onMouseDown}
+                  onMouseLeave={productScroll.onMouseLeave}
+                  onMouseUp={productScroll.onMouseUp}
+                  onMouseMove={productScroll.onMouseMove}
+                  onClickCapture={productScroll.onClickCapture}
+                  style={{ ...productScroll.style, scrollPadding: '0 2rem' }}
+                >
+                  {thriveProductsForHome.map(product => {
+                    let displayImg = product.img;
+                    try {
+                      const parsed = JSON.parse(product.img);
+                      if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                    } catch (e) { }
 
-                let totalStock = 1;
-                try {
-                  const parsedSizes = JSON.parse(product.sizes || '[]');
-                  if (Array.isArray(parsedSizes)) {
-                    totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
-                  }
-                } catch(e) {}
-                const isSoldOut = totalStock === 0;
+                    let totalStock = 1;
+                    try {
+                      const parsedSizes = JSON.parse(product.sizes || '[]');
+                      if (Array.isArray(parsedSizes)) {
+                        totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
+                      }
+                    } catch (e) { }
+                    const isSoldOut = totalStock === 0;
 
-                return (
-                  <div key={product.id} className={`product-card ${isSoldOut ? 'sold-out' : ''}`}>
-                    {isSoldOut ? <div className="new-badge" style={{ background: '#ff4444', color: 'white' }}>SOLD OUT</div> : <div className="new-badge">NEW</div>}
-                    <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: isSoldOut ? 0.6 : 1 }}>
-                      <div className="product-image-container">
-                        <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }} />
+                    return (
+                      <div key={product.id} className={`product-card ${isSoldOut ? 'sold-out' : ''}`}>
+                        {isSoldOut ? <div className="new-badge" style={{ background: '#ff4444', color: 'white' }}>SOLD OUT</div> : <div className="new-badge">NEW</div>}
+                        <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: isSoldOut ? 0.6 : 1 }}>
+                          <div className="product-image-container">
+                            <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }} />
+                          </div>
+                          <div className="product-info">
+                            <h3>{product.name}</h3>
+                            <p>Rp. {product.price}</p>
+                          </div>
+                        </Link>
+                        <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', pointerEvents: isSoldOut ? 'none' : 'auto' }}>
+                          {isSoldOut ? 'SOLD OUT' : 'CHOOSE OPTIONS'}
+                        </Link>
                       </div>
-                      <div className="product-info">
-                        <h3>{product.name}</h3>
-                        <p>Rp. {product.price}</p>
-                      </div>
-                    </Link>
-                    <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', pointerEvents: isSoldOut ? 'none' : 'auto' }}>
-                      {isSoldOut ? 'SOLD OUT' : 'CHOOSE OPTIONS'}
-                    </Link>
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
           </section>
         );
       })()}

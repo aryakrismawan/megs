@@ -29,23 +29,6 @@ export default function ThriveProductListView() {
       {/* Spacer for Navbar */}
       <div style={{ height: '80px', background: 'var(--color-bg-main)' }}></div>
 
-      {/* THE STICKY LOGO NAVBAR */}
-      <div style={{
-        position: 'sticky',
-        top: 80, // below main navbar
-        zIndex: 998,
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'rgba(245, 245, 240, 0.95)',
-        backdropFilter: 'blur(10px)',
-        padding: '12px 0',
-        borderBottom: '1px solid var(--color-border)'
-      }}>
-        <img src="/MEGS COKOR BLACK.png" alt="MEGS THRIVE LOGO" style={{ height: '40px', objectFit: 'contain' }} />
-      </div>
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '4rem 5vw' }}>
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
           <h1 style={{
@@ -103,7 +86,7 @@ export default function ThriveProductListView() {
           </div>
         </div>
         <div style={{ textAlign: 'left', marginTop: '6rem' }}>
-          <Link to="/megs-style" style={{
+          <Link to="/megs-thrive" style={{
             fontFamily: 'var(--font-mono)',
             color: 'var(--color-text-muted)',
             textDecoration: 'none',
@@ -137,7 +120,7 @@ export default function ThriveProductListView() {
                 if (Array.isArray(parsedSizes)) {
                   totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
                 }
-              } catch(e) {}
+              } catch (e) { }
               const isSoldOut = totalStock === 0;
 
               return (
