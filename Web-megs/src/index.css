@@ -380,22 +380,24 @@ a {
 
 .product-image-container {
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 4/5;
   overflow: hidden;
   position: relative;
   background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border);
-  padding: 1rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .product-image {
-  width: 92%;
-  height: 92%;
-  object-fit: contain;
-  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .product-card:hover .product-image {
@@ -1607,28 +1609,28 @@ html {
   }
 
   .product-slider > .product-card {
-    flex: 0 0 68vw !important;
-    min-width: 215px !important;
+    flex: 0 0 74vw !important;
+    min-width: 230px !important;
     scroll-snap-align: center !important;
   }
 
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.85rem !important;
+    gap: 0.75rem !important;
     padding: 1rem 0 !important;
   }
 
   .product-image-container {
-    padding: 0.65rem !important;
+    padding: 0 !important;
   }
 
   .product-info {
-    padding: 0.85rem 0.6rem !important;
+    padding: 0.9rem 0.65rem !important;
     flex: 1;
   }
 
   .product-info h3 {
-    font-size: 0.84rem !important;
+    font-size: 0.86rem !important;
     line-height: 1.25 !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -1637,7 +1639,7 @@ html {
   }
 
   .product-info p {
-    font-size: 0.74rem !important;
+    font-size: 0.75rem !important;
     margin-top: 0.35rem !important;
   }
 
@@ -1648,16 +1650,9 @@ html {
     padding: 3px 7px !important;
   }
 
-  /* Always show CHOOSE OPTIONS button on touch devices without covering product info */
+  /* Match Desktop hover-only overlay behavior on mobile (cards remain clean and directly tappable) */
   .product-card .btn-secondary {
-    position: static !important;
-    opacity: 1 !important;
-    transform: none !important;
-    padding: 0.65rem 0.4rem !important;
-    font-size: 0.7rem !important;
-    letter-spacing: 0.02em !important;
-    margin-top: auto !important;
-    border-top: 1px solid var(--color-border) !important;
+    display: none !important;
   }
 
   /* 6. Product Detail View Mobile Layout */
