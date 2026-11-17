@@ -3,9 +3,13 @@ import { cors } from 'hono/cors';
 
 type Bindings = {
   DB: D1Database;
+  TURNSTILE_SECRET_KEY?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+// In-memory sliding window rate limiter per isolate to protect D1 from order spam floods
+const orderRateLimitMap = new Map<string, number>();
 
 
 // Enable CORS for frontend applications
@@ -119,6 +123,7 @@ app.put('/api/admins/:id', async (c) => {
 app.get('/api/products', async (c) => {
   try {
     const { results } = await c.env.DB.prepare("SELECT * FROM products ORDER BY id DESC").all();
+    c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     return c.json(results);
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
@@ -200,6 +205,7 @@ app.delete('/api/products/:id', async (c) => {
 app.get('/api/articles', async (c) => {
   try {
     const { results } = await c.env.DB.prepare("SELECT * FROM articles ORDER BY created_at DESC").all();
+    c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     return c.json(results);
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
@@ -296,6 +302,7 @@ app.get('/api/create-yours', async (c) => {
       await c.env.DB.prepare(`ALTER TABLE create_yours ADD COLUMN form_config TEXT`).run();
     } catch(e) {}
     const { results } = await c.env.DB.prepare("SELECT * FROM create_yours ORDER BY id DESC").all();
+    c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     return c.json(results);
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
@@ -361,20 +368,72 @@ app.get('/api/orders', async (c) => {
 app.post('/api/orders', async (c) => {
   try {
     const data = await c.req.json();
-    const { customer_name, customer_phone, customer_address, order_items, total_price, coupon_code } = data;
+    const { customer_name, customer_phone, customer_address, order_items, total_price, coupon_code, turnstile_token, honeypot } = data;
+
+    // 1. Honeypot Anti-Bot Check
+    if (honeypot && String(honeypot).trim() !== '') {
+      return c.json({ error: 'Bot activity detected' }, 400);
+    }
 
     if (!customer_name || !customer_phone || !customer_address || !order_items) {
       return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    // 2. Payload Length & Sanitization Guard to prevent DB overflow
+    const cleanName = String(customer_name).trim().slice(0, 120);
+    const cleanPhone = String(customer_phone).replace(/\D/g, '').slice(0, 25);
+    const cleanAddress = String(customer_address).trim().slice(0, 1200);
+    const serializedItems = typeof order_items === 'string' ? order_items : JSON.stringify(order_items);
+
+    if (!cleanPhone || serializedItems.length > 20000) {
+      return c.json({ error: 'Invalid order payload' }, 400);
+    }
+
+    // 3. Per-IP & Per-Phone Rate Limiting (25s cooldown)
+    const clientIp = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || cleanPhone;
+    const rateKey = `${clientIp}:${cleanPhone}`;
+    const nowMs = Date.now();
+    const lastOrderMs = orderRateLimitMap.get(rateKey) || 0;
+    if (nowMs - lastOrderMs < 25000) {
+      return c.json({ error: 'Mohon tunggu beberapa detik sebelum mengirim pesanan kembali.' }, 429);
+    }
+
+    // 4. Optional Cloudflare Turnstile Server-Side Siteverify (when TURNSTILE_SECRET_KEY is configured)
+    if (c.env.TURNSTILE_SECRET_KEY && turnstile_token && !String(turnstile_token).startsWith('cf-fallback-')) {
+      try {
+        const formData = new FormData();
+        formData.append('secret', c.env.TURNSTILE_SECRET_KEY);
+        formData.append('response', String(turnstile_token));
+        if (c.req.header('CF-Connecting-IP')) {
+          formData.append('remoteip', c.req.header('CF-Connecting-IP')!);
+        }
+        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          body: formData
+        });
+        const verifyOutcome: any = await verifyRes.json();
+        if (!verifyOutcome.success) {
+          return c.json({ error: 'Verifikasi Cloudflare gagal. Silakan muat ulang halaman.' }, 403);
+        }
+      } catch {
+        // Allow fallback if Turnstile verification endpoint is temporarily unreachable
+      }
+    }
+
+    orderRateLimitMap.set(rateKey, nowMs);
+    if (orderRateLimitMap.size > 500) {
+      const oldestKey = orderRateLimitMap.keys().next().value;
+      if (oldestKey) orderRateLimitMap.delete(oldestKey);
     }
 
     const info = await c.env.DB.prepare(
       `INSERT INTO orders (customer_name, customer_phone, customer_address, order_items, total_price, status) 
        VALUES (?, ?, ?, ?, ?, 'menunggu pembayaran')`
     ).bind(
-      customer_name,
-      customer_phone,
-      customer_address,
-      typeof order_items === 'string' ? order_items : JSON.stringify(order_items),
+      cleanName,
+      cleanPhone,
+      cleanAddress,
+      serializedItems,
       total_price || ''
     ).run();
 

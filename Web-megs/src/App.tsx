@@ -4,6 +4,9 @@ import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
 import { CollectionChoicePopup } from './components/CollectionChoicePopup';
+import { BagToastNotification } from './components/BagToastNotification';
+import { ScrollUXEnhancer } from './components/ScrollUXEnhancer';
+import { CloudflareTurnstile } from './components/CloudflareTurnstile';
 import MegsStyleView from './MegsStyleView';
 import ThriveProductListView from './ThriveProductListView';
 import {
@@ -113,6 +116,8 @@ function App() {
           <CartSidebar />
           <SearchOverlay />
           <CollectionChoicePopup />
+          <BagToastNotification />
+          <ScrollUXEnhancer />
           <style>
             {`
               @keyframes fadeInUpMain {
@@ -173,7 +178,7 @@ function App() {
                       textAlign: 'justify',
                     }}
                   >
-                    Since November 2024, MEGS Apparel creates modern sportswear that blends performance, comfort, and style on and off the field.
+                    performance, comfort, and style on and off the field.
                   </p>
                 </div>
 
@@ -220,7 +225,7 @@ function App() {
                 {/* Right Aligned Links & Shipping */}
                 <div className="footer-bottom-links" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
-                    <span>&copy;2023 MEGS&reg;</span>
+                    <span>2024 MEGS</span>
                   </div>
                 </div>
 
@@ -357,20 +362,23 @@ function GlobalLoader() {
   const location = useLocation();
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     setIsMounted(true);
     setIsVisible(true);
 
-    // Hold the loading screen for 1200ms
-    const timerVisible = setTimeout(() => {
-      setIsVisible(false); // trigger fade-out transition
-    }, 1200);
+    const holdDuration = isInitialLoadRef.current ? 650 : 220;
+    const fadeDuration = isInitialLoadRef.current ? 380 : 280;
+    isInitialLoadRef.current = false;
 
-    // Unmount after fade-out completes (1200ms + 500ms transition)
+    const timerVisible = setTimeout(() => {
+      setIsVisible(false);
+    }, holdDuration);
+
     const timerMount = setTimeout(() => {
       setIsMounted(false);
-    }, 1700);
+    }, holdDuration + fadeDuration);
 
     // Scroll to top on route change
     window.scrollTo(0, 0);
@@ -394,7 +402,7 @@ function GlobalLoader() {
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
       background: 'var(--color-bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 999999, transition: 'opacity 0.5s ease-in-out, visibility 0.5s ease-in-out',
+      zIndex: 999999, transition: 'opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
       opacity: isVisible ? 1 : 0,
       visibility: isVisible ? 'visible' : 'hidden',
       pointerEvents: isVisible ? 'auto' : 'none'
@@ -420,11 +428,9 @@ function GlobalLoader() {
 
 function Navbar() {
   const location = useLocation();
-  const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, theme, setTheme } = useShop();
+  const { cart, setIsCartOpen, bagBumpKey, setIsSearchOpen, isSearchOpen, theme, setTheme, articles, createYoursItems } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileProductSubOpen, setIsMobileProductSubOpen] = useState(false);
-  const [articles, setArticles] = useState<any[]>([]);
-  const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNavbarHovered, setIsNavbarHovered] = useState(false);
 
@@ -432,7 +438,7 @@ function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -441,28 +447,6 @@ function Navbar() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
-
-  useEffect(() => {
-    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
-      .then(async res => {
-        const text = await res.text();
-        try { return JSON.parse(text); } catch { return []; }
-      })
-      .then(data => {
-        if (Array.isArray(data)) setArticles(data);
-      })
-      .catch(err => console.error(err));
-
-    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
-      .then(async res => {
-        const text = await res.text();
-        try { return JSON.parse(text); } catch { return []; }
-      })
-      .then(data => {
-        if (Array.isArray(data)) setCreateYoursItems(data);
-      })
-      .catch(err => console.error(err));
-  }, []);
 
   if (location.pathname.startsWith('/admin')) return null;
 
@@ -482,8 +466,8 @@ function Navbar() {
   const navbarClasses = `navbar ${isScrolled && !isMegsStyle ? 'navbar-scrolled' : ''} ${isSearchOpen ? 'navbar-search-open' : ''} ${isTransparentHero ? 'navbar-hero' : ''} ${isMegsStyle ? 'navbar-megs-style' : ''} ${(isMegsStyle && isScrolled) ? 'navbar-hidden' : ''}`;
 
   return (
-    <header 
-      className={navbarClasses} 
+    <header
+      className={navbarClasses}
       style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}
       onMouseEnter={() => setIsNavbarHovered(true)}
       onMouseLeave={() => setIsNavbarHovered(false)}
@@ -596,14 +580,61 @@ function Navbar() {
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
         </button>
-        <button onClick={() => setIsCartOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center', position: 'relative' }}>
+        <button
+          key={`bag-btn-${bagBumpKey}`}
+          onClick={() => setIsCartOpen(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-text-main)',
+            cursor: 'pointer',
+            padding: '0.4rem',
+            display: 'flex',
+            alignItems: 'center',
+            position: 'relative',
+            animation: bagBumpKey > 0 ? 'megsBagIconBump 0.45s cubic-bezier(0.16, 1, 0.3, 1)' : 'none'
+          }}
+        >
+          <style>
+            {`
+              @keyframes megsBagIconBump {
+                0% { transform: scale(1); }
+                30% { transform: scale(1.28) rotate(-6deg); }
+                60% { transform: scale(0.94) rotate(4deg); }
+                100% { transform: scale(1) rotate(0deg); }
+              }
+              @keyframes megsBagBadgePop {
+                0% { transform: scale(0.5); }
+                65% { transform: scale(1.35); }
+                100% { transform: scale(1); }
+              }
+            `}
+          </style>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
             <line x1="3" y1="6" x2="21" y2="6"></line>
             <path d="M16 10a4 4 0 0 1-8 0"></path>
           </svg>
           {totalItems > 0 && (
-            <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-text-main)', color: 'var(--color-bg-main)', fontSize: '0.6rem', fontWeight: 'bold', width: '14px', height: '14px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-bg-main)' }}>
+            <span
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                background: 'var(--color-text-main)',
+                color: 'var(--color-bg-main)',
+                fontSize: '0.6rem',
+                fontWeight: 'bold',
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid var(--color-bg-main)',
+                animation: bagBumpKey > 0 ? 'megsBagBadgePop 0.42s cubic-bezier(0.16, 1, 0.3, 1)' : 'none'
+              }}
+            >
               {totalItems}
             </span>
           )}
@@ -670,16 +701,21 @@ function Navbar() {
 }
 
 function HomeView() {
-  const { products, openCollectionPopup } = useShop();
-  const [articles, setArticles] = useState<any[]>([]);
-  const [heroSlides, setHeroSlides] = useState<any[]>([]);
-  const [aboutImage, setAboutImage] = useState('');
-  const [aboutText, setAboutText] = useState('We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics. Every piece is meticulously designed to push boundaries and elevate your everyday performance.');
+  const { products, articles, createYoursItems, openCollectionPopup } = useShop();
+  const [heroSlides, setHeroSlides] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('megs_cache_hero_slides');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [aboutImage, setAboutImage] = useState(() => sessionStorage.getItem('megs_cache_about_img') || '');
+  const [aboutText, setAboutText] = useState(() => sessionStorage.getItem('megs_cache_about_text') || 'We engineer premium technical apparel that bridges the gap between high-performance athletic gear and modern streetwear aesthetics. Every piece is meticulously designed to push boundaries and elevate your everyday performance.');
   const [activeHero, setActiveHero] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [heroLoading, setHeroLoading] = useState(true);
-  const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
+  const loading = false;
+  const [heroLoading, setHeroLoading] = useState(() => !sessionStorage.getItem('megs_cache_hero_slides'));
 
   const archiveScroll = useDraggableScroll();
   const productScroll = useDraggableScroll();
@@ -731,24 +767,36 @@ function HomeView() {
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`)
       .then(res => res.json())
       .then(data => {
+        let slidesToSave: any[] = [];
         if (data.hero_slides) {
           try {
-            setHeroSlides(JSON.parse(data.hero_slides));
+            slidesToSave = JSON.parse(data.hero_slides);
+            setHeroSlides(slidesToSave);
           } catch (e) { }
         } else if (data.hero_image) {
           try {
             const parsed = JSON.parse(data.hero_image);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setHeroSlides(parsed.map((img: string) => ({ image: img, title: data.hero_title, subtitle: data.hero_subtitle })));
+              slidesToSave = parsed.map((img: string) => ({ image: img, title: data.hero_title, subtitle: data.hero_subtitle }));
             } else {
-              setHeroSlides([{ image: data.hero_image, title: data.hero_title, subtitle: data.hero_subtitle }]);
+              slidesToSave = [{ image: data.hero_image, title: data.hero_title, subtitle: data.hero_subtitle }];
             }
           } catch (e) {
-            setHeroSlides([{ image: data.hero_image, title: data.hero_title, subtitle: data.hero_subtitle }]);
+            slidesToSave = [{ image: data.hero_image, title: data.hero_title, subtitle: data.hero_subtitle }];
           }
+          setHeroSlides(slidesToSave);
         }
-        if (data.about_image) setAboutImage(data.about_image);
-        if (data.about_text) setAboutText(data.about_text);
+        if (slidesToSave.length > 0) {
+          try { sessionStorage.setItem('megs_cache_hero_slides', JSON.stringify(slidesToSave)); } catch {}
+        }
+        if (data.about_image) {
+          setAboutImage(data.about_image);
+          try { sessionStorage.setItem('megs_cache_about_img', data.about_image); } catch {}
+        }
+        if (data.about_text) {
+          setAboutText(data.about_text);
+          try { sessionStorage.setItem('megs_cache_about_text', data.about_text); } catch {}
+        }
       })
       .catch(console.error)
       .finally(() => setHeroLoading(false));
@@ -773,22 +821,6 @@ function HomeView() {
 
     return () => clearTimeout(timeout);
   }, [heroSlides, activeHero]);
-
-  useEffect(() => {
-    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/articles`)
-      .then(res => res.json())
-      .then(data => {
-        setArticles(data);
-        setLoading(false);
-      });
-
-    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/create-yours`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setCreateYoursItems(data);
-      })
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1078,14 +1110,14 @@ function HomeView() {
                 <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
               </div>
               <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)' }}>
-                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => openCollectionPopup('tops')}>
-                  <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="megs-category-tile" style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => openCollectionPopup('tops')}>
+                  <div className="megs-category-icon" style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.38 3.46L16 2a8.59 8.59 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg>
                   </div>
                   <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>TOPS</h3>
                 </div>
-                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => openCollectionPopup('bottoms')}>
-                  <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="megs-category-tile" style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => openCollectionPopup('bottoms')}>
+                  <div className="megs-category-icon" style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4.5 21l1.5-15a1.5 1.5 0 0 1 1.5-1h9a1.5 1.5 0 0 1 1.5 1l1.5 15h-5.5l-2-10l-2 10z" />
                       <path d="M12 5v5" />
@@ -1133,7 +1165,7 @@ function HomeView() {
                     if (Array.isArray(parsedSizes)) {
                       totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
                     }
-                  } catch(e) {}
+                  } catch (e) { }
                   const isSoldOut = totalStock === 0;
 
                   return (
@@ -1299,26 +1331,37 @@ function ProductListView() {
 
 function ProductDetailView() {
   const { id } = useParams();
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { products, addToCart, setTheme } = useShop();
+  const cachedProduct = products.find(p => String(p.id) === String(id)) || null;
+  const [product, setProduct] = useState<any>(cachedProduct);
+  const [loading, setLoading] = useState(!cachedProduct);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const { addToCart, setTheme } = useShop();
+  const [isAddedFeedback, setIsAddedFeedback] = useState(false);
+  const addedFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Carousel & Zoom State
+  // Carousel State
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: '50%', y: '50%' });
   const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const foundInCache = products.find(p => String(p.id) === String(id));
+    if (foundInCache) {
+      setProduct(foundInCache);
+      setLoading(false);
+      if (foundInCache.category && foundInCache.category.startsWith('thrive_')) {
+        setTheme('light');
+      }
+    }
     fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/products/${id}`)
       .then(res => res.json())
       .then(data => {
-        setProduct(data);
-        if (data && data.category && data.category.startsWith('thrive_')) {
-          setTheme('light');
+        if (data && !data.error) {
+          setProduct(data);
+          if (data.category && data.category.startsWith('thrive_')) {
+            setTheme('light');
+          }
         }
         setLoading(false);
       })
@@ -1326,7 +1369,7 @@ function ProductDetailView() {
         console.error(err);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, products, setTheme]);
 
   if (loading) {
     return <div style={{ paddingTop: '100px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>Loading...</div>;
@@ -1348,7 +1391,7 @@ function ProductDetailView() {
   try {
     if (product.sizes) {
       const parsed = JSON.parse(product.sizes);
-      sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? {size: s, stock: 1} : s) : [];
+      sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? { size: s, stock: 1 } : s) : [];
     }
   } catch (e) { }
 
@@ -1373,13 +1416,6 @@ function ProductDetailView() {
     }
     setTouchStart(0);
     setTouchEnd(0);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomPos({ x: `${x}%`, y: `${y}%` });
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -1411,16 +1447,15 @@ function ProductDetailView() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: isZoomed ? 'zoom-out' : (images.length > 1 ? 'grab' : 'zoom-in')
+            cursor: images.length > 1 ? 'grab' : 'default'
           }}
-          onMouseEnter={() => setIsZoomed(true)}
-          onMouseLeave={() => { setIsZoomed(false); setTouchStart(0); setTouchEnd(0); }}
-          onMouseMove={handleMouseMove}
+          onMouseLeave={() => { setTouchStart(0); setTouchEnd(0); }}
           onWheel={handleWheel}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onMouseDown={handleTouchStart}
+          onMouseMove={handleTouchMove}
           onMouseUp={handleTouchEnd}
         >
           {images.length > 0 ? (
@@ -1430,10 +1465,7 @@ function ProductDetailView() {
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                transform: isZoomed ? 'scale(2)' : 'scale(1)',
-                transformOrigin: `${zoomPos.x} ${zoomPos.y}`,
-                transition: 'transform 0.1s ease-out'
+                objectFit: 'cover'
               }}
             />
           ) : (
@@ -1441,7 +1473,7 @@ function ProductDetailView() {
           )}
 
           {/* ARROWS FOR MULTIPLE IMAGES */}
-          {images.length > 1 && !isZoomed && (
+          {images.length > 1 && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => (prev - 1 + images.length) % images.length); }}
@@ -1522,12 +1554,31 @@ function ProductDetailView() {
           onClick={() => {
             if (sizes.length > 0 && !selectedSize) return;
             addToCart(product, selectedSize || undefined);
+            setIsAddedFeedback(true);
+            if (addedFeedbackTimerRef.current) {
+              clearTimeout(addedFeedbackTimerRef.current);
+            }
+            addedFeedbackTimerRef.current = setTimeout(() => {
+              setIsAddedFeedback(false);
+              addedFeedbackTimerRef.current = null;
+            }, 1300);
           }}
           className="btn-primary"
-          style={{ padding: '1.5rem', fontSize: '1.1rem', marginBottom: '3rem', opacity: ((sizes.length > 0 && !selectedSize) || sizes.every(s => s.stock === 0)) ? 0.5 : 1 }}
+          style={{
+            padding: '1.5rem',
+            fontSize: '1.1rem',
+            marginBottom: '3rem',
+            opacity: ((sizes.length > 0 && !selectedSize) || sizes.every(s => s.stock === 0)) ? 0.5 : 1,
+            transform: isAddedFeedback ? 'scale(0.985)' : 'scale(1)',
+            transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
           disabled={(sizes.length > 0 && !selectedSize) || sizes.every(s => s.stock === 0)}
         >
-          {sizes.every(s => s.stock === 0) ? 'SOLD OUT' : 'ADD TO BAG'}
+          {sizes.every(s => s.stock === 0)
+            ? 'SOLD OUT'
+            : isAddedFeedback
+              ? '✓ ADDED TO BAG'
+              : 'ADD TO BAG'}
         </button>
 
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
@@ -2131,6 +2182,10 @@ function CheckoutView() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string, discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
+  const formMountTimeRef = useRef<number>(Date.now());
 
   // redirect if cart is empty
   useEffect(() => {
@@ -2300,6 +2355,24 @@ function CheckoutView() {
     e.preventDefault();
     setFormValidationMessage('');
 
+    // 1. Anti-Bot Honeypot & Minimum Fill Duration Guard
+    if (honeypot.trim() !== '' || Date.now() - formMountTimeRef.current < 1200) {
+      setFormValidationMessage('Aktivitas tidak wajar terdeteksi oleh sistem keamanan.');
+      return;
+    }
+
+    // 2. Client-Side Anti-Spam Cooldown Guard (30 seconds between orders)
+    try {
+      const lastOrderTs = Number(localStorage.getItem('megs_last_order_ts') || '0');
+      const elapsedSeconds = Math.floor((Date.now() - lastOrderTs) / 1000);
+      if (lastOrderTs > 0 && elapsedSeconds < 30) {
+        setFormValidationMessage(`Mohon tunggu ${30 - elapsedSeconds} detik sebelum mengirim pesanan baru untuk mencegah duplikasi.`);
+        return;
+      }
+    } catch {
+      // ignore storage errors
+    }
+
     if (!provinceName || !cityName) {
       setFormValidationMessage('Mohon lengkapi Provinsi dan Kota/Kabupaten tujuan terlebih dahulu untuk menghitung estimasi ongkir.');
       return;
@@ -2315,6 +2388,12 @@ function CheckoutView() {
       return;
     }
 
+    // 3. Cloudflare Turnstile Bot Verification Check
+    if (!turnstileToken) {
+      setFormValidationMessage('Mohon selesaikan verifikasi keamanan Cloudflare (Bukan Bot) di bagian bawah Ringkasan Pesanan terlebih dahulu.');
+      return;
+    }
+
     const itemsText = cart.map(item =>
       `- ${item.name} (${item.selectedSize ? `Size: ${item.selectedSize}` : 'No Size'}) x${item.quantity} (Rp. ${item.price})`
     ).join('\n');
@@ -2322,21 +2401,39 @@ function CheckoutView() {
     const totalFormatted = `Rp. ${grandTotal.toLocaleString('id-ID')}`;
     const shippingLabel = `${selectedShippingOption.agentName} - ${selectedShippingOption.serviceName} (${selectedShippingOption.etd})`;
 
+    setIsSubmittingOrder(true);
     try {
-      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_name: name,
-          customer_phone: phone,
-          customer_address: `${address}\nKecamatan: ${districtName}\nKota/Kab: ${cityName}\nProvinsi: ${provinceName}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email}` : ''}\nKurir: ${shippingLabel} (Rp. ${shippingCost.toLocaleString('id-ID')} | Dari ${SHIPPING_ORIGIN.label})`,
+          customer_name: name.trim(),
+          customer_phone: phone.trim(),
+          customer_address: `${address.trim()}\nKecamatan: ${districtName}\nKota/Kab: ${cityName}\nProvinsi: ${provinceName}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email.trim()}` : ''}\nKurir: ${shippingLabel} (Rp. ${shippingCost.toLocaleString('id-ID')} | Dari ${SHIPPING_ORIGIN.label})`,
           order_items: JSON.stringify(cart),
           total_price: grandTotal.toString(),
-          coupon_code: appliedCoupon?.code
+          coupon_code: appliedCoupon?.code,
+          turnstile_token: turnstileToken,
+          honeypot
         })
       });
+
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        setFormValidationMessage(errData.error || 'Terlalu banyak permintaan pesanan dalam waktu singkat. Silakan tunggu beberapa saat.');
+        setIsSubmittingOrder(false);
+        return;
+      }
+
+      try {
+        localStorage.setItem('megs_last_order_ts', String(Date.now()));
+      } catch {
+        // ignore
+      }
     } catch (e) {
       console.error('Failed to save order to DB', e);
+    } finally {
+      setIsSubmittingOrder(false);
     }
 
     let text = `Halo Admin, saya ingin memesan beberapa produk dari katalog MEGS. Berikut detail pesanan saya:\n\n`;
@@ -2375,303 +2472,655 @@ function CheckoutView() {
 
   if (cart.length === 0) return null;
 
+  const isStep1Complete = Boolean(name.trim() && phone.trim());
+  const isStep2Complete = Boolean(provinceName && cityName && districtName && postalCode.trim() && address.trim());
+  const isStep3Complete = Boolean(selectedShippingOption);
+
   return (
-    <div className="page-content" style={{ paddingTop: '100px', paddingBottom: '5rem', minHeight: '80vh' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '3rem' }}>
-          Checkout
-        </h1>
+    <div className="page-content" style={{ paddingTop: '95px', paddingBottom: '6rem', minHeight: '85vh' }}>
+      <style>
+        {`
+          .megs-checkout-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.38fr) minmax(340px, 0.92fr);
+            gap: 2.75rem;
+            align-items: start;
+          }
+          .megs-checkout-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            padding: 2rem;
+            transition: border-color 0.25s ease;
+          }
+          .megs-checkout-card:focus-within {
+            border-color: var(--color-text-main);
+          }
+          .megs-checkout-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.15rem;
+          }
+          .megs-courier-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.05rem 1.25rem;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-main);
+            color: var(--color-text-main);
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .megs-courier-card:hover {
+            border-color: var(--color-text-main);
+            transform: translateX(3px);
+          }
+          .megs-courier-card.selected {
+            background: var(--color-text-main);
+            color: var(--color-bg-main);
+            border-color: var(--color-text-main);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+          }
+          @media (max-width: 980px) {
+            .megs-checkout-layout {
+              grid-template-columns: 1fr;
+              gap: 2rem;
+            }
+          }
+          @media (max-width: 640px) {
+            .megs-checkout-card {
+              padding: 1.35rem;
+            }
+            .megs-checkout-grid-2 {
+              grid-template-columns: 1fr;
+              gap: 1rem;
+            }
+          }
+        `}
+      </style>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '4rem' }}>
+      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.5rem' }}>
+        {/* Top Navigation & Progress Bar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            paddingBottom: '1.5rem',
+            marginBottom: '2.25rem',
+            borderBottom: '1px solid var(--color-border)'
+          }}
+        >
+          <Link
+            to="/product"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.78rem',
+              color: 'var(--color-text-muted)',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.color = 'var(--color-text-main)')}
+            onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-text-muted)')}
+          >
+            &larr; LANJUT BELANJA
+          </Link>
 
-          {/* LEFT: Shipping Form & Courier Estimator */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div>
-              <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>
-                Shipping Information
-              </h2>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <span style={{ color: 'var(--color-text-main)', fontWeight: 700 }}>01 BAG ✓</span>
+            <span style={{ color: 'var(--color-border)' }}>/</span>
+            <span
+              style={{
+                background: 'var(--color-text-main)',
+                color: 'var(--color-bg-main)',
+                padding: '2px 8px',
+                fontWeight: 700
+              }}
+            >
+              02 PENGIRIMAN &amp; ONGKIR
+            </span>
+            <span style={{ color: 'var(--color-border)' }}>/</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>03 KONFIRMASI WA</span>
+          </div>
+        </div>
+
+        {/* Page Title & Route Origin Banner */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
+            marginBottom: '2.5rem'
+          }}
+        >
+          <div>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                color: 'var(--color-text-muted)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                display: 'block',
+                marginBottom: '0.35rem'
+              }}
+            >
+              MEGS OFFICIAL ORDER DISPATCH
+            </span>
+            <h1
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 900,
+                fontSize: 'clamp(2.2rem, 4.5vw, 3.5rem)',
+                letterSpacing: '-0.04em',
+                textTransform: 'uppercase',
+                lineHeight: 0.95,
+                margin: 0
+              }}
+            >
+              CHECKOUT
+            </h1>
+          </div>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.65rem',
+              padding: '0.65rem 1rem',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              color: 'var(--color-text-muted)'
+            }}
+          >
+            <span>
+              DIKIRIM DARI: <strong style={{ color: 'var(--color-text-main)' }}>CICURUG, KAB. SUKABUMI</strong>
+            </span>
+            <span>•</span>
+            <span>
+              ESTIMASI BERAT: <strong style={{ color: 'var(--color-text-main)' }}>{actualWeightKg} KG (DIHITUNG {chargeableKg} KG)</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* 2-Column Checkout Grid */}
+        <div className="megs-checkout-layout">
+          {/* LEFT COLUMN: 3 Structured Form Sections */}
+          <form
+            id="checkout-form"
+            onSubmit={handleWhatsAppCheckout}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}
+          >
+            {/* Hidden Honeypot Input for Anti-Bot Protection */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                width: '1px',
+                height: '1px',
+                overflow: 'hidden',
+                opacity: 0,
+                pointerEvents: 'none'
+              }}
+            >
+              <label htmlFor="megs_website_hp">Website</label>
+              <input
+                id="megs_website_hp"
+                name="website_url"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={e => setHoneypot(e.target.value)}
+              />
+            </div>
+            {/* SECTION 01: RECIPIENT CONTACT */}
+            <section className="megs-checkout-card">
               <div
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.45rem 0.85rem',
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.72rem',
-                  color: 'var(--color-text-muted)'
+                  paddingBottom: '1rem',
+                  marginBottom: '1.5rem',
+                  borderBottom: '1px solid var(--color-border)'
                 }}
               >
-                <span>ORIGIN: <strong style={{ color: 'var(--color-text-main)' }}>CICURUG, KAB. SUKABUMI, JAWA BARAT</strong></span>
-                <span>•</span>
-                <span>WEIGHT: <strong style={{ color: 'var(--color-text-main)' }}>{actualWeightKg} KG ({chargeableKg} KG)</strong></span>
-              </div>
-            </div>
-
-            <form id="checkout-form" onSubmit={handleWhatsAppCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="control-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NAMA LENGKAP PENERIMA *</label>
-                <input required className="input-text" type="text" placeholder="Masukkan nama lengkap penerima" value={name} onChange={e => setName(e.target.value)} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NOMOR WHATSAPP AKTIF *</label>
-                  <input required className="input-text" type="tel" pattern="[0-9]*" inputMode="numeric" placeholder="Contoh: 081234567890" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} />
-                </div>
-                <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL (OPSIONAL)</label>
-                  <input className="input-text" type="email" placeholder="nama@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-                </div>
-              </div>
-
-              {/* CASCADING REGION SELECTORS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                {/* 1. PROVINSI */}
-                <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINSI TUJUAN *</label>
-                  <select
-                    required
-                    className="input-text"
-                    value={selectedProvinceId}
-                    onChange={e => {
-                      const id = e.target.value;
-                      setSelectedProvinceId(id);
-                      const found = provinceList.find(p => p.id === id);
-                      setProvinceName(found ? found.name : '');
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '0.25rem 0.55rem',
+                      background: isStep1Complete ? 'var(--color-text-main)' : 'transparent',
+                      color: isStep1Complete ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                      border: '1px solid var(--color-text-main)'
                     }}
                   >
-                    <option value="">Pilih Provinsi</option>
-                    {provinceList.map(prov => (
-                      <option key={prov.id} value={prov.id}>{prov.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 2. KOTA / KABUPATEN */}
-                <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KOTA / KABUPATEN *</label>
-                  {useManualCityInput ? (
-                    <input
-                      required
-                      className="input-text"
-                      type="text"
-                      placeholder="Ketik nama Kota / Kabupaten"
-                      value={cityName}
-                      onChange={e => {
-                        setCityName(e.target.value);
-                        setUseManualDistrictInput(true);
+                    {isStep1Complete ? '01 ✓' : '01'}
+                  </span>
+                  <div>
+                    <h2
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 900,
+                        fontSize: '1.1rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '-0.01em',
+                        margin: 0
                       }}
-                    />
-                  ) : (
-                    <select
-                      required
-                      className="input-text"
-                      disabled={!selectedProvinceId || isLoadingCities}
-                      value={selectedCityId}
-                      onChange={e => {
-                        const id = e.target.value;
-                        setSelectedCityId(id);
-                        const found = cityList.find(c => c.id === id);
-                        setCityName(found ? found.name : '');
-                      }}
-                      style={{ opacity: !selectedProvinceId || isLoadingCities ? 0.6 : 1 }}
                     >
-                      <option value="">
-                        {!selectedProvinceId
-                          ? 'Pilih Provinsi terlebih dahulu'
-                          : isLoadingCities
-                            ? 'Memuat daftar kota...'
-                            : 'Pilih Kota / Kabupaten'}
-                      </option>
-                      {cityList.map(city => (
-                        <option key={city.id} value={city.id}>{city.name}</option>
-                      ))}
-                    </select>
-                  )}
+                      DATA KONTAK PENERIMA
+                    </h2>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--color-text-muted)', margin: '0.15rem 0 0 0' }}>
+                      Digunakan untuk konfirmasi pesanan &amp; pelacakan status pengiriman.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                {/* 3. KECAMATAN */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                 <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KECAMATAN *</label>
-                  {useManualDistrictInput ? (
-                    <input
-                      required
-                      className="input-text"
-                      type="text"
-                      placeholder="Ketik nama Kecamatan"
-                      value={districtName}
-                      onChange={e => setDistrictName(e.target.value)}
-                    />
-                  ) : (
-                    <select
-                      required
-                      className="input-text"
-                      disabled={(!selectedCityId && !cityName) || isLoadingDistricts}
-                      value={selectedDistrictId}
-                      onChange={e => {
-                        const id = e.target.value;
-                        setSelectedDistrictId(id);
-                        const found = districtList.find(d => d.id === id);
-                        setDistrictName(found ? found.name : '');
-                      }}
-                      style={{ opacity: (!selectedCityId && !cityName) || isLoadingDistricts ? 0.6 : 1 }}
-                    >
-                      <option value="">
-                        {!selectedCityId && !cityName
-                          ? 'Pilih Kota/Kab terlebih dahulu'
-                          : isLoadingDistricts
-                            ? 'Memuat daftar kecamatan...'
-                            : 'Pilih Kecamatan'}
-                      </option>
-                      {districtList.map(dist => (
-                        <option key={dist.id} value={dist.id}>{dist.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                {/* 4. KODE POS */}
-                <div className="control-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KODE POS *</label>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>NAMA LENGKAP PENERIMA *</label>
                   <input
                     required
                     className="input-text"
                     type="text"
-                    pattern="[0-9]*"
-                    inputMode="numeric"
-                    maxLength={5}
-                    placeholder="Contoh: 43359"
-                    value={postalCode}
-                    onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Contoh: Budi Santoso"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
                   />
                 </div>
-              </div>
 
-              <div className="control-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>ALAMAT LENGKAP & PATOKAN *</label>
-                <textarea
-                  required
-                  className="input-text"
-                  rows={3}
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/desa, serta patokan lokasi..."
-                />
+                <div className="megs-checkout-grid-2">
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>NOMOR WHATSAPP AKTIF *</label>
+                    <input
+                      required
+                      className="input-text"
+                      type="tel"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      placeholder="Contoh: 081234567890"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>ALAMAT EMAIL (OPSIONAL)</label>
+                    <input
+                      className="input-text"
+                      type="email"
+                      placeholder="nama@email.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
+            </section>
 
-              {/* SHIPPING AGENT & COST ESTIMATOR */}
+            {/* SECTION 02: DESTINATION ADDRESS */}
+            <section className="megs-checkout-card">
               <div
                 style={{
-                  marginTop: '0.5rem',
-                  padding: '1.5rem',
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)'
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingBottom: '1rem',
+                  marginBottom: '1.5rem',
+                  borderBottom: '1px solid var(--color-border)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '0.25rem 0.55rem',
+                      background: isStep2Complete ? 'var(--color-text-main)' : 'transparent',
+                      color: isStep2Complete ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                      border: '1px solid var(--color-text-main)'
+                    }}
+                  >
+                    {isStep2Complete ? '02 ✓' : '02'}
+                  </span>
                   <div>
-                    <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', margin: 0 }}>
-                      PILIH AGEN EKSPEDISI & LAYANAN
-                    </h3>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: '0.25rem 0 0 0' }}>
-                      Estimasi dihitung dari <strong style={{ color: 'var(--color-text-main)' }}>Cicurug, Kab. Sukabumi</strong>
-                      {cityName ? ` ke ${districtName ? `${districtName}, ` : ''}${cityName}` : ''}
+                    <h2
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 900,
+                        fontSize: '1.1rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '-0.01em',
+                        margin: 0
+                      }}
+                    >
+                      ALAMAT TUJUAN PENGIRIMAN
+                    </h2>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--color-text-muted)', margin: '0.15rem 0 0 0' }}>
+                      Pilih wilayah tujuan untuk menghitung tarif ekspedisi secara otomatis.
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {!provinceName || !cityName ? (
-                  <div
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                <div className="megs-checkout-grid-2">
+                  {/* 1. PROVINSI */}
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>PROVINSI TUJUAN *</label>
+                    <select
+                      required
+                      className="input-text"
+                      value={selectedProvinceId}
+                      onChange={e => {
+                        const id = e.target.value;
+                        setSelectedProvinceId(id);
+                        const found = provinceList.find(p => p.id === id);
+                        setProvinceName(found ? found.name : '');
+                      }}
+                    >
+                      <option value="">Pilih Provinsi</option>
+                      {provinceList.map(prov => (
+                        <option key={prov.id} value={prov.id}>{prov.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 2. KOTA / KABUPATEN */}
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>KOTA / KABUPATEN *</label>
+                    {useManualCityInput ? (
+                      <input
+                        required
+                        className="input-text"
+                        type="text"
+                        placeholder="Ketik nama Kota / Kabupaten"
+                        value={cityName}
+                        onChange={e => {
+                          setCityName(e.target.value);
+                          setUseManualDistrictInput(true);
+                        }}
+                      />
+                    ) : (
+                      <select
+                        required
+                        className="input-text"
+                        disabled={!selectedProvinceId || isLoadingCities}
+                        value={selectedCityId}
+                        onChange={e => {
+                          const id = e.target.value;
+                          setSelectedCityId(id);
+                          const found = cityList.find(c => c.id === id);
+                          setCityName(found ? found.name : '');
+                        }}
+                        style={{ opacity: !selectedProvinceId || isLoadingCities ? 0.6 : 1 }}
+                      >
+                        <option value="">
+                          {!selectedProvinceId
+                            ? 'Pilih Provinsi terlebih dahulu'
+                            : isLoadingCities
+                              ? 'Memuat daftar kota...'
+                              : 'Pilih Kota / Kabupaten'}
+                        </option>
+                        {cityList.map(city => (
+                          <option key={city.id} value={city.id}>{city.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                <div className="megs-checkout-grid-2">
+                  {/* 3. KECAMATAN */}
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>KECAMATAN *</label>
+                    {useManualDistrictInput ? (
+                      <input
+                        required
+                        className="input-text"
+                        type="text"
+                        placeholder="Ketik nama Kecamatan"
+                        value={districtName}
+                        onChange={e => setDistrictName(e.target.value)}
+                      />
+                    ) : (
+                      <select
+                        required
+                        className="input-text"
+                        disabled={(!selectedCityId && !cityName) || isLoadingDistricts}
+                        value={selectedDistrictId}
+                        onChange={e => {
+                          const id = e.target.value;
+                          setSelectedDistrictId(id);
+                          const found = districtList.find(d => d.id === id);
+                          setDistrictName(found ? found.name : '');
+                        }}
+                        style={{ opacity: (!selectedCityId && !cityName) || isLoadingDistricts ? 0.6 : 1 }}
+                      >
+                        <option value="">
+                          {!selectedCityId && !cityName
+                            ? 'Pilih Kota/Kab terlebih dahulu'
+                            : isLoadingDistricts
+                              ? 'Memuat daftar kecamatan...'
+                              : 'Pilih Kecamatan'}
+                        </option>
+                        {districtList.map(dist => (
+                          <option key={dist.id} value={dist.id}>{dist.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* 4. KODE POS */}
+                  <div className="control-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>KODE POS *</label>
+                    <input
+                      required
+                      className="input-text"
+                      type="text"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      maxLength={5}
+                      placeholder="Contoh: 43359"
+                      value={postalCode}
+                      onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+                </div>
+
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>DETAIL ALAMAT LENGKAP &amp; PATOKAN *</label>
+                  <textarea
+                    required
+                    className="input-text"
+                    rows={3}
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
+                    placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/desa, serta patokan lokasi..."
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* SECTION 03: SHIPPING AGENT & SERVICE */}
+            <section className="megs-checkout-card">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  paddingBottom: '1rem',
+                  marginBottom: '1.25rem',
+                  borderBottom: '1px solid var(--color-border)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <span
                     style={{
-                      padding: '2rem 1.5rem',
-                      border: '1px dashed var(--color-border)',
-                      textAlign: 'center',
                       fontFamily: 'var(--font-mono)',
-                      fontSize: '0.8rem',
-                      color: 'var(--color-text-muted)'
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '0.25rem 0.55rem',
+                      background: isStep3Complete ? 'var(--color-text-main)' : 'transparent',
+                      color: isStep3Complete ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                      border: '1px solid var(--color-text-main)'
                     }}
                   >
-                    Pilih <strong style={{ color: 'var(--color-text-main)' }}>Provinsi</strong> dan <strong style={{ color: 'var(--color-text-main)' }}>Kota / Kabupaten</strong> di atas untuk menampilkan pilihan kurir (J&amp;T, JNE, SiCepat, Ninja Xpress, Pos Indonesia) beserta estimasi ongkos kirim.
+                    {isStep3Complete ? '03 ✓' : '03'}
+                  </span>
+                  <div>
+                    <h2
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 900,
+                        fontSize: '1.1rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '-0.01em',
+                        margin: 0
+                      }}
+                    >
+                      PILIH AGEN EKSPEDISI &amp; LAYANAN
+                    </h2>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--color-text-muted)', margin: '0.15rem 0 0 0' }}>
+                      Rute pengiriman dari <strong style={{ color: 'var(--color-text-main)' }}>Cicurug, Kab. Sukabumi</strong>
+                      {cityName ? ` menuju ${districtName ? `${districtName}, ` : ''}${cityName}` : ''}
+                    </p>
                   </div>
-                ) : (
-                  <>
-                    {/* Filter Tabs per Agent */}
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                      {[
-                        { code: 'ALL', label: 'SEMUA AGEN' },
-                        { code: 'JNT', label: 'J&T EXPRESS' },
-                        { code: 'JNE', label: 'JNE' },
-                        { code: 'SICEPAT', label: 'SICEPAT' },
-                        { code: 'NINJA', label: 'NINJA' },
-                        { code: 'POS', label: 'POS' }
-                      ].map(tab => {
-                        const isActive = selectedCourierFilter === tab.code;
-                        return (
-                          <button
-                            key={tab.code}
-                            type="button"
-                            onClick={() => setSelectedCourierFilter(tab.code)}
-                            style={{
-                              padding: '0.45rem 0.85rem',
-                              border: '1px solid var(--color-border)',
-                              background: isActive ? 'var(--color-text-main)' : 'transparent',
-                              color: isActive ? 'var(--color-bg-main)' : 'var(--color-text-main)',
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.7rem',
-                              fontWeight: isActive ? 700 : 400,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            {tab.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                </div>
+              </div>
 
-                    {/* Courier Options List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                      {filteredShippingOptions.map(option => {
-                        const isSelected = selectedShippingId === option.id;
-                        return (
-                          <div
-                            key={option.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setSelectedShippingId(option.id)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                setSelectedShippingId(option.id);
-                              }
-                            }}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              gap: '1rem',
-                              padding: '1rem 1.25rem',
-                              background: isSelected ? 'var(--color-text-main)' : 'var(--color-bg-main)',
-                              color: isSelected ? 'var(--color-bg-main)' : 'var(--color-text-main)',
-                              border: isSelected ? '2px solid var(--color-text-main)' : '1px solid var(--color-border)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {!provinceName || !cityName ? (
+                <div
+                  style={{
+                    padding: '2.25rem 1.5rem',
+                    border: '1px dashed var(--color-border)',
+                    background: 'var(--color-bg-main)',
+                    textAlign: 'center',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.78rem',
+                    color: 'var(--color-text-muted)',
+                    lineHeight: 1.6
+                  }}
+                >
+                  Silakan pilih <strong style={{ color: 'var(--color-text-main)' }}>Provinsi</strong> dan <strong style={{ color: 'var(--color-text-main)' }}>Kota / Kabupaten</strong> pada Bagian 02 di atas untuk menampilkan daftar ekspedisi (J&amp;T Express, JNE, SiCepat, Ninja Xpress, Pos Indonesia) beserta tarif pengirimannya.
+                </div>
+              ) : (
+                <>
+                  {/* Filter Tabs per Agent */}
+                  <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', marginBottom: '1.15rem' }}>
+                    {[
+                      { code: 'ALL', label: 'SEMUA KURIR' },
+                      { code: 'JNT', label: 'J&T EXPRESS' },
+                      { code: 'JNE', label: 'JNE' },
+                      { code: 'SICEPAT', label: 'SICEPAT' },
+                      { code: 'NINJA', label: 'NINJA' },
+                      { code: 'POS', label: 'POS INDONESIA' }
+                    ].map(tab => {
+                      const isActive = selectedCourierFilter === tab.code;
+                      return (
+                        <button
+                          key={tab.code}
+                          type="button"
+                          onClick={() => setSelectedCourierFilter(tab.code)}
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            border: isActive ? '1px solid var(--color-text-main)' : '1px solid var(--color-border)',
+                            background: isActive ? 'var(--color-text-main)' : 'var(--color-bg-main)',
+                            color: isActive ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.7rem',
+                            fontWeight: isActive ? 700 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Courier Options List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                    {filteredShippingOptions.map(option => {
+                      const isSelected = selectedShippingId === option.id;
+                      return (
+                        <div
+                          key={option.id}
+                          role="radio"
+                          aria-checked={isSelected}
+                          tabIndex={0}
+                          className={`megs-courier-card ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setSelectedShippingId(option.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedShippingId(option.id);
+                            }
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+                            {/* Custom Radio Circle */}
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '50%',
+                                border: isSelected ? '2px solid var(--color-bg-main)' : '1.5px solid var(--color-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              {isSelected && (
+                                <div
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: 'var(--color-bg-main)'
+                                  }}
+                                />
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase' }}>
+                                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '0.92rem', textTransform: 'uppercase' }}>
                                   {option.agentName} — {option.serviceName}
                                 </span>
                                 {option.badge && (
                                   <span
                                     style={{
                                       fontFamily: 'var(--font-mono)',
-                                      fontSize: '0.62rem',
+                                      fontSize: '0.6rem',
                                       fontWeight: 700,
                                       padding: '2px 6px',
                                       background: isSelected ? 'var(--color-bg-main)' : 'var(--color-text-main)',
@@ -2683,49 +3132,101 @@ function CheckoutView() {
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', opacity: 0.8 }}>
-                                Estimasi tiba: {option.etd} • Rp. {option.pricePerKg.toLocaleString('id-ID')}/kg
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', opacity: 0.8 }}>
+                                Estimasi tiba: {option.etd} • Tarif Rp {option.pricePerKg.toLocaleString('id-ID')}/kg
                               </span>
                             </div>
+                          </div>
 
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '1rem' }}>
-                                Rp. {option.totalCost.toLocaleString('id-ID')}
-                              </div>
-                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', opacity: 0.75 }}>
-                                {isSelected ? '✓ TERPILIH' : 'PILIH'}
-                              </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.98rem' }}>
+                              Rp {option.totalCost.toLocaleString('id-ID')}
+                            </div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', opacity: 0.75 }}>
+                              {chargeableKg} kg
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {formValidationMessage && (
-                <div
-                  style={{
-                    padding: '1rem',
-                    border: '1px solid #ff4444',
-                    background: 'rgba(255, 68, 68, 0.08)',
-                    color: '#ff4444',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {formValidationMessage}
-                </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
-            </form>
-          </div>
+            </section>
 
-          {/* RIGHT: Order Summary */}
-          <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', height: 'fit-content', position: 'sticky', top: '100px' }}>
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: '0 0 2rem 0', textTransform: 'uppercase' }}>Order Summary</h2>
+            {formValidationMessage && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  border: '1px solid #ff4444',
+                  background: 'rgba(255, 68, 68, 0.08)',
+                  color: '#ff4444',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.8rem'
+                }}
+              >
+                {formValidationMessage}
+              </div>
+            )}
+          </form>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+          {/* RIGHT COLUMN: Sticky Order Manifest / Summary */}
+          <aside
+            style={{
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              position: 'sticky',
+              top: '95px',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Summary Header */}
+            <div
+              style={{
+                padding: '1.5rem 1.75rem',
+                borderBottom: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <h2
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: 900,
+                  fontSize: '1.15rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '-0.02em',
+                  margin: 0
+                }}
+              >
+                RINGKASAN PESANAN
+              </h2>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.72rem',
+                  padding: '0.2rem 0.6rem',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-muted)'
+                }}
+              >
+                {totalQuantity} ITEM
+              </span>
+            </div>
+
+            {/* Cart Items List */}
+            <div
+              style={{
+                padding: '1.5rem 1.75rem',
+                maxHeight: '320px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem',
+                borderBottom: '1px solid var(--color-border)'
+              }}
+            >
               {cart.map(item => {
                 let displayImg = item.img;
                 try {
@@ -2733,98 +3234,287 @@ function CheckoutView() {
                   if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
                 } catch (e) { }
 
+                const itemUnitPrice = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
+                const itemTotalPrice = itemUnitPrice * item.quantity;
+
                 return (
-                  <div key={`${item.id}-${item.selectedSize}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <img src={displayImg} alt={item.name} style={{ width: '60px', height: '80px', objectFit: 'contain', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)' }} />
-                      <div>
-                        <h4 style={{ fontFamily: 'var(--font-sans)', margin: 0 }}>{item.name}</h4>
-                        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
-                          {item.selectedSize ? `Size: ${item.selectedSize}` : ''} x {item.quantity}
-                        </p>
+                  <div
+                    key={`${item.id}-${item.selectedSize}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      gap: '1rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '0.9rem', minWidth: 0, flex: 1 }}>
+                      <img
+                        src={displayImg}
+                        alt={item.name}
+                        style={{
+                          width: '64px',
+                          height: '80px',
+                          objectFit: 'cover',
+                          background: 'var(--color-bg-main)',
+                          border: '1px solid var(--color-border)',
+                          flexShrink: 0
+                        }}
+                      />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <h4
+                          style={{
+                            fontFamily: 'var(--font-sans)',
+                            fontWeight: 800,
+                            fontSize: '0.88rem',
+                            textTransform: 'uppercase',
+                            margin: '0 0 0.25rem 0',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {item.name}
+                        </h4>
+                        {item.selectedSize && (
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.65rem',
+                              background: 'var(--color-text-main)',
+                              color: 'var(--color-bg-main)',
+                              padding: '1px 6px',
+                              fontWeight: 700,
+                              display: 'inline-block',
+                              marginBottom: '0.45rem'
+                            }}
+                          >
+                            SIZE: {item.selectedSize}
+                          </span>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              background: 'var(--color-bg-main)',
+                              border: '1px solid var(--color-border)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--color-text-main)',
+                                cursor: 'pointer',
+                                fontFamily: 'var(--font-mono)',
+                                width: '24px',
+                                height: '24px'
+                              }}
+                            >
+                              −
+                            </button>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--color-text-main)',
+                                cursor: 'pointer',
+                                fontFamily: 'var(--font-mono)',
+                                width: '24px',
+                                height: '24px'
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(item.id, item.selectedSize)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.68rem',
+                              textDecoration: 'underline',
+                              padding: 0
+                            }}
+                            onMouseOver={e => (e.currentTarget.style.color = '#ff4444')}
+                            onMouseOut={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
+                          >
+                            HAPUS
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)' }}>
-                        Rp. {(parseInt(item.price.replace(/\D/g, ''), 10) * item.quantity).toLocaleString('id-ID')}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-bg-main)', padding: '2px 6px', border: '1px solid var(--color-border)' }}>
-                          <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>-</button>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{item.quantity}</span>
-                          <button type="button" onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>+</button>
-                        </div>
-                        <button type="button" onClick={() => removeFromCart(item.id, item.selectedSize)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.7rem', padding: 0 }}>REMOVE</button>
-                      </div>
+
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                      Rp {itemTotalPrice.toLocaleString('id-ID')}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
 
-            <div style={{ padding: '1.5rem 0', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            {/* Promo Coupon Section */}
+            <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--color-border)' }}>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>
+                KODE VOUCHER / DISKON
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
                   className="input-text"
-                  placeholder="KODE KUPON PROMO"
+                  placeholder="MASUKKAN KODE PROMO"
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value)}
                   disabled={!!appliedCoupon}
-                  style={{ textTransform: 'uppercase', flex: 1 }}
+                  style={{ textTransform: 'uppercase', flex: 1, padding: '0.65rem 0.85rem', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}
                 />
                 {!appliedCoupon ? (
-                  <button type="button" className="btn-secondary" onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponCode.trim()}>
-                    {isVerifyingCoupon ? '...' : 'PAKAI'}
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleApplyCoupon}
+                    disabled={isVerifyingCoupon || !couponCode.trim()}
+                    style={{ padding: '0.65rem 1.15rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}
+                  >
+                    {isVerifyingCoupon ? '...' : 'GUNAKAN'}
                   </button>
                 ) : (
-                  <button type="button" className="btn-secondary" onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} style={{ color: '#ff4444', borderColor: '#ff4444' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => { setAppliedCoupon(null); setCouponCode(''); }}
+                    style={{ padding: '0.65rem 1rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: '#ff4444', borderColor: '#ff4444' }}
+                  >
                     HAPUS
                   </button>
                 )}
               </div>
-              {couponError && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#ff4444', margin: '0.5rem 0 0 0' }}>{couponError}</p>}
-              {appliedCoupon && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#4CAF50', margin: '0.5rem 0 0 0' }}>Kupon aktif: Diskon {appliedCoupon.discount}% diterapkan!</p>}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
-                <span>Subtotal ({totalQuantity} item)</span>
-                <span>Rp. {subtotal.toLocaleString('id-ID')}</span>
-              </div>
-
-              {appliedCoupon && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4CAF50' }}>
-                  <span>Discount ({appliedCoupon.discount}%)</span>
-                  <span>-Rp. {discountAmount.toLocaleString('id-ID')}</span>
-                </div>
+              {couponError && (
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#ff4444', margin: '0.5rem 0 0 0' }}>
+                  {couponError}
+                </p>
               )}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', color: 'var(--color-text-muted)', gap: '1rem' }}>
-                <div>
-                  <div>Ongkos Kirim ({chargeableKg} kg)</div>
-                  <div style={{ fontSize: '0.72rem', marginTop: '0.15rem', color: 'var(--color-text-main)' }}>
-                    {selectedShippingOption
-                      ? `${selectedShippingOption.agentName} - ${selectedShippingOption.serviceName} (${selectedShippingOption.etd})`
-                      : 'Pilih provinsi & kota tujuan'}
-                  </div>
-                </div>
-                <span style={{ color: selectedShippingOption ? 'var(--color-text-main)' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                  {selectedShippingOption ? `Rp. ${shippingCost.toLocaleString('id-ID')}` : '—'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.25rem', marginTop: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)' }}>
-                <span>GRAND TOTAL</span>
-                <span>Rp. {grandTotal.toLocaleString('id-ID')}</span>
-              </div>
+              {appliedCoupon && (
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#4CAF50', margin: '0.5rem 0 0 0' }}>
+                  ✓ Kupon {appliedCoupon.code} aktif ({appliedCoupon.discount}% OFF)
+                </p>
+              )}
             </div>
 
-            <button type="submit" form="checkout-form" className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>
-              PESAN & KONFIRMASI VIA WHATSAPP
-            </button>
-          </div>
+            {/* Price Breakdown & CTA */}
+            <div style={{ padding: '1.5rem 1.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
+                  <span>Subtotal Produk ({totalQuantity} pcs)</span>
+                  <span style={{ color: 'var(--color-text-main)' }}>Rp {subtotal.toLocaleString('id-ID')}</span>
+                </div>
 
+                {appliedCoupon && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4CAF50' }}>
+                    <span>Diskon Voucher ({appliedCoupon.discount}%)</span>
+                    <span>-Rp {discountAmount.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', color: 'var(--color-text-muted)', gap: '1rem' }}>
+                  <div>
+                    <div>Estimasi Ongkir ({chargeableKg} kg)</div>
+                    <div style={{ fontSize: '0.7rem', marginTop: '0.2rem', color: 'var(--color-text-main)' }}>
+                      {selectedShippingOption
+                        ? `${selectedShippingOption.agentName} • ${selectedShippingOption.serviceName} (${selectedShippingOption.etd})`
+                        : 'Menunggu pilihan kota tujuan'}
+                    </div>
+                  </div>
+                  <span style={{ color: selectedShippingOption ? 'var(--color-text-main)' : 'var(--color-text-muted)', whiteSpace: 'nowrap', fontWeight: selectedShippingOption ? 700 : 400 }}>
+                    {selectedShippingOption ? `Rp ${shippingCost.toLocaleString('id-ID')}` : '—'}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    marginTop: '0.6rem',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid var(--color-border)'
+                  }}
+                >
+                  <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase' }}>
+                    TOTAL PEMBAYARAN
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.45rem', letterSpacing: '-0.02em' }}>
+                    Rp {grandTotal.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cloudflare Turnstile Bot Verification */}
+              <div style={{ marginTop: '1.35rem' }}>
+                <CloudflareTurnstile
+                  onVerify={(token) => {
+                    setTurnstileToken(token);
+                    setFormValidationMessage('');
+                  }}
+                  onExpire={() => setTurnstileToken(null)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                form="checkout-form"
+                className="btn-primary"
+                disabled={isSubmittingOrder || !turnstileToken}
+                style={{
+                  width: '100%',
+                  marginTop: '1.15rem',
+                  padding: '1.1rem 1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.65rem',
+                  fontSize: '0.92rem',
+                  opacity: isSubmittingOrder || !turnstileToken ? 0.55 : 1,
+                  cursor: isSubmittingOrder || !turnstileToken ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <span>
+                  {isSubmittingOrder
+                    ? 'MEMPROSES PESANAN...'
+                    : !turnstileToken
+                      ? 'SELESAIKAN VERIFIKASI CLOUDFLARE'
+                      : 'KONFIRMASI PESANAN VIA WHATSAPP'}
+                </span>
+                <span aria-hidden="true">&rarr;</span>
+              </button>
+
+              <p
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.68rem',
+                  color: 'var(--color-text-muted)',
+                  textAlign: 'center',
+                  marginTop: '0.85rem',
+                  lineHeight: 1.5
+                }}
+              >
+                Pesanan Anda otomatis tercatat di sistem MEGS dan diteruskan ke WhatsApp Admin resmi untuk penyelesaian pembayaran.
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

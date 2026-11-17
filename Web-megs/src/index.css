@@ -1390,3 +1390,99 @@ input[type=range]::-webkit-slider-runnable-track {
 .acg-badge-olive {
   background: #666666;
 }
+
+/* ==========================================================================
+   ELEVATED MICRO-INTERACTIONS & SCROLL REVEAL SYSTEM (GPU-ACCELERATED)
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Tactile Button Transitions */
+.btn-primary,
+.btn-secondary {
+  transition: background-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Product Card Hover Polish */
+.product-card {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+}
+
+.product-card .btn-secondary {
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s ease,
+              color 0.22s ease;
+}
+
+/* Category Tile Micro-Interaction */
+.megs-category-tile {
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.megs-category-tile:hover {
+  background-color: color-mix(in srgb, var(--color-text-main) 5%, var(--color-bg-card));
+}
+
+.megs-category-tile .megs-category-icon {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.megs-category-tile:hover .megs-category-icon {
+  transform: scale(1.08) translateY(-3px);
+  background-color: var(--color-text-main);
+  color: var(--color-bg-main);
+}
+
+/* Scroll Reveal Animations */
+.megs-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 0.68s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.68s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.megs-scroll-reveal.is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .megs-scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
