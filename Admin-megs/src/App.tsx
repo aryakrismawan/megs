@@ -1,6 +1,529 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 
+function escapeHtml(value: any): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildReportSummaryAndRows(ordersToExport: any[]) {
+  let grandTotalAll = 0;
+  let realizedRevenue = 0;
+  let pendingRevenue = 0;
+  let totalPcsSold = 0;
+
+  const preparedRows = ordersToExport.map((order, index) => {
+    const createdDate = order.created_at ? new Date(order.created_at) : null;
+    const dateStr = createdDate && !isNaN(createdDate.getTime())
+      ? createdDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+      : '-';
+    const timeStr = createdDate && !isNaN(createdDate.getTime())
+      ? createdDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    let parsedItems: any[] = [];
+    try {
+      parsedItems = JSON.parse(order.order_items || '[]');
+    } catch {
+      parsedItems = [];
+    }
+
+    const orderQty = Array.isArray(parsedItems)
+      ? parsedItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0)
+      : 0;
+
+    const itemsListHtml = Array.isArray(parsedItems) && parsedItems.length > 0
+      ? parsedItems
+          .map(
+            (item: any) =>
+              `• <strong>${escapeHtml(item.quantity || 1)}x ${escapeHtml(item.name || 'Produk')}</strong>${
+                item.selectedSize ? ` (Ukuran: ${escapeHtml(item.selectedSize)})` : ''
+              } — Rp ${escapeHtml(item.price || '0')}`
+          )
+          .join('<br/>')
+      : '-';
+
+    const amount = parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0;
+    grandTotalAll += amount;
+    totalPcsSold += orderQty;
+
+    const statusLower = String(order.status || 'menunggu pembayaran').toLowerCase();
+    if (statusLower === 'selesai' || statusLower === 'dikirim') {
+      realizedRevenue += amount;
+    } else {
+      pendingRevenue += amount;
+    }
+
+    let statusBg = '#FEF3C7';
+    let statusColor = '#92400E';
+    let statusLabel = 'MENUNGGU PEMBAYARAN';
+
+    if (statusLower === 'selesai') {
+      statusBg = '#DCFCE7';
+      statusColor = '#166534';
+      statusLabel = 'SELESAI (LUNAS)';
+    } else if (statusLower === 'dikirim') {
+      statusBg = '#F3E8FF';
+      statusColor = '#6B21A8';
+      statusLabel = 'SEDANG DIKIRIM';
+    } else if (statusLower === 'diproses') {
+      statusBg = '#DBEAFE';
+      statusColor = '#1E40AF';
+      statusLabel = 'SEDANG DIPROSES';
+    }
+
+    const addressHtml = escapeHtml(order.customer_address || '-').replace(/\r?\n/g, '<br/>');
+
+    return {
+      no: index + 1,
+      id: `#${order.id}`,
+      dateStr,
+      timeStr,
+      customerName: escapeHtml(order.customer_name || '-'),
+      customerPhone: escapeHtml(order.customer_phone || '-'),
+      addressHtml,
+      itemsListHtml,
+      orderQty,
+      couponCode: escapeHtml(order.coupon_code || '-'),
+      statusBg,
+      statusColor,
+      statusLabel,
+      amount,
+      amountFormatted: `Rp ${amount.toLocaleString('id-ID')}`
+    };
+  });
+
+  return {
+    preparedRows,
+    grandTotalAll,
+    realizedRevenue,
+    pendingRevenue,
+    totalPcsSold
+  };
+}
+
+/**
+ * Mengunduh Laporan Pembukuan dalam format Tabel Microsoft Excel (.xls) yang sudah rapi,
+ * berwarna, memiliki garis tabel (border), dan lebar kolom otomatis (tanpa perlu setting CSV).
+ */
+function exportOrdersToExcel(ordersToExport: any[], periodLabel = 'Semua Periode') {
+  if (!ordersToExport || ordersToExport.length === 0) return;
+
+  const {
+    preparedRows,
+    grandTotalAll,
+    realizedRevenue,
+    pendingRevenue,
+    totalPcsSold
+  } = buildReportSummaryAndRows(ordersToExport);
+
+  const printDate = new Date().toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const rowsHtml = preparedRows
+    .map(
+      (row, idx) => `
+      <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: center; vertical-align: top;">${row.no}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: center; font-weight: bold; vertical-align: top;">${row.id}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; vertical-align: top;">${row.dateStr}<br/><span style="color: #64748B; font-size: 9pt;">${row.timeStr}</span></td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; vertical-align: top;"><strong>${row.customerName}</strong><br/><span style="color: #475569; mso-number-format:'\\@';">WA: ${row.customerPhone}</span></td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; vertical-align: top;">${row.addressHtml}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; vertical-align: top;">${row.itemsListHtml}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: center; font-weight: bold; vertical-align: top;">${row.orderQty} Pcs</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: center; vertical-align: top;">${row.couponCode}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: center; font-weight: bold; background-color: ${row.statusBg}; color: ${row.statusColor}; vertical-align: top;">${row.statusLabel}</td>
+        <td style="border: 1pt solid #CBD5E1; padding: 8px; text-align: right; font-weight: bold; vertical-align: top;">${row.amountFormatted}</td>
+      </tr>`
+    )
+    .join('');
+
+  const excelHtml = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="UTF-8" />
+      <!--[if gte mso 9]>
+      <xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>Laporan Pembukuan MEGS</x:Name>
+              <x:WorksheetOptions>
+                <x:DisplayGridlines/>
+              </x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+      <style>
+        body, table, td, th { font-family: Arial, Calibri, sans-serif; font-size: 10pt; color: #0F172A; }
+        br { mso-data-placement: same-cell; }
+      </style>
+    </head>
+    <body>
+      <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+        <colgroup>
+          <col width="45" />
+          <col width="85" />
+          <col width="140" />
+          <col width="190" />
+          <col width="290" />
+          <col width="310" />
+          <col width="95" />
+          <col width="100" />
+          <col width="160" />
+          <col width="160" />
+        </colgroup>
+        <tr>
+          <td colspan="10" style="background-color: #0F172A; color: #FFFFFF; font-size: 16pt; font-weight: bold; padding: 14px;">
+            LAPORAN PEMBUKUAN &amp; PENJUALAN — MEGS APPAREL
+          </td>
+        </tr>
+        <tr>
+          <td colspan="10" style="background-color: #F1F5F9; color: #334155; font-size: 10pt; padding: 8px 14px; border-bottom: 2pt solid #CBD5E1;">
+            <strong>Filter Laporan:</strong> ${escapeHtml(periodLabel)} &nbsp;|&nbsp; <strong>Tanggal Unduh:</strong> ${escapeHtml(printDate)} &nbsp;|&nbsp; <strong>Total Data:</strong> ${ordersToExport.length} Pesanan
+          </td>
+        </tr>
+        <tr><td colspan="10" height="12"></td></tr>
+
+        <!-- TABEL RINGKASAN KEUANGAN -->
+        <tr>
+          <td colspan="3" style="background-color: #DCFCE7; border: 1pt solid #86EFAC; padding: 10px;">
+            <span style="font-size: 9pt; color: #166534;">UANG MASUK (DIKIRIM &amp; SELESAI)</span><br/>
+            <strong style="font-size: 13pt; color: #14532D;">Rp ${realizedRevenue.toLocaleString('id-ID')}</strong>
+          </td>
+          <td colspan="2" style="background-color: #FEF3C7; border: 1pt solid #FDE047; padding: 10px;">
+            <span style="font-size: 9pt; color: #92400E;">MENUNGGU PEMBAYARAN / DIPROSES</span><br/>
+            <strong style="font-size: 13pt; color: #78350F;">Rp ${pendingRevenue.toLocaleString('id-ID')}</strong>
+          </td>
+          <td colspan="3" style="background-color: #DBEAFE; border: 1pt solid #93C5FD; padding: 10px;">
+            <span style="font-size: 9pt; color: #1E40AF;">TOTAL NILAI SELURUH PESANAN</span><br/>
+            <strong style="font-size: 13pt; color: #1E3A8A;">Rp ${grandTotalAll.toLocaleString('id-ID')}</strong>
+          </td>
+          <td colspan="2" style="background-color: #F1F5F9; border: 1pt solid #CBD5E1; padding: 10px;">
+            <span style="font-size: 9pt; color: #475569;">TOTAL BARANG TERJUAL</span><br/>
+            <strong style="font-size: 13pt; color: #0F172A;">${ordersToExport.length} Order (${totalPcsSold} Pcs)</strong>
+          </td>
+        </tr>
+        <tr><td colspan="10" height="14"></td></tr>
+
+        <!-- HEADER TABEL TRANSAKSI -->
+        <tr style="background-color: #1E293B; color: #FFFFFF; font-weight: bold; text-align: center;">
+          <th style="border: 1pt solid #334155; padding: 10px;">NO</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">NO. ORDER</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">TANGGAL PESAN</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">PEMBELI &amp; WA</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">ALAMAT &amp; KURIR PENGIRIMAN</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">DAFTAR BARANG &amp; UKURAN</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">JUMLAH</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">KUPON</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">STATUS PESANAN</th>
+          <th style="border: 1pt solid #334155; padding: 10px;">TOTAL BAYAR</th>
+        </tr>
+
+        ${rowsHtml}
+
+        <!-- BARIS TOTAL BAWAH -->
+        <tr style="background-color: #0F172A; color: #FFFFFF; font-weight: bold; font-size: 11pt;">
+          <td colspan="6" style="border: 1pt solid #0F172A; padding: 12px; text-align: right;">
+            TOTAL KESELURUHAN (${ordersToExport.length} PESANAN):
+          </td>
+          <td style="border: 1pt solid #0F172A; padding: 12px; text-align: center;">
+            ${totalPcsSold} Pcs
+          </td>
+          <td colspan="2" style="border: 1pt solid #0F172A; padding: 12px;"></td>
+          <td style="border: 1pt solid #0F172A; padding: 12px; text-align: right; color: #4ADE80;">
+            Rp ${grandTotalAll.toLocaleString('id-ID')}
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\uFEFF' + excelHtml], {
+    type: 'application/vnd.ms-excel;charset=utf-8;'
+  });
+  const url = URL.createObjectURL(blob);
+  const today = new Date().toISOString().slice(0, 10);
+  const safeLabel = periodLabel.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `Laporan-Pembukuan-MEGS-${safeLabel}-${today}.xls`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Membuka Lembar Laporan Resmi Siap Cetak / Simpan sebagai PDF (A4 Landscape)
+ * yang sangat rapi dan mudah dibaca oleh Admin non-IT.
+ */
+function printOrSaveOrdersPDF(ordersToExport: any[], periodLabel = 'Semua Periode') {
+  if (!ordersToExport || ordersToExport.length === 0) return;
+
+  const {
+    preparedRows,
+    grandTotalAll,
+    realizedRevenue,
+    pendingRevenue,
+    totalPcsSold
+  } = buildReportSummaryAndRows(ordersToExport);
+
+  const printDate = new Date().toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const rowsHtml = preparedRows
+    .map(
+      row => `
+      <tr>
+        <td class="center">${row.no}</td>
+        <td class="center bold">${row.id}</td>
+        <td>${row.dateStr}<div class="muted">${row.timeStr}</div></td>
+        <td><strong>${row.customerName}</strong><div class="muted">WA: ${row.customerPhone}</div></td>
+        <td>${row.addressHtml}</td>
+        <td>${row.itemsListHtml}</td>
+        <td class="center bold">${row.orderQty} Pcs</td>
+        <td class="center"><span class="badge" style="background:${row.statusBg};color:${row.statusColor};">${row.statusLabel}</span></td>
+        <td class="right bold">${row.amountFormatted}</td>
+      </tr>`
+    )
+    .join('');
+
+  const reportWindow = window.open('', '_blank');
+  if (!reportWindow) {
+    alert('Mohon izinkan pop-up pada browser untuk membuka lembar cetak laporan PDF.');
+    return;
+  }
+
+  reportWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Laporan Pembukuan MEGS — ${escapeHtml(periodLabel)}</title>
+      <style>
+        @page { size: A4 landscape; margin: 12mm; }
+        * { box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+          color: #0F172A;
+          background: #F8FAFC;
+          margin: 0;
+          padding: 24px;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        .sheet {
+          max-width: 1200px;
+          margin: 0 auto;
+          background: #FFFFFF;
+          padding: 32px;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        }
+        .action-bar {
+          max-width: 1200px;
+          margin: 0 auto 16px auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #0F172A;
+          color: #FFFFFF;
+          padding: 12px 20px;
+          border-radius: 6px;
+        }
+        .btn {
+          background: #22C55E;
+          color: #FFFFFF;
+          border: none;
+          padding: 10px 18px;
+          font-weight: 700;
+          font-size: 13px;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .btn-close {
+          background: transparent;
+          color: #CBD5E1;
+          border: 1px solid #475569;
+          padding: 10px 14px;
+          font-weight: 600;
+          font-size: 13px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-left: 8px;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 2px solid #0F172A;
+          padding-bottom: 16px;
+          margin-bottom: 20px;
+        }
+        .header h1 {
+          margin: 0 0 4px 0;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+        }
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .summary-box {
+          padding: 14px 16px;
+          border-radius: 6px;
+          border: 1px solid #E2E8F0;
+        }
+        .summary-box .label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          margin-bottom: 6px;
+        }
+        .summary-box .val {
+          font-size: 18px;
+          font-weight: 900;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        th {
+          background: #0F172A;
+          color: #FFFFFF;
+          font-size: 11px;
+          text-transform: uppercase;
+          padding: 10px 8px;
+          border: 1px solid #0F172A;
+          text-align: left;
+        }
+        td {
+          padding: 10px 8px;
+          border: 1px solid #CBD5E1;
+          vertical-align: top;
+        }
+        tbody tr:nth-child(even) { background: #F8FAFC; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: 700; }
+        .muted { color: #64748B; font-size: 11px; margin-top: 2px; }
+        .badge {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 800;
+        }
+        tfoot td {
+          background: #0F172A;
+          color: #FFFFFF;
+          font-weight: 800;
+          font-size: 13px;
+          padding: 12px 8px;
+          border: 1px solid #0F172A;
+        }
+        @media print {
+          body { background: #FFFFFF; padding: 0; }
+          .action-bar { display: none !important; }
+          .sheet { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="action-bar">
+        <div>
+          <strong>Pratinjau Laporan Siap Cetak / PDF</strong> — Klik tombol hijau di kanan, lalu pilih <em>"Save as PDF" (Simpan sebagai PDF)</em> atau pilih Printer Anda.
+        </div>
+        <div>
+          <button class="btn" onclick="window.print()">🖨 CETAK / SIMPAN SEBAGAI PDF</button>
+          <button class="btn-close" onclick="window.close()">✕ TUTUP</button>
+        </div>
+      </div>
+
+      <div class="sheet">
+        <div class="header">
+          <div>
+            <h1>LAPORAN PEMBUKUAN &amp; PENJUALAN MEGS APPAREL</h1>
+            <div class="muted">Asal Pengiriman: Cicurug, Kab. Sukabumi, Jawa Barat</div>
+          </div>
+          <div class="right">
+            <div><strong>Periode / Filter:</strong> ${escapeHtml(periodLabel)}</div>
+            <div class="muted">Dicetak pada: ${escapeHtml(printDate)}</div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-box" style="background:#F0FDF4;border-color:#86EFAC;">
+            <div class="label" style="color:#166534;">Uang Masuk (Dikirim &amp; Selesai)</div>
+            <div class="val" style="color:#14532D;">Rp ${realizedRevenue.toLocaleString('id-ID')}</div>
+          </div>
+          <div class="summary-box" style="background:#FFFBEB;border-color:#FDE047;">
+            <div class="label" style="color:#92400E;">Menunggu Pembayaran / Diproses</div>
+            <div class="val" style="color:#78350F;">Rp ${pendingRevenue.toLocaleString('id-ID')}</div>
+          </div>
+          <div class="summary-box" style="background:#EFF6FF;border-color:#93C5FD;">
+            <div class="label" style="color:#1E40AF;">Total Nilai Seluruh Pesanan</div>
+            <div class="val" style="color:#1E3A8A;">Rp ${grandTotalAll.toLocaleString('id-ID')}</div>
+          </div>
+          <div class="summary-box" style="background:#F8FAFC;border-color:#CBD5E1;">
+            <div class="label" style="color:#475569;">Total Pesanan &amp; Barang</div>
+            <div class="val" style="color:#0F172A;">${ordersToExport.length} Order (${totalPcsSold} Pcs)</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="center" style="width:36px;">No</th>
+              <th class="center" style="width:70px;">Order</th>
+              <th style="width:115px;">Tanggal</th>
+              <th style="width:150px;">Pembeli &amp; WA</th>
+              <th>Alamat Tujuan &amp; Kurir</th>
+              <th>Daftar Barang Dipesan</th>
+              <th class="center" style="width:65px;">Jumlah</th>
+              <th class="center" style="width:130px;">Status</th>
+              <th class="right" style="width:125px;">Total Bayar</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="6" class="right">TOTAL KESELURUHAN (${ordersToExport.length} PESANAN):</td>
+              <td class="center">${totalPcsSold} Pcs</td>
+              <td></td>
+              <td class="right" style="color:#4ADE80;">Rp ${grandTotalAll.toLocaleString('id-ID')}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </body>
+    </html>
+  `);
+  reportWindow.document.close();
+}
+
 const getYoutubeId = (url: string) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -92,6 +615,7 @@ function AdminLayout() {
         <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, color: 'var(--color-white)', marginBottom: '3rem', fontSize: '2rem', letterSpacing: '-0.05em', display: 'block' }}>MEGS OS</h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', fontFamily: 'var(--font-mono)' }}>
           <Link to="/" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>DASHBOARD</Link>
+          <Link to="/bookkeeping" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-white)', fontWeight: 700, fontSize: '0.8rem', borderLeft: '2px solid var(--color-white)', paddingLeft: '0.6rem' }}>PEMBUKUAN</Link>
           <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>ORDERS</Link>
           <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCTS</Link>
           <Link to="/products-thrive" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>PRODUCT MEGS THRIVES</Link>
@@ -107,6 +631,7 @@ function AdminLayout() {
       <div className="admin-content">
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
+          <Route path="/bookkeeping" element={<AdminBookkeeping />} />
           <Route path="/orders" element={<AdminOrders />} />
           <Route path="/products" element={<AdminProductList type="origin" />} />
           <Route path="/products/new" element={<AdminProductForm type="origin" />} />
@@ -132,6 +657,7 @@ function AdminLayout() {
 
 function AdminDashboard() {
   const [stats, setStats] = useState({ totalOrders: 0, pendingOrders: 0, totalRevenue: 0 });
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -147,6 +673,7 @@ function AdminDashboard() {
             .reduce((sum, order) => sum + (parseInt(order.total_price) || 0), 0);
           
           setStats({ totalOrders, pendingOrders, totalRevenue });
+          setAllOrders(data);
           setRecentOrders(data.slice(0, 5));
         }
         setLoading(false);
@@ -158,7 +685,32 @@ function AdminDashboard() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '2rem' }}>Overview</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>Overview</h2>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link to="/bookkeeping" className="btn-secondary" style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem', textDecoration: 'none' }}>
+            BUKA PEMBUKUAN LENGKAP &rarr;
+          </Link>
+          <button
+            type="button"
+            onClick={() => printOrSaveOrdersPDF(allOrders, 'Semua Periode')}
+            disabled={allOrders.length === 0}
+            className="btn-secondary"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem', opacity: allOrders.length === 0 ? 0.5 : 1, cursor: allOrders.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            🖨 CETAK / SIMPAN PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => exportOrdersToExcel(allOrders, 'Semua Periode')}
+            disabled={allOrders.length === 0}
+            className="btn-primary"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem', opacity: allOrders.length === 0 ? 0.5 : 1, cursor: allOrders.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            ⬇ UNDUH TABEL EXCEL RAPI ({allOrders.length})
+          </button>
+        </div>
+      </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-text-main)' }}>
@@ -220,6 +772,422 @@ function AdminDashboard() {
   );
 }
 
+function AdminBookkeeping() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [periodPreset, setPeriodPreset] = useState<'ALL' | 'TODAY' | '7DAYS' | 'MONTH' | 'CUSTOM'>('ALL');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setOrders(data);
+        }
+      })
+      .catch(err => console.error('Failed to load bookkeeping data', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const applyPreset = (preset: 'ALL' | 'TODAY' | '7DAYS' | 'MONTH') => {
+    setPeriodPreset(preset);
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    if (preset === 'ALL') {
+      setStartDate('');
+      setEndDate('');
+    } else if (preset === 'TODAY') {
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    } else if (preset === '7DAYS') {
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      setStartDate(sevenDaysAgo.toISOString().slice(0, 10));
+      setEndDate(todayStr);
+    } else if (preset === 'MONTH') {
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      setStartDate(firstDayOfMonth.toISOString().slice(0, 10));
+      setEndDate(todayStr);
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const statusLower = String(order.status || 'menunggu pembayaran').toLowerCase();
+    if (statusFilter === 'REALIZED') {
+      if (statusLower !== 'selesai' && statusLower !== 'dikirim') return false;
+    } else if (statusFilter !== 'ALL') {
+      if (statusLower !== statusFilter.toLowerCase()) return false;
+    }
+
+    if (startDate || endDate) {
+      const orderDate = order.created_at ? new Date(order.created_at) : null;
+      if (!orderDate || isNaN(orderDate.getTime())) return false;
+      const orderDateStr = orderDate.toISOString().slice(0, 10);
+      if (startDate && orderDateStr < startDate) return false;
+      if (endDate && orderDateStr > endDate) return false;
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchId = String(order.id).includes(q);
+      const matchName = String(order.customer_name || '').toLowerCase().includes(q);
+      const matchPhone = String(order.customer_phone || '').toLowerCase().includes(q);
+      const matchAddress = String(order.customer_address || '').toLowerCase().includes(q);
+      const matchItems = String(order.order_items || '').toLowerCase().includes(q);
+      const matchCoupon = String(order.coupon_code || '').toLowerCase().includes(q);
+      if (!matchId && !matchName && !matchPhone && !matchAddress && !matchItems && !matchCoupon) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const realizedRevenue = filteredOrders
+    .filter(o => {
+      const s = String(o.status || '').toLowerCase();
+      return s === 'selesai' || s === 'dikirim';
+    })
+    .reduce((sum, o) => sum + (parseInt(String(o.total_price || '0').replace(/\D/g, ''), 10) || 0), 0);
+
+  const pendingRevenue = filteredOrders
+    .filter(o => {
+      const s = String(o.status || '').toLowerCase();
+      return s !== 'selesai' && s !== 'dikirim';
+    })
+    .reduce((sum, o) => sum + (parseInt(String(o.total_price || '0').replace(/\D/g, ''), 10) || 0), 0);
+
+  const totalGrossFiltered = realizedRevenue + pendingRevenue;
+
+  const totalPcsFiltered = filteredOrders.reduce((sum, o) => {
+    try {
+      const items = JSON.parse(o.order_items || '[]');
+      if (Array.isArray(items)) {
+        return sum + items.reduce((acc, i) => acc + (parseInt(i.quantity) || 1), 0);
+      }
+    } catch {}
+    return sum;
+  }, 0);
+
+  return (
+    <div style={{ maxWidth: '1300px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', letterSpacing: '0.08em', display: 'block', marginBottom: '0.3rem' }}>
+            REKAPITULASI KEUANGAN &amp; PENJUALAN MUDAH DIBACA
+          </span>
+          <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>
+            Pembukuan &amp; Laporan
+          </h2>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const label = startDate || endDate
+                ? `Periode ${startDate || 'Awal'} s/d ${endDate || 'Akhir'}`
+                : statusFilter === 'ALL'
+                  ? 'Semua Periode'
+                  : `Status ${statusFilter}`;
+              printOrSaveOrdersPDF(filteredOrders, label);
+            }}
+            disabled={filteredOrders.length === 0}
+            className="btn-secondary"
+            style={{
+              padding: '0.9rem 1.4rem',
+              fontSize: '0.82rem',
+              opacity: filteredOrders.length === 0 ? 0.5 : 1,
+              cursor: filteredOrders.length === 0 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            🖨 CETAK / SIMPAN PDF RAPI
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const label = startDate || endDate
+                ? `${startDate || 'Awal'}-sd-${endDate || 'Akhir'}`
+                : statusFilter === 'ALL'
+                  ? 'Semua-Periode'
+                  : statusFilter;
+              exportOrdersToExcel(filteredOrders, label);
+            }}
+            disabled={filteredOrders.length === 0}
+            className="btn-primary"
+            style={{
+              padding: '0.9rem 1.6rem',
+              fontSize: '0.82rem',
+              opacity: filteredOrders.length === 0 ? 0.5 : 1,
+              cursor: filteredOrders.length === 0 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            ⬇ UNDUH TABEL EXCEL RAPI ({filteredOrders.length} ORDER)
+          </button>
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {[
+              { id: 'ALL', label: 'SEMUA WAKTU' },
+              { id: 'TODAY', label: 'HARI INI' },
+              { id: '7DAYS', label: '7 HARI TERAKHIR' },
+              { id: 'MONTH', label: 'BULAN INI' }
+            ].map(preset => {
+              const active = periodPreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset.id as any)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid var(--color-border)',
+                    background: active ? 'var(--color-white)' : 'transparent',
+                    color: active ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.75rem',
+                    fontWeight: active ? 700 : 400,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {(startDate || endDate || statusFilter !== 'ALL' || searchQuery) && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodPreset('ALL');
+                setStartDate('');
+                setEndDate('');
+                setStatusFilter('ALL');
+                setSearchQuery('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#ff4444',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              RESET FILTER
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="control-group" style={{ marginBottom: 0 }}>
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>DARI TANGGAL</label>
+            <input
+              type="date"
+              className="input-text"
+              value={startDate}
+              onChange={e => {
+                setStartDate(e.target.value);
+                setPeriodPreset('CUSTOM');
+              }}
+            />
+          </div>
+
+          <div className="control-group" style={{ marginBottom: 0 }}>
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>SAMPAI TANGGAL</label>
+            <input
+              type="date"
+              className="input-text"
+              value={endDate}
+              onChange={e => {
+                setEndDate(e.target.value);
+                setPeriodPreset('CUSTOM');
+              }}
+            />
+          </div>
+
+          <div className="control-group" style={{ marginBottom: 0 }}>
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>STATUS PESANAN</label>
+            <select
+              className="input-text"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">SEMUA STATUS</option>
+              <option value="REALIZED">PENDAPATAN BERSIH (DIKIRIM & SELESAI)</option>
+              <option value="menunggu pembayaran">MENUNGGU PEMBAYARAN</option>
+              <option value="diproses">DIPROSES</option>
+              <option value="dikirim">DIKIRIM</option>
+              <option value="selesai">SELESAI</option>
+            </select>
+          </div>
+
+          <div className="control-group" style={{ marginBottom: 0 }}>
+            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>CARI TRANSAKSI</label>
+            <input
+              type="text"
+              className="input-text"
+              placeholder="Nama, ID, produk, kota..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid #4CAF50' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+            PENDAPATAN TEREALISASI (DIKIRIM/SELESAI)
+          </h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1.75rem', fontWeight: 900, margin: 0, color: '#4CAF50' }}>
+            Rp. {realizedRevenue.toLocaleString('id-ID')}
+          </p>
+        </div>
+
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid #ff9900' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+            POTENSI TERTUNDA (BELUM DIKIRIM)
+          </h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1.75rem', fontWeight: 900, margin: 0 }}>
+            Rp. {pendingRevenue.toLocaleString('id-ID')}
+          </p>
+        </div>
+
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-white)' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+            TOTAL NILAI TRANSAKSI (TERFILTER)
+          </h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1.75rem', fontWeight: 900, margin: 0 }}>
+            Rp. {totalGrossFiltered.toLocaleString('id-ID')}
+          </p>
+        </div>
+
+        <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid #2196F3' }}>
+          <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+            VOLUME PENJUALAN
+          </h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1.75rem', fontWeight: 900, margin: 0 }}>
+            {filteredOrders.length} Order <span style={{ fontSize: '1rem', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>({totalPcsFiltered} Pcs)</span>
+          </p>
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+            Memuat data pembukuan...
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+            Tidak ada data transaksi yang sesuai dengan filter periode/status saat ini.
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left', background: 'var(--color-bg-main)' }}>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>ID</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>TANGGAL</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>PELANGGAN</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>RINCIAN PRODUK</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>QTY</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>KUPON</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>STATUS</th>
+                <th style={{ padding: '1rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>TOTAL (RP)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.map(order => {
+                let items: any[] = [];
+                try {
+                  items = JSON.parse(order.order_items || '[]');
+                } catch {}
+                const qty = Array.isArray(items)
+                  ? items.reduce((s, i) => s + (parseInt(i.quantity) || 1), 0)
+                  : 0;
+                const amount = parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0;
+
+                return (
+                  <tr key={order.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '1rem', fontWeight: 700 }}>#{order.id}</td>
+                    <td style={{ padding: '1rem', whiteSpace: 'nowrap' }}>
+                      {order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: 700 }}>{order.customer_name}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{order.customer_phone}</div>
+                    </td>
+                    <td style={{ padding: '1rem', maxWidth: '320px' }}>
+                      {Array.isArray(items) && items.map((item, idx) => (
+                        <div key={idx} style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+                          • {item.quantity}x {item.name} {item.selectedSize ? `(${item.selectedSize})` : ''}
+                        </div>
+                      ))}
+                    </td>
+                    <td style={{ padding: '1rem' }}>{qty} pcs</td>
+                    <td style={{ padding: '1rem' }}>{order.coupon_code || '-'}</td>
+                    <td style={{ padding: '1rem' }}>
+                      <span
+                        style={{
+                          padding: '0.2rem 0.5rem',
+                          background:
+                            order.status === 'selesai'
+                              ? '#4CAF50'
+                              : order.status === 'dikirim'
+                                ? '#9C27B0'
+                                : order.status === 'diproses'
+                                  ? '#2196F3'
+                                  : order.status === 'menunggu pembayaran'
+                                    ? '#ff9900'
+                                    : 'var(--color-border)',
+                          color: '#fff',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          textTransform: 'uppercase',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      Rp. {amount.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: '2px solid var(--color-border)', background: 'var(--color-bg-main)', fontWeight: 900 }}>
+                <td colSpan={4} style={{ padding: '1rem', fontFamily: 'var(--font-sans)', textTransform: 'uppercase' }}>
+                  TOTAL KESELURUHAN ({filteredOrders.length} TRANSAKSI)
+                </td>
+                <td style={{ padding: '1rem' }}>{totalPcsFiltered} pcs</td>
+                <td colSpan={2} style={{ padding: '1rem' }}></td>
+                <td style={{ padding: '1rem', textAlign: 'right', fontSize: '1rem', color: '#4CAF50' }}>
+                  Rp. {totalGrossFiltered.toLocaleString('id-ID')}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,7 +1236,29 @@ function AdminOrders() {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
-      <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0' }}>Orders</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>Orders</h2>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => printOrSaveOrdersPDF(orders, 'Daftar Semua Pesanan')}
+            disabled={orders.length === 0}
+            className="btn-secondary"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem', opacity: orders.length === 0 ? 0.5 : 1, cursor: orders.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            🖨 CETAK / SIMPAN PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => exportOrdersToExcel(orders, 'Daftar-Orders')}
+            disabled={orders.length === 0}
+            className="btn-primary"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem', opacity: orders.length === 0 ? 0.5 : 1, cursor: orders.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            ⬇ UNDUH TABEL EXCEL RAPI ({orders.length})
+          </button>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {loading ? <p>Loading...</p> : orders.length === 0 ? <p>No orders found.</p> : orders.map(order => {
@@ -409,6 +1399,85 @@ function AdminProductList({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
   );
 }
 
+const MAX_IMAGE_SIZE_MB = 15;
+const MAX_IMAGE_DIMENSION_PX = 1600;
+
+/**
+ * Mengoptimalkan resolusi/ukuran foto secara otomatis di browser (tetap tajam HD & menjaga transparansi PNG/WebP),
+ * lalu mengunggahnya ke endpoint /api/upload (chunked storage) agar tidak membebani baris database produk.
+ */
+async function optimizeAndUploadImage(file: File): Promise<string> {
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    const fileMb = (file.size / (1024 * 1024)).toFixed(1);
+    throw new Error(
+      `Ukuran foto "${file.name}" (${fileMb} MB) melebihi batas maksimal ${MAX_IMAGE_SIZE_MB} MB per foto.`
+    );
+  }
+
+  const rawDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target?.result as string);
+    reader.onerror = () => reject(new Error(`Gagal membaca file "${file.name}".`));
+    reader.readAsDataURL(file);
+  });
+
+  const optimizedDataUrl = await new Promise<string>(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > MAX_IMAGE_DIMENSION_PX || height > MAX_IMAGE_DIMENSION_PX) {
+        if (width >= height) {
+          height = Math.round((height * MAX_IMAGE_DIMENSION_PX) / width);
+          width = MAX_IMAGE_DIMENSION_PX;
+        } else {
+          width = Math.round((width * MAX_IMAGE_DIMENSION_PX) / height);
+          height = MAX_IMAGE_DIMENSION_PX;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(rawDataUrl);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      const isTransparentType = file.type === 'image/png' || file.type === 'image/webp';
+      const targetMime = isTransparentType ? 'image/webp' : 'image/jpeg';
+      const compressed = canvas.toDataURL(targetMime, 0.86);
+      resolve(compressed.length < rawDataUrl.length ? compressed : rawDataUrl);
+    };
+    img.onerror = () => resolve(rawDataUrl);
+    img.src = rawDataUrl;
+  });
+
+  // Unggah ke endpoint chunked media storage (/api/upload) agar hanya menyimpan URL ringan
+  try {
+    const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+    const res = await fetch(`${apiUrl}/api/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || ''
+      },
+      body: JSON.stringify({ file: optimizedDataUrl })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.url) {
+        return `${apiUrl}${data.url}`;
+      }
+    }
+  } catch {
+    // Jika gagal menghubungi /api/upload, gunakan hasil kompresi HD sebagai fallback
+  }
+
+  return optimizedDataUrl;
+}
+
 function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -423,6 +1492,7 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
   const [stockL, setStockL] = useState(0);
   const [stockXL, setStockXL] = useState(0);
   const [images, setImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [status, setStatus] = useState('');
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
 
@@ -482,20 +1552,26 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
     }
   }, [id, isEdit, type]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      Promise.all(files.map(file => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            resolve(event.target?.result as string);
-          };
-          reader.readAsDataURL(file);
-        });
-      })).then(newImages => {
-        setImages(prev => [...prev, ...newImages]);
-      });
+    if (files.length === 0) return;
+
+    setIsUploadingImages(true);
+    setStatus(`Mengoptimalkan & mengunggah ${files.length} foto... Mohon tunggu sebentar.`);
+
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const url = await optimizeAndUploadImage(file);
+        uploadedUrls.push(url);
+      }
+      setImages(prev => [...prev, ...uploadedUrls]);
+      setStatus(`${files.length} foto berhasil diunggah! Klik tombol simpan di bawah untuk menyimpan produk.`);
+    } catch (err: any) {
+      setStatus(err.message || 'Gagal mengunggah foto. Pastikan ukuran foto maksimal 15 MB.');
+    } finally {
+      setIsUploadingImages(false);
+      e.target.value = '';
     }
   };
 
@@ -610,12 +1686,26 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
           </div>
         </div>
         <div className="control-group">
-          <label>PRODUCT IMAGES</label>
+          <label>PRODUCT IMAGES (MAKS. {MAX_IMAGE_SIZE_MB} MB / FOTO)</label>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: '0 0 0.5rem 0' }}>
+            Bisa pilih banyak foto sekaligus (JPG, PNG, WEBP hingga {MAX_IMAGE_SIZE_MB} MB per foto). Sistem otomatis mengoptimalkan resolusi HD &amp; menyimpan ke server agar tidak pernah gagal disimpan.
+          </p>
           <div style={{ position: 'relative', overflow: 'hidden' }}>
-            <button type="button" className="btn-secondary" style={{ width: '100%' }}>
-              {images.length > 0 ? `${images.length} IMAGES UPLOADED ✓` : '+ UPLOAD PHOTOS (MULTIPLE)'}
+            <button type="button" className="btn-secondary" style={{ width: '100%', opacity: isUploadingImages ? 0.6 : 1 }} disabled={isUploadingImages}>
+              {isUploadingImages
+                ? 'SEDANG MENGUNGGAH & MENGOPTIMALKAN FOTO...'
+                : images.length > 0
+                  ? `${images.length} FOTO TERUNGGAH ✓ (+ TAMBAH FOTO LAGI)`
+                  : '+ PILIH & UPLOAD FOTO PRODUK (BISA BANYAK SEKALIGUS)'}
             </button>
-            <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              disabled={isUploadingImages}
+              onChange={handleImageUpload}
+              style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: isUploadingImages ? 'not-allowed' : 'pointer' }}
+            />
           </div>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', overflowX: 'auto' }}>
             {images.map((imgSrc, idx) => (
@@ -625,7 +1715,7 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
                 onDragStart={() => handleDragStart(idx)}
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(idx)}
-                style={{ position: 'relative', height: '100px', width: '100px', flexShrink: 0, cursor: 'grab', opacity: draggedImageIndex === idx ? 0.5 : 1 }}
+                style={{ position: 'relative', height: '100px', width: '100px', flexShrink: 0, cursor: 'grab', opacity: draggedImageIndex === idx ? 0.5 : 1, border: '1px solid var(--color-border)' }}
               >
                 <img src={imgSrc} alt={`Preview ${idx}`} style={{ height: '100%', width: '100%', objectFit: 'cover' }} />
                 <button type="button" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))} style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', padding: '0.2rem 0.5rem', fontFamily: 'var(--font-mono)' }}>X</button>
@@ -633,7 +1723,14 @@ function AdminProductForm({ type = 'origin' }: { type?: 'origin' | 'thrive' }) {
             ))}
           </div>
         </div>
-        <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start' }}>{isEdit ? 'UPDATE PRODUCT' : 'SAVE PRODUCT'}</button>
+        <button
+          type="submit"
+          disabled={isUploadingImages}
+          className="btn-primary"
+          style={{ alignSelf: 'flex-start', opacity: isUploadingImages ? 0.5 : 1, cursor: isUploadingImages ? 'not-allowed' : 'pointer' }}
+        >
+          {isUploadingImages ? 'MENUNGGU UPLOAD FOTO...' : isEdit ? 'UPDATE PRODUCT' : 'SAVE PRODUCT'}
+        </button>
         {status && <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{status}</p>}
       </form>
     </div>
@@ -746,20 +1843,23 @@ function AdminArticleForm() {
     }
   }, [id, isEdit]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      Promise.all(files.map(file => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            resolve(event.target?.result as string);
-          };
-          reader.readAsDataURL(file);
-        });
-      })).then(base64Images => {
-        setImages(prev => [...prev, ...base64Images]);
-      });
+    if (files.length === 0) return;
+
+    setStatus(`Mengoptimalkan & mengunggah ${files.length} foto artikel...`);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const url = await optimizeAndUploadImage(file);
+        uploadedUrls.push(url);
+      }
+      setImages(prev => [...prev, ...uploadedUrls]);
+      setStatus(`${files.length} foto artikel berhasil diunggah!`);
+    } catch (err: any) {
+      setStatus(err.message || 'Gagal mengunggah foto artikel.');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -1831,12 +2931,28 @@ export function AdminMegsThrive() {
     setConfig(prev => ({ ...prev, [key]: val }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setStatus('Uploading image...');
     const reader = new FileReader();
-    reader.onload = (event) => {
-      handleChange(key, event.target?.result as string);
+    reader.onload = async (event) => {
+      try {
+        const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+          body: JSON.stringify({ file: event.target?.result })
+        });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        const fullUrl = `${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}${data.url}`;
+        handleChange(key, fullUrl);
+        setStatus('Upload successful!');
+        setTimeout(() => setStatus(''), 3000);
+      } catch (err) {
+        setStatus('Upload error.');
+        setTimeout(() => setStatus(''), 3000);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -1847,15 +2963,16 @@ export function AdminMegsThrive() {
     e.preventDefault();
     setStatus('Saving...');
     try {
-      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
         body: JSON.stringify({ megs_thrive_settings: JSON.stringify(config) })
       });
+      if (!res.ok) throw new Error('Save failed on server');
       setStatus('Saved successfully!');
       setTimeout(() => setStatus(''), 3000);
     } catch (e) {
-      setStatus('Error saving settings.');
+      setStatus('Error saving settings. Data might be too large.');
     }
   };
 

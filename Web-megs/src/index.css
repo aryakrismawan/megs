@@ -1130,6 +1130,10 @@ input[type=range]::-webkit-slider-runnable-track {
   transition: transform 0.3s ease, background 0.3s ease;
 }
 
+.mobile-only {
+  display: none;
+}
+
 .archive-card:hover .archive-btn {
   transform: translateY(-3px);
   background: #f4f4f4;
@@ -1174,6 +1178,13 @@ input[type=range]::-webkit-slider-runnable-track {
   }
   .slider-item {
     scroll-snap-align: center;
+  }
+  
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
   }
   .footer-grid {
     grid-template-columns: 1fr 1fr;

@@ -25,6 +25,10 @@ type ShopContextType = {
   setIsCartOpen: (isOpen: boolean) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (isOpen: boolean) => void;
+  isCollectionPopupOpen: boolean;
+  setIsCollectionPopupOpen: (isOpen: boolean) => void;
+  collectionPopupCategory: string | null;
+  openCollectionPopup: (category?: string | null) => void;
   theme: string;
   setTheme: (theme: string | ((prev: string) => string)) => void;
 };
@@ -42,10 +46,17 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isCollectionPopupOpen, setIsCollectionPopupOpen] = useState(false);
+  const [collectionPopupCategory, setCollectionPopupCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
   const [theme, setTheme] = useState('light');
+
+  const openCollectionPopup = (category: string | null = null) => {
+    setCollectionPopupCategory(category);
+    setIsCollectionPopupOpen(true);
+  };
 
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -129,6 +140,10 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       setIsCartOpen,
       isSearchOpen,
       setIsSearchOpen,
+      isCollectionPopupOpen,
+      setIsCollectionPopupOpen,
+      collectionPopupCategory,
+      openCollectionPopup,
       theme,
       setTheme
     }}>

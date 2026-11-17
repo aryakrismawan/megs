@@ -3,8 +3,19 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams, u
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { SearchOverlay } from './components/SearchOverlay';
+import { CollectionChoicePopup } from './components/CollectionChoicePopup';
 import MegsStyleView from './MegsStyleView';
 import ThriveProductListView from './ThriveProductListView';
+import {
+  SHIPPING_ORIGIN,
+  FALLBACK_PROVINCES,
+  FALLBACK_CITIES_BY_PROVINCE,
+  FALLBACK_DISTRICTS_SUKABUMI,
+  calculateChargeableWeight,
+  calculateShippingOptions,
+  type RegionOption,
+  type ShippingServiceOption
+} from './utils/shippingCalculator';
 
 const getYoutubeId = (url: string) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -101,6 +112,7 @@ function App() {
           <Navbar />
           <CartSidebar />
           <SearchOverlay />
+          <CollectionChoicePopup />
           <style>
             {`
               @keyframes fadeInUpMain {
@@ -410,6 +422,7 @@ function Navbar() {
   const location = useLocation();
   const { cart, setIsCartOpen, setIsSearchOpen, isSearchOpen, theme, setTheme } = useShop();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileProductSubOpen, setIsMobileProductSubOpen] = useState(false);
   const [articles, setArticles] = useState<any[]>([]);
   const [createYoursItems, setCreateYoursItems] = useState<any[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -606,7 +619,47 @@ function Navbar() {
         <div className="mobile-menu">
           <Link to="/">HOME</Link>
           <Link to="/archive">ARCHIVES</Link>
-          <Link to="/product">PRODUCTS</Link>
+          <div style={{ width: '100%', borderBottom: '1px solid var(--color-border)' }}>
+            <button
+              type="button"
+              onClick={() => setIsMobileProductSubOpen(!isMobileProductSubOpen)}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                padding: '1.2rem 0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 800,
+                fontSize: '1.8rem',
+                letterSpacing: '-0.02em',
+                color: 'var(--color-text-main)',
+                textTransform: 'uppercase',
+                cursor: 'pointer'
+              }}
+            >
+              <span>PRODUCTS</span>
+              <span style={{ fontSize: '1.2rem', fontFamily: 'var(--font-mono)' }}>{isMobileProductSubOpen ? '−' : '+'}</span>
+            </button>
+            {isMobileProductSubOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0 0 1.2rem 1rem' }}>
+                <Link
+                  to="/product"
+                  style={{ fontSize: '1.1rem', padding: '0.5rem 0', borderBottom: 'none', opacity: 1, animation: 'none' }}
+                >
+                  &rarr; MEGS ORIGIN
+                </Link>
+                <Link
+                  to="/megs-thrive"
+                  style={{ fontSize: '1.1rem', padding: '0.5rem 0', borderBottom: 'none', opacity: 1, animation: 'none' }}
+                >
+                  &rarr; MEGS THRIVE
+                </Link>
+              </div>
+            )}
+          </div>
           <Link to="/create-yours">CREATE YOURS</Link>
           <Link to="/track-order">TRACK ORDER</Link>
           <Link to="/contact">CONTACT</Link>
@@ -617,7 +670,7 @@ function Navbar() {
 }
 
 function HomeView() {
-  const { products } = useShop();
+  const { products, openCollectionPopup } = useShop();
   const [articles, setArticles] = useState<any[]>([]);
   const [heroSlides, setHeroSlides] = useState<any[]>([]);
   const [aboutImage, setAboutImage] = useState('');
@@ -1025,13 +1078,13 @@ function HomeView() {
                 <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
               </div>
               <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)' }}>
-                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=tops'}>
+                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => openCollectionPopup('tops')}>
                   <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.38 3.46L16 2a8.59 8.59 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg>
                   </div>
                   <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.5rem' }}>TOPS</h3>
                 </div>
-                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => window.location.href = '/product?cat=bottoms'}>
+                <div style={{ flex: 1, padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => openCollectionPopup('bottoms')}>
                   <div style={{ width: '80px', height: '80px', margin: '0 auto 1.5rem', border: '1px solid var(--color-text-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4.5 21l1.5-15a1.5 1.5 0 0 1 1.5-1h9a1.5 1.5 0 0 1 1.5 1l1.5 15h-5.5l-2-10l-2 10z" />
@@ -1107,7 +1160,13 @@ function HomeView() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 2rem 4rem 2rem' }}>
-              <Link to="/product" className="btn-secondary view-all-btn">VIEW ALL PRODUCTS</Link>
+              <button
+                type="button"
+                onClick={() => openCollectionPopup(null)}
+                className="btn-secondary view-all-btn"
+              >
+                VIEW ALL PRODUCTS
+              </button>
             </div>
           </>
         )}
@@ -2044,8 +2103,29 @@ function CheckoutView() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [province, setProvince] = useState('');
   const [postalCode, setPostalCode] = useState('');
+
+  // Cascading Indonesian Region States
+  const [provinceList, setProvinceList] = useState<RegionOption[]>(FALLBACK_PROVINCES);
+  const [cityList, setCityList] = useState<RegionOption[]>([]);
+  const [districtList, setDistrictList] = useState<RegionOption[]>([]);
+
+  const [selectedProvinceId, setSelectedProvinceId] = useState('');
+  const [provinceName, setProvinceName] = useState('');
+  const [selectedCityId, setSelectedCityId] = useState('');
+  const [cityName, setCityName] = useState('');
+  const [selectedDistrictId, setSelectedDistrictId] = useState('');
+  const [districtName, setDistrictName] = useState('');
+
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [useManualCityInput, setUseManualCityInput] = useState(false);
+  const [useManualDistrictInput, setUseManualDistrictInput] = useState(false);
+
+  // Courier & Service Selection
+  const [selectedCourierFilter, setSelectedCourierFilter] = useState<string>('ALL');
+  const [selectedShippingId, setSelectedShippingId] = useState<string>('');
+  const [formValidationMessage, setFormValidationMessage] = useState<string>('');
 
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string, discount: number } | null>(null);
@@ -2059,14 +2139,129 @@ function CheckoutView() {
     }
   }, [cart, navigate]);
 
-  const provinces = [
-    'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Jambi', 'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Kepulauan Bangka Belitung', 'Kepulauan Riau',
-    'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Banten',
-    'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur',
-    'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara',
-    'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat',
-    'Maluku', 'Maluku Utara', 'Papua Barat', 'Papua', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan', 'Papua Barat Daya'
-  ].sort();
+  // Fetch Provinces from Indonesian Region API (with instant fallback)
+  useEffect(() => {
+    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+          setProvinceList(sorted);
+        }
+      })
+      .catch(() => {
+        // Fallback already initialized
+      });
+  }, []);
+
+  // Fetch Cities / Regencies when Province changes
+  useEffect(() => {
+    if (!selectedProvinceId) {
+      setCityList([]);
+      setSelectedCityId('');
+      setCityName('');
+      setDistrictList([]);
+      setSelectedDistrictId('');
+      setDistrictName('');
+      return;
+    }
+
+    setIsLoadingCities(true);
+    setUseManualCityInput(false);
+    setSelectedCityId('');
+    setCityName('');
+    setDistrictList([]);
+    setSelectedDistrictId('');
+    setDistrictName('');
+
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProvinceId}.json`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+          setCityList(sorted);
+        } else if (FALLBACK_CITIES_BY_PROVINCE[selectedProvinceId]) {
+          setCityList(FALLBACK_CITIES_BY_PROVINCE[selectedProvinceId]);
+        } else {
+          setUseManualCityInput(true);
+        }
+      })
+      .catch(() => {
+        if (FALLBACK_CITIES_BY_PROVINCE[selectedProvinceId]) {
+          setCityList(FALLBACK_CITIES_BY_PROVINCE[selectedProvinceId]);
+        } else {
+          setUseManualCityInput(true);
+        }
+      })
+      .finally(() => setIsLoadingCities(false));
+  }, [selectedProvinceId]);
+
+  // Fetch Districts / Kecamatan when City changes
+  useEffect(() => {
+    if (!selectedCityId) {
+      setDistrictList([]);
+      setSelectedDistrictId('');
+      setDistrictName('');
+      return;
+    }
+
+    setIsLoadingDistricts(true);
+    setUseManualDistrictInput(false);
+    setSelectedDistrictId('');
+    setDistrictName('');
+
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedCityId}.json`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+          setDistrictList(sorted);
+        } else if (selectedCityId === '3202') {
+          setDistrictList(FALLBACK_DISTRICTS_SUKABUMI);
+        } else {
+          setUseManualDistrictInput(true);
+        }
+      })
+      .catch(() => {
+        if (selectedCityId === '3202') {
+          setDistrictList(FALLBACK_DISTRICTS_SUKABUMI);
+        } else {
+          setUseManualDistrictInput(true);
+        }
+      })
+      .finally(() => setIsLoadingDistricts(false));
+  }, [selectedCityId]);
+
+  // Calculate total items & chargeable weight
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const { actualWeightKg, chargeableKg } = calculateChargeableWeight(totalQuantity);
+
+  // Calculate shipping options from Cicurug, Kab. Sukabumi
+  const shippingOptions: ShippingServiceOption[] = calculateShippingOptions(
+    provinceName,
+    cityName,
+    districtName,
+    chargeableKg
+  );
+
+  const filteredShippingOptions = selectedCourierFilter === 'ALL'
+    ? shippingOptions
+    : shippingOptions.filter(opt => opt.agentCode === selectedCourierFilter);
+
+  // Auto-select first shipping option when destination becomes valid
+  useEffect(() => {
+    if (shippingOptions.length > 0) {
+      const stillExists = shippingOptions.some(opt => opt.id === selectedShippingId);
+      if (!stillExists) {
+        setSelectedShippingId(shippingOptions[0].id);
+      }
+    } else {
+      setSelectedShippingId('');
+    }
+  }, [provinceName, cityName, districtName, chargeableKg]);
+
+  const selectedShippingOption = shippingOptions.find(opt => opt.id === selectedShippingId) || null;
+  const shippingCost = selectedShippingOption ? selectedShippingOption.totalCost : 0;
 
   // calculate subtotal
   const subtotal = cart.reduce((sum, item) => {
@@ -2075,7 +2270,7 @@ function CheckoutView() {
   }, 0);
 
   const discountAmount = appliedCoupon ? Math.floor(subtotal * (appliedCoupon.discount / 100)) : 0;
-  const grandTotal = subtotal - discountAmount;
+  const grandTotal = subtotal - discountAmount + shippingCost;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -2091,11 +2286,11 @@ function CheckoutView() {
       if (res.ok && data.success) {
         setAppliedCoupon({ code: data.code, discount: data.discount_percentage });
       } else {
-        setCouponError(data.error || 'Invalid coupon');
+        setCouponError(data.error || 'Kode kupon tidak ditemukan atau sudah tidak berlaku.');
         setAppliedCoupon(null);
       }
     } catch (e) {
-      setCouponError('Failed to verify coupon');
+      setCouponError('Gagal memverifikasi kupon. Silakan coba beberapa saat lagi.');
     } finally {
       setIsVerifyingCoupon(false);
     }
@@ -2103,8 +2298,20 @@ function CheckoutView() {
 
   const handleWhatsAppCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!province) {
-      alert('Mohon pilih provinsi');
+    setFormValidationMessage('');
+
+    if (!provinceName || !cityName) {
+      setFormValidationMessage('Mohon lengkapi Provinsi dan Kota/Kabupaten tujuan terlebih dahulu untuk menghitung estimasi ongkir.');
+      return;
+    }
+
+    if (!districtName) {
+      setFormValidationMessage('Mohon pilih atau isi Kecamatan tujuan Anda.');
+      return;
+    }
+
+    if (!selectedShippingOption) {
+      setFormValidationMessage('Mohon pilih agen dan layanan pengiriman (J&T, JNE, SiCepat, dll.).');
       return;
     }
 
@@ -2113,6 +2320,7 @@ function CheckoutView() {
     ).join('\n');
 
     const totalFormatted = `Rp. ${grandTotal.toLocaleString('id-ID')}`;
+    const shippingLabel = `${selectedShippingOption.agentName} - ${selectedShippingOption.serviceName} (${selectedShippingOption.etd})`;
 
     try {
       await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`, {
@@ -2121,7 +2329,7 @@ function CheckoutView() {
         body: JSON.stringify({
           customer_name: name,
           customer_phone: phone,
-          customer_address: `${address}\nProvinsi: ${province}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email}` : ''}`,
+          customer_address: `${address}\nKecamatan: ${districtName}\nKota/Kab: ${cityName}\nProvinsi: ${provinceName}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email}` : ''}\nKurir: ${shippingLabel} (Rp. ${shippingCost.toLocaleString('id-ID')} | Dari ${SHIPPING_ORIGIN.label})`,
           order_items: JSON.stringify(cart),
           total_price: grandTotal.toString(),
           coupon_code: appliedCoupon?.code
@@ -2135,20 +2343,25 @@ function CheckoutView() {
 
     text += `*Daftar Produk:*\n${itemsText}\n\n`;
 
-    text += `*Subtotal:* Rp. ${subtotal.toLocaleString('id-ID')}\n`;
+    text += `*Rincian Biaya:*\n`;
+    text += `- Subtotal Produk: Rp. ${subtotal.toLocaleString('id-ID')}\n`;
     if (appliedCoupon) {
-      text += `*Discount (${appliedCoupon.discount}%):* -Rp. ${discountAmount.toLocaleString('id-ID')}\n`;
+      text += `- Diskon Kupon (${appliedCoupon.code} - ${appliedCoupon.discount}%): -Rp. ${discountAmount.toLocaleString('id-ID')}\n`;
     }
-
-    text += `*GRAND TOTAL:* ${totalFormatted}\n\n`;
+    text += `- Ongkos Kirim (${selectedShippingOption.agentName} ${selectedShippingOption.serviceName} | ${chargeableKg} kg dari Cicurug, Sukabumi): Rp. ${shippingCost.toLocaleString('id-ID')}\n`;
+    text += `*GRAND TOTAL: ${totalFormatted}*\n\n`;
 
     text += `*Data Pengiriman:*\n`;
-    text += `Nama: ${name}\n`;
-    text += `No. WA: ${phone}\n`;
+    text += `Nama Penerima: ${name}\n`;
+    text += `No. WhatsApp: ${phone}\n`;
     if (email) text += `Email: ${email}\n`;
     text += `Alamat Lengkap: ${address}\n`;
-    text += `Provinsi: ${province}\n`;
-    text += `Kode Pos: ${postalCode}\n\n`;
+    text += `Kecamatan: ${districtName}\n`;
+    text += `Kota/Kabupaten: ${cityName}\n`;
+    text += `Provinsi: ${provinceName}\n`;
+    text += `Kode Pos: ${postalCode}\n`;
+    text += `Ekspedisi Pilihan: ${shippingLabel}\n`;
+    text += `Dikirim Dari: ${SHIPPING_ORIGIN.label}\n\n`;
 
     text += `Mohon konfirmasi pesanan saya dan informasi rekening untuk pembayaran. Terima kasih!`;
 
@@ -2169,54 +2382,347 @@ function CheckoutView() {
           Checkout
         </h1>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '4rem' }}>
 
-          {/* LEFT: Shipping Form */}
+          {/* LEFT: Shipping Form & Courier Estimator */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: 0, textTransform: 'uppercase' }}>Shipping Information</h2>
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>
+                Shipping Information
+              </h2>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.45rem 0.85rem',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.72rem',
+                  color: 'var(--color-text-muted)'
+                }}
+              >
+                <span>ORIGIN: <strong style={{ color: 'var(--color-text-main)' }}>CICURUG, KAB. SUKABUMI, JAWA BARAT</strong></span>
+                <span>•</span>
+                <span>WEIGHT: <strong style={{ color: 'var(--color-text-main)' }}>{actualWeightKg} KG ({chargeableKg} KG)</strong></span>
+              </div>
+            </div>
 
             <form id="checkout-form" onSubmit={handleWhatsAppCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL NAME *</label>
-                <input required className="input-text" type="text" value={name} onChange={e => setName(e.target.value)} />
+              <div className="control-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NAMA LENGKAP PENERIMA *</label>
+                <input required className="input-text" type="text" placeholder="Masukkan nama lengkap penerima" value={name} onChange={e => setName(e.target.value)} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="control-group">
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>WHATSAPP NUMBER *</label>
-                  <input required className="input-text" type="tel" pattern="[0-9]*" inputMode="numeric" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>NOMOR WHATSAPP AKTIF *</label>
+                  <input required className="input-text" type="tel" pattern="[0-9]*" inputMode="numeric" placeholder="Contoh: 081234567890" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} />
                 </div>
-                <div className="control-group">
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL (OPTIONAL)</label>
-                  <input className="input-text" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>EMAIL (OPSIONAL)</label>
+                  <input className="input-text" type="email" placeholder="nama@email.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               </div>
 
-              <div className="control-group">
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>FULL ADDRESS *</label>
-                <textarea required className="input-text" rows={4} value={address} onChange={e => setAddress(e.target.value)} placeholder="Street, building, house number..." />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="control-group">
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINCE *</label>
-                  <select required className="input-text" value={province} onChange={e => setProvince(e.target.value)}>
-                    <option value="">Select Province</option>
-                    {provinces.map(prov => (
-                      <option key={prov} value={prov}>{prov}</option>
+              {/* CASCADING REGION SELECTORS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                {/* 1. PROVINSI */}
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>PROVINSI TUJUAN *</label>
+                  <select
+                    required
+                    className="input-text"
+                    value={selectedProvinceId}
+                    onChange={e => {
+                      const id = e.target.value;
+                      setSelectedProvinceId(id);
+                      const found = provinceList.find(p => p.id === id);
+                      setProvinceName(found ? found.name : '');
+                    }}
+                  >
+                    <option value="">Pilih Provinsi</option>
+                    {provinceList.map(prov => (
+                      <option key={prov.id} value={prov.id}>{prov.name}</option>
                     ))}
                   </select>
                 </div>
-                <div className="control-group">
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>POSTAL CODE *</label>
-                  <input required className="input-text" type="text" pattern="[0-9]*" inputMode="numeric" value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))} />
+
+                {/* 2. KOTA / KABUPATEN */}
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KOTA / KABUPATEN *</label>
+                  {useManualCityInput ? (
+                    <input
+                      required
+                      className="input-text"
+                      type="text"
+                      placeholder="Ketik nama Kota / Kabupaten"
+                      value={cityName}
+                      onChange={e => {
+                        setCityName(e.target.value);
+                        setUseManualDistrictInput(true);
+                      }}
+                    />
+                  ) : (
+                    <select
+                      required
+                      className="input-text"
+                      disabled={!selectedProvinceId || isLoadingCities}
+                      value={selectedCityId}
+                      onChange={e => {
+                        const id = e.target.value;
+                        setSelectedCityId(id);
+                        const found = cityList.find(c => c.id === id);
+                        setCityName(found ? found.name : '');
+                      }}
+                      style={{ opacity: !selectedProvinceId || isLoadingCities ? 0.6 : 1 }}
+                    >
+                      <option value="">
+                        {!selectedProvinceId
+                          ? 'Pilih Provinsi terlebih dahulu'
+                          : isLoadingCities
+                            ? 'Memuat daftar kota...'
+                            : 'Pilih Kota / Kabupaten'}
+                      </option>
+                      {cityList.map(city => (
+                        <option key={city.id} value={city.id}>{city.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                {/* 3. KECAMATAN */}
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KECAMATAN *</label>
+                  {useManualDistrictInput ? (
+                    <input
+                      required
+                      className="input-text"
+                      type="text"
+                      placeholder="Ketik nama Kecamatan"
+                      value={districtName}
+                      onChange={e => setDistrictName(e.target.value)}
+                    />
+                  ) : (
+                    <select
+                      required
+                      className="input-text"
+                      disabled={(!selectedCityId && !cityName) || isLoadingDistricts}
+                      value={selectedDistrictId}
+                      onChange={e => {
+                        const id = e.target.value;
+                        setSelectedDistrictId(id);
+                        const found = districtList.find(d => d.id === id);
+                        setDistrictName(found ? found.name : '');
+                      }}
+                      style={{ opacity: (!selectedCityId && !cityName) || isLoadingDistricts ? 0.6 : 1 }}
+                    >
+                      <option value="">
+                        {!selectedCityId && !cityName
+                          ? 'Pilih Kota/Kab terlebih dahulu'
+                          : isLoadingDistricts
+                            ? 'Memuat daftar kecamatan...'
+                            : 'Pilih Kecamatan'}
+                      </option>
+                      {districtList.map(dist => (
+                        <option key={dist.id} value={dist.id}>{dist.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* 4. KODE POS */}
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>KODE POS *</label>
+                  <input
+                    required
+                    className="input-text"
+                    type="text"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={5}
+                    placeholder="Contoh: 43359"
+                    value={postalCode}
+                    onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              <div className="control-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>ALAMAT LENGKAP & PATOKAN *</label>
+                <textarea
+                  required
+                  className="input-text"
+                  rows={3}
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/desa, serta patokan lokasi..."
+                />
+              </div>
+
+              {/* SHIPPING AGENT & COST ESTIMATOR */}
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '1.5rem',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', margin: 0 }}>
+                      PILIH AGEN EKSPEDISI & LAYANAN
+                    </h3>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: '0.25rem 0 0 0' }}>
+                      Estimasi dihitung dari <strong style={{ color: 'var(--color-text-main)' }}>Cicurug, Kab. Sukabumi</strong>
+                      {cityName ? ` ke ${districtName ? `${districtName}, ` : ''}${cityName}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {!provinceName || !cityName ? (
+                  <div
+                    style={{
+                      padding: '2rem 1.5rem',
+                      border: '1px dashed var(--color-border)',
+                      textAlign: 'center',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.8rem',
+                      color: 'var(--color-text-muted)'
+                    }}
+                  >
+                    Pilih <strong style={{ color: 'var(--color-text-main)' }}>Provinsi</strong> dan <strong style={{ color: 'var(--color-text-main)' }}>Kota / Kabupaten</strong> di atas untuk menampilkan pilihan kurir (J&amp;T, JNE, SiCepat, Ninja Xpress, Pos Indonesia) beserta estimasi ongkos kirim.
+                  </div>
+                ) : (
+                  <>
+                    {/* Filter Tabs per Agent */}
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                      {[
+                        { code: 'ALL', label: 'SEMUA AGEN' },
+                        { code: 'JNT', label: 'J&T EXPRESS' },
+                        { code: 'JNE', label: 'JNE' },
+                        { code: 'SICEPAT', label: 'SICEPAT' },
+                        { code: 'NINJA', label: 'NINJA' },
+                        { code: 'POS', label: 'POS' }
+                      ].map(tab => {
+                        const isActive = selectedCourierFilter === tab.code;
+                        return (
+                          <button
+                            key={tab.code}
+                            type="button"
+                            onClick={() => setSelectedCourierFilter(tab.code)}
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              border: '1px solid var(--color-border)',
+                              background: isActive ? 'var(--color-text-main)' : 'transparent',
+                              color: isActive ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.7rem',
+                              fontWeight: isActive ? 700 : 400,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Courier Options List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                      {filteredShippingOptions.map(option => {
+                        const isSelected = selectedShippingId === option.id;
+                        return (
+                          <div
+                            key={option.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedShippingId(option.id)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedShippingId(option.id);
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '1rem',
+                              padding: '1rem 1.25rem',
+                              background: isSelected ? 'var(--color-text-main)' : 'var(--color-bg-main)',
+                              color: isSelected ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                              border: isSelected ? '2px solid var(--color-text-main)' : '1px solid var(--color-border)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase' }}>
+                                  {option.agentName} — {option.serviceName}
+                                </span>
+                                {option.badge && (
+                                  <span
+                                    style={{
+                                      fontFamily: 'var(--font-mono)',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      padding: '2px 6px',
+                                      background: isSelected ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+                                      color: isSelected ? 'var(--color-text-main)' : 'var(--color-bg-main)',
+                                      letterSpacing: '0.05em'
+                                    }}
+                                  >
+                                    {option.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', opacity: 0.8 }}>
+                                Estimasi tiba: {option.etd} • Rp. {option.pricePerKg.toLocaleString('id-ID')}/kg
+                              </span>
+                            </div>
+
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '1rem' }}>
+                                Rp. {option.totalCost.toLocaleString('id-ID')}
+                              </div>
+                              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', opacity: 0.75 }}>
+                                {isSelected ? '✓ TERPILIH' : 'PILIH'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {formValidationMessage && (
+                <div
+                  style={{
+                    padding: '1rem',
+                    border: '1px solid #ff4444',
+                    background: 'rgba(255, 68, 68, 0.08)',
+                    color: '#ff4444',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  {formValidationMessage}
+                </div>
+              )}
             </form>
           </div>
 
           {/* RIGHT: Order Summary */}
-          <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', height: 'fit-content' }}>
+          <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', height: 'fit-content', position: 'sticky', top: '100px' }}>
             <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', margin: '0 0 2rem 0', textTransform: 'uppercase' }}>Order Summary</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -2256,34 +2762,34 @@ function CheckoutView() {
               })}
             </div>
 
-            <div style={{ padding: '2rem 0', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', marginBottom: '2rem' }}>
+            <div style={{ padding: '1.5rem 0', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <input
                   type="text"
                   className="input-text"
-                  placeholder="COUPON CODE"
+                  placeholder="KODE KUPON PROMO"
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value)}
                   disabled={!!appliedCoupon}
-                  style={{ textTransform: 'uppercase' }}
+                  style={{ textTransform: 'uppercase', flex: 1 }}
                 />
                 {!appliedCoupon ? (
                   <button type="button" className="btn-secondary" onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponCode.trim()}>
-                    {isVerifyingCoupon ? '...' : 'APPLY'}
+                    {isVerifyingCoupon ? '...' : 'PAKAI'}
                   </button>
                 ) : (
                   <button type="button" className="btn-secondary" onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} style={{ color: '#ff4444', borderColor: '#ff4444' }}>
-                    REMOVE
+                    HAPUS
                   </button>
                 )}
               </div>
               {couponError && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#ff4444', margin: '0.5rem 0 0 0' }}>{couponError}</p>}
-              {appliedCoupon && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#4CAF50', margin: '0.5rem 0 0 0' }}>Coupon applied: {appliedCoupon.discount}% OFF!</p>}
+              {appliedCoupon && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#4CAF50', margin: '0.5rem 0 0 0' }}>Kupon aktif: Diskon {appliedCoupon.discount}% diterapkan!</p>}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
-                <span>Subtotal</span>
+                <span>Subtotal ({totalQuantity} item)</span>
                 <span>Rp. {subtotal.toLocaleString('id-ID')}</span>
               </div>
 
@@ -2294,14 +2800,28 @@ function CheckoutView() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', color: 'var(--color-text-muted)', gap: '1rem' }}>
+                <div>
+                  <div>Ongkos Kirim ({chargeableKg} kg)</div>
+                  <div style={{ fontSize: '0.72rem', marginTop: '0.15rem', color: 'var(--color-text-main)' }}>
+                    {selectedShippingOption
+                      ? `${selectedShippingOption.agentName} - ${selectedShippingOption.serviceName} (${selectedShippingOption.etd})`
+                      : 'Pilih provinsi & kota tujuan'}
+                  </div>
+                </div>
+                <span style={{ color: selectedShippingOption ? 'var(--color-text-main)' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  {selectedShippingOption ? `Rp. ${shippingCost.toLocaleString('id-ID')}` : '—'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.25rem', marginTop: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)' }}>
                 <span>GRAND TOTAL</span>
                 <span>Rp. {grandTotal.toLocaleString('id-ID')}</span>
               </div>
             </div>
 
             <button type="submit" form="checkout-form" className="btn-primary" style={{ width: '100%', marginTop: '2rem' }}>
-              CONFIRM VIA WHATSAPP
+              PESAN & KONFIRMASI VIA WHATSAPP
             </button>
           </div>
 
