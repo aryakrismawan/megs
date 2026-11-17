@@ -482,8 +482,8 @@ function Navbar() {
   const navbarClasses = `navbar ${isScrolled && !isMegsStyle ? 'navbar-scrolled' : ''} ${isSearchOpen ? 'navbar-search-open' : ''} ${isTransparentHero ? 'navbar-hero' : ''} ${isMegsStyle ? 'navbar-megs-style' : ''} ${(isMegsStyle && isScrolled) ? 'navbar-hidden' : ''}`;
 
   return (
-    <header 
-      className={navbarClasses} 
+    <header
+      className={navbarClasses}
       style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}
       onMouseEnter={() => setIsNavbarHovered(true)}
       onMouseLeave={() => setIsNavbarHovered(false)}
@@ -1133,7 +1133,7 @@ function HomeView() {
                     if (Array.isArray(parsedSizes)) {
                       totalStock = parsedSizes.reduce((sum, s) => sum + (typeof s === 'string' ? 1 : (s.stock || 0)), 0);
                     }
-                  } catch(e) {}
+                  } catch (e) { }
                   const isSoldOut = totalStock === 0;
 
                   return (
@@ -1348,7 +1348,7 @@ function ProductDetailView() {
   try {
     if (product.sizes) {
       const parsed = JSON.parse(product.sizes);
-      sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? {size: s, stock: 1} : s) : [];
+      sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? { size: s, stock: 1 } : s) : [];
     }
   } catch (e) { }
 

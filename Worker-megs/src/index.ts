@@ -31,7 +31,7 @@ async function verifyAdmin(c: any): Promise<boolean> {
     if (!username || !hash) return false;
     const admin = await c.env.DB.prepare("SELECT id FROM admins WHERE username = ? AND password_hash = ?").bind(username, hash).first();
     return !!admin;
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 }
@@ -40,7 +40,7 @@ async function verifyAdmin(c: any): Promise<boolean> {
 app.post('/api/login', async (c) => {
   try {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)`).run();
-    
+
     const { results } = await c.env.DB.prepare("SELECT * FROM admins").all();
     if (results.length === 0) {
       const defaultHash = await hashPassword('admin');
@@ -67,7 +67,7 @@ app.get('/api/admins', async (c) => {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     const { results } = await c.env.DB.prepare("SELECT id, username FROM admins").all();
     return c.json(results);
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -80,7 +80,7 @@ app.post('/api/admins', async (c) => {
     const hash = await hashPassword(password);
     await c.env.DB.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").bind(username, hash).run();
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -91,7 +91,7 @@ app.delete('/api/admins/:id', async (c) => {
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM admins WHERE id = ?").bind(id).run();
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -102,7 +102,7 @@ app.put('/api/admins/:id', async (c) => {
     const id = c.req.param('id');
     const { username, password } = await c.req.json();
     if (!username) return c.json({ error: 'Missing username' }, 400);
-    
+
     if (password) {
       const hash = await hashPassword(password);
       await c.env.DB.prepare("UPDATE admins SET username = ?, password_hash = ? WHERE id = ?").bind(username, hash, id).run();
@@ -110,7 +110,7 @@ app.put('/api/admins/:id', async (c) => {
       await c.env.DB.prepare("UPDATE admins SET username = ? WHERE id = ?").bind(username, id).run();
     }
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -139,14 +139,14 @@ app.get('/api/products/:id', async (c) => {
 app.post('/api/products', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const body = await c.req.json();
     const { name, price, category, img, description, sizes } = body;
-    
+
     const info = await c.env.DB.prepare(
       "INSERT INTO products (name, price, category, img, description, sizes) VALUES (?, ?, ?, ?, ?, ?)"
     ).bind(
-      name, price, category, 
+      name, price, category,
       typeof img === 'string' ? img : JSON.stringify(img),
       description || '',
       typeof sizes === 'string' ? sizes : JSON.stringify(sizes)
@@ -161,7 +161,7 @@ app.post('/api/products', async (c) => {
 app.put('/api/products/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { name, price, category, img, description, sizes } = body;
@@ -169,7 +169,7 @@ app.put('/api/products/:id', async (c) => {
     const result = await c.env.DB.prepare(
       "UPDATE products SET name = ?, price = ?, category = ?, img = ?, description = ?, sizes = ? WHERE id = ?"
     ).bind(
-      name, price, category, 
+      name, price, category,
       typeof img === 'string' ? img : JSON.stringify(img),
       description || '',
       typeof sizes === 'string' ? sizes : JSON.stringify(sizes),
@@ -186,7 +186,7 @@ app.put('/api/products/:id', async (c) => {
 app.delete('/api/products/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -220,10 +220,10 @@ app.get('/api/articles/:id', async (c) => {
 app.post('/api/articles', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const body = await c.req.json();
     const { title, excerpt, content, images, created_at } = body;
-    
+
     let info;
     if (created_at) {
       info = await c.env.DB.prepare(
@@ -248,7 +248,7 @@ app.post('/api/articles', async (c) => {
 app.put('/api/articles/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { title, excerpt, content, images, created_at } = body;
@@ -278,7 +278,7 @@ app.put('/api/articles/:id', async (c) => {
 app.delete('/api/articles/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM articles WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -294,7 +294,7 @@ app.get('/api/create-yours', async (c) => {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
     try {
       await c.env.DB.prepare(`ALTER TABLE create_yours ADD COLUMN form_config TEXT`).run();
-    } catch(e) {}
+    } catch (e) { }
     const { results } = await c.env.DB.prepare("SELECT * FROM create_yours ORDER BY id DESC").all();
     return c.json(results);
   } catch (e: any) {
@@ -305,14 +305,14 @@ app.get('/api/create-yours', async (c) => {
 app.post('/api/create-yours', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
     try {
       await c.env.DB.prepare(`ALTER TABLE create_yours ADD COLUMN form_config TEXT`).run();
-    } catch(e) {}
+    } catch (e) { }
     const body = await c.req.json();
     const { name, image, description, form_config } = body;
-    
+
     const info = await c.env.DB.prepare("INSERT INTO create_yours (name, image, description, form_config) VALUES (?, ?, ?, ?)").bind(name, image || '', description || '', form_config || '').run();
     return c.json({ success: true, id: info.meta.last_row_id });
   } catch (e: any) {
@@ -323,7 +323,7 @@ app.post('/api/create-yours', async (c) => {
 app.put('/api/create-yours/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { name, image, description, form_config } = body;
@@ -339,7 +339,7 @@ app.put('/api/create-yours/:id', async (c) => {
 app.delete('/api/create-yours/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM create_yours WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -448,11 +448,11 @@ app.put('/api/orders/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     await ensureOrderColumns(c.env.DB);
-    
+
     const id = c.req.param('id');
     const data = await c.req.json();
     const { status, tracking_number, courier, tracking_logs, new_log_entry } = data;
-    
+
     const existing: any = await c.env.DB.prepare("SELECT * FROM orders WHERE id = ?").bind(id).first();
     if (!existing) return c.json({ error: 'Order not found' }, 404);
 
@@ -782,7 +782,7 @@ app.get('/api/track-resi', async (c) => {
 app.delete('/api/orders/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -796,7 +796,7 @@ app.delete('/api/orders/:id', async (c) => {
 app.get('/api/settings', async (c) => {
   try {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
-    
+
     const { results } = await c.env.DB.prepare("SELECT * FROM settings").all();
     const settingsObj = results.reduce((acc: any, row: any) => {
       acc[row.key] = row.value;
@@ -811,9 +811,9 @@ app.get('/api/settings', async (c) => {
 app.put('/api/settings', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
-    
+
     const body = await c.req.json();
     const stmts = [];
     for (const [key, value] of Object.entries(body)) {
@@ -845,13 +845,13 @@ app.post('/api/upload', async (c) => {
 
     const mimeType = match[1];
     const base64Data = match[2];
-    
+
     const id = crypto.randomUUID();
 
     // Chunk size: 700KB (700,000 chars of base64) to safely stay under D1's 1MB row limit
     const CHUNK_SIZE = 700000;
     const stmts = [];
-    
+
     stmts.push(c.env.DB.prepare("INSERT INTO media (id, mime_type) VALUES (?, ?)").bind(id, mimeType));
 
     for (let i = 0; i < base64Data.length; i += CHUNK_SIZE) {
@@ -860,7 +860,7 @@ app.post('/api/upload', async (c) => {
     }
 
     await c.env.DB.batch(stmts);
-    
+
     let ext = '';
     if (mimeType.includes('video/mp4')) ext = '.mp4';
     else if (mimeType.includes('video/webm')) ext = '.webm';
@@ -880,10 +880,10 @@ app.get('/api/media/:id', async (c) => {
     if (id.includes('.')) {
       id = id.split('.')[0];
     }
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media_chunks (media_id TEXT, chunk_index INTEGER, data TEXT, PRIMARY KEY (media_id, chunk_index))`).run();
-    
+
     const mediaRow = await c.env.DB.prepare("SELECT mime_type FROM media WHERE id = ?").bind(id).first();
     if (!mediaRow) return c.json({ error: 'Not found' }, 404);
 
@@ -891,12 +891,12 @@ app.get('/api/media/:id', async (c) => {
     if (!results || results.length === 0) return c.json({ error: 'Chunks not found' }, 404);
 
     const base64Data = results.map((r: any) => r.data).join('');
-    
+
     const binaryString = atob(base64Data);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      bytes[i] = binaryString.charCodeAt(i);
     }
 
     return new Response(bytes.buffer, {
@@ -931,7 +931,7 @@ app.post('/api/coupons', async (c) => {
     const result = await c.env.DB.prepare(
       "INSERT INTO coupons (code, discount_percentage, valid_from, valid_until, usage_limit, used_count) VALUES (?, ?, ?, ?, ?, 0)"
     ).bind(code.toUpperCase(), discount_percentage, valid_from || null, valid_until || null, usage_limit || null).run();
-    
+
     return c.json({ success: true, id: result.meta.last_row_id });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);

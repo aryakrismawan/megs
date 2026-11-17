@@ -37,13 +37,12 @@ function buildReportSummaryAndRows(ordersToExport: any[]) {
 
     const itemsListHtml = Array.isArray(parsedItems) && parsedItems.length > 0
       ? parsedItems
-          .map(
-            (item: any) =>
-              `• <strong>${escapeHtml(item.quantity || 1)}x ${escapeHtml(item.name || 'Produk')}</strong>${
-                item.selectedSize ? ` (Ukuran: ${escapeHtml(item.selectedSize)})` : ''
-              } — Rp ${escapeHtml(item.price || '0')}`
-          )
-          .join('<br/>')
+        .map(
+          (item: any) =>
+            `• <strong>${escapeHtml(item.quantity || 1)}x ${escapeHtml(item.name || 'Produk')}</strong>${item.selectedSize ? ` (Ukuran: ${escapeHtml(item.selectedSize)})` : ''
+            } — Rp ${escapeHtml(item.price || '0')}`
+        )
+        .join('<br/>')
       : '-';
 
     const amount = parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0;
@@ -671,7 +670,7 @@ function AdminDashboard() {
           const totalRevenue = data
             .filter(o => o.status === 'selesai' || o.status === 'dikirim')
             .reduce((sum, order) => sum + (parseInt(order.total_price) || 0), 0);
-          
+
           setStats({ totalOrders, pendingOrders, totalRevenue });
           setAllOrders(data);
           setRecentOrders(data.slice(0, 5));
@@ -711,7 +710,7 @@ function AdminDashboard() {
           </button>
         </div>
       </div>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-text-main)' }}>
           <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>TOTAL REVENUE (Dikirim/Selesai)</h3>
@@ -746,10 +745,10 @@ function AdminDashboard() {
                 <td style={{ padding: '1rem 0' }}>{new Date(order.created_at).toLocaleDateString()}</td>
                 <td style={{ padding: '1rem 0' }}>{order.customer_name}</td>
                 <td style={{ padding: '1rem 0' }}>
-                  <span style={{ 
-                    padding: '0.2rem 0.5rem', 
-                    background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : order.status === 'menunggu pembayaran' ? '#ff9900' : 'var(--color-border)', 
-                    color: '#fff', 
+                  <span style={{
+                    padding: '0.2rem 0.5rem',
+                    background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : order.status === 'menunggu pembayaran' ? '#ff9900' : 'var(--color-border)',
+                    color: '#fff',
                     borderRadius: '4px',
                     fontSize: '0.8rem',
                     textTransform: 'uppercase'
@@ -871,7 +870,7 @@ function AdminBookkeeping() {
       if (Array.isArray(items)) {
         return sum + items.reduce((acc, i) => acc + (parseInt(i.quantity) || 1), 0);
       }
-    } catch {}
+    } catch { }
     return sum;
   }, 0);
 
@@ -1113,7 +1112,7 @@ function AdminBookkeeping() {
                 let items: any[] = [];
                 try {
                   items = JSON.parse(order.order_items || '[]');
-                } catch {}
+                } catch { }
                 const qty = Array.isArray(items)
                   ? items.reduce((s, i) => s + (parseInt(i.quantity) || 1), 0)
                   : 0;
@@ -2385,7 +2384,7 @@ function AdminCreateYoursForm() {
               if (item.form_config) {
                 try {
                   setFormFields(JSON.parse(item.form_config));
-                } catch(e) {}
+                } catch (e) { }
               }
             }
           }
@@ -2462,37 +2461,37 @@ function AdminCreateYoursForm() {
 
           {formFields.map((field, fieldIdx) => (
             <div key={fieldIdx} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setFormFields(formFields.filter((_, i) => i !== fieldIdx))}
                 style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-white)', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
               >
                 HAPUS FIELD
               </button>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem', maxWidth: '300px' }}>
                 <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NAMA FIELD (Contoh: PANTS / NAMA PAKET)</label>
-                <input 
-                  type="text" 
-                  className="input-text" 
-                  value={field.label} 
+                <input
+                  type="text"
+                  className="input-text"
+                  value={field.label}
                   onChange={e => {
                     const newFields = [...formFields];
                     newFields[fieldIdx].label = e.target.value;
                     setFormFields(newFields);
-                  }} 
+                  }}
                 />
               </div>
 
               <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', marginBottom: '1rem' }}>PILIHAN (OPTIONS)</h4>
-              
+
               {field.options.map((option: any, optIdx: number) => (
                 <div key={optIdx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: '1', minWidth: '150px' }}>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>LABEL (Contoh: BASIC)</label>
-                    <input 
-                      type="text" 
-                      className="input-text" 
+                    <input
+                      type="text"
+                      className="input-text"
                       value={option.label}
                       onChange={e => {
                         const newFields = [...formFields];
@@ -2506,9 +2505,9 @@ function AdminCreateYoursForm() {
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>HARGA TAMBAHAN (+/- Rp)</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>Rp</span>
-                      <input 
-                        type="number" 
-                        className="input-text" 
+                      <input
+                        type="number"
+                        className="input-text"
                         value={option.priceModifier === 0 ? '' : option.priceModifier}
                         onChange={e => {
                           const newFields = [...formFields];
@@ -2519,8 +2518,8 @@ function AdminCreateYoursForm() {
                       />
                     </div>
                   </div>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn-secondary"
                     onClick={() => {
                       const newFields = [...formFields];
@@ -2534,8 +2533,8 @@ function AdminCreateYoursForm() {
                 </div>
               ))}
 
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-secondary"
                 style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}
                 onClick={() => {
@@ -2549,9 +2548,9 @@ function AdminCreateYoursForm() {
             </div>
           ))}
 
-          <button 
-            type="button" 
-            className="btn-secondary" 
+          <button
+            type="button"
+            className="btn-secondary"
             style={{ width: '100%' }}
             onClick={() => {
               setFormFields([...formFields, { id: `f_${Date.now()}`, label: '', type: 'select', options: [{ label: '', value: '', priceModifier: 0 }] }]);
@@ -2668,7 +2667,7 @@ function ManageAdmins() {
   return (
     <div style={{ maxWidth: '800px' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0' }}>Manage Admins</h2>
-      
+
       <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', marginBottom: '2rem' }}>
         <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, marginTop: 0 }}>Add New Admin</h3>
         <form onSubmit={handleAddAdmin} className="admin-form-row">
@@ -2744,16 +2743,16 @@ function AdminCoupons() {
     try {
       const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/coupons`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || ''
         },
-        body: JSON.stringify({ 
-          code, 
-          discount_percentage: parseInt(discountPercent), 
-          valid_from: validFrom || null, 
-          valid_until: validUntil || null, 
-          usage_limit: usageLimit ? parseInt(usageLimit) : null 
+        body: JSON.stringify({
+          code,
+          discount_percentage: parseInt(discountPercent),
+          valid_from: validFrom || null,
+          valid_until: validUntil || null,
+          usage_limit: usageLimit ? parseInt(usageLimit) : null
         })
       });
       const data = await res.json();
@@ -2907,7 +2906,7 @@ function AdminSettings() {
         if (data.about_image) setAboutImage(data.about_image);
         if (data.about_text) setAboutText(data.about_text);
         if (data.create_yours_pricing) {
-          try { setPricing(JSON.parse(data.create_yours_pricing)); } catch(e) {}
+          try { setPricing(JSON.parse(data.create_yours_pricing)); } catch (e) { }
         }
       });
   }, []);
@@ -2935,7 +2934,7 @@ function AdminSettings() {
           setStatus('Gagal mengunggah: ' + data.error);
         }
       } catch (err: any) {
-         setStatus('Error: ' + err.message);
+        setStatus('Error: ' + err.message);
       }
     };
 
@@ -2949,7 +2948,7 @@ function AdminSettings() {
       reader.readAsDataURL(file);
       return;
     }
-    
+
     // For images, do not resize to keep HD quality
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -3017,21 +3016,21 @@ function AdminSettings() {
   return (
     <div style={{ maxWidth: '800px' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0' }}>Home Settings</h2>
-      
+
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <button 
+        <button
           onClick={() => setActiveTab('hero')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'hero' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           HERO SLIDES
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('about')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'about' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           ABOUT SECTION
         </button>
-        <button 
+        <button
           type="button"
           onClick={() => setActiveTab('pricing')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'pricing' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
@@ -3041,88 +3040,88 @@ function AdminSettings() {
       </div>
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)' }}>
-        
+
         {activeTab === 'hero' && (
           <>
 
-        {heroSlides.map((slide, index) => (
-          <div
-            key={index}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(index)}
-            style={{ border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ cursor: 'grab', padding: '0.2rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              </div>
-              <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', margin: 0 }}>SLIDE {index + 1}</h3>
-            </div>
-            {heroSlides.length > 1 && (
-              <button type="button" onClick={() => handleRemoveSlide(index)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>REMOVE</button>
-            )}
-
-            <div className="control-group" style={{ marginBottom: '1rem' }}>
-              <label>TITLE</label>
-              <input className="input-text" type="text" value={slide.title} onChange={e => {
-                const newSlides = [...heroSlides];
-                newSlides[index].title = e.target.value;
-                setHeroSlides(newSlides);
-              }} />
-            </div>
-
-            <div className="control-group" style={{ marginBottom: '1rem' }}>
-              <label>SUBTITLE</label>
-              <input className="input-text" type="text" value={slide.subtitle} onChange={e => {
-                const newSlides = [...heroSlides];
-                newSlides[index].subtitle = e.target.value;
-                setHeroSlides(newSlides);
-              }} />
-            </div>
-
-            <div className="control-group" style={{ marginBottom: '1rem' }}>
-              <label>SLIDE DURATION (SECONDS)</label>
-              <input className="input-text" type="number" min="1" placeholder="Default: 5" value={slide.duration || ''} onChange={e => {
-                const newSlides = [...heroSlides];
-                newSlides[index].duration = e.target.value;
-                setHeroSlides(newSlides);
-              }} />
-            </div>
-
-            <div className="control-group">
-              <label>BACKGROUND MEDIA (IMAGE / VIDEO / YOUTUBE)</label>
-              {slide.image && (
-                getYoutubeId(slide.image) ? (
-                  <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '1rem', overflow: 'hidden', background: '#000' }}>
-                    <iframe 
-                      src={`https://www.youtube.com/embed/${getYoutubeId(slide.image)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(slide.image)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3`}
-                      style={{ width: '100%', height: '100%', pointerEvents: 'none', transform: 'scale(1.15)' }}
-                      frameBorder="0"
-                      allow="autoplay; encrypted-media"
-                    />
+            {heroSlides.map((slide, index) => (
+              <div
+                key={index}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(index)}
+                style={{ border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div style={{ cursor: 'grab', padding: '0.2rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                   </div>
-                ) : slide.image.startsWith('data:video/') || slide.image.endsWith('.mp4') || slide.image.endsWith('.webm') ? (
-                  <video src={slide.image} autoPlay loop muted playsInline style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
-                ) : (
-                  <img src={slide.image} alt="Hero Preview" style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
-                )
-              )}
-              <input type="text" className="input-text" placeholder="Atau paste URL YouTube / Eksternal Video di sini (opsional)" value={slide.image} onChange={e => {
-                const newSlides = [...heroSlides];
-                newSlides[index].image = e.target.value;
-                setHeroSlides(newSlides);
-              }} style={{ marginBottom: '1rem' }} />
-              <div style={{ position: 'relative', overflow: 'hidden' }}>
-                <button type="button" className="btn-secondary" style={{ width: '100%' }}>+ UPLOAD NEW BACKGROUND</button>
-                <input type="file" accept="image/*,video/mp4,video/webm" onChange={(e) => handleImageUpload(e, index)} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
-              </div>
-            </div>
-          </div>
-        ))}
+                  <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', margin: 0 }}>SLIDE {index + 1}</h3>
+                </div>
+                {heroSlides.length > 1 && (
+                  <button type="button" onClick={() => handleRemoveSlide(index)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>REMOVE</button>
+                )}
 
-        <button type="button" className="btn-secondary" onClick={handleAddSlide} style={{ alignSelf: 'flex-start' }}>+ ADD NEW SLIDE</button>
+                <div className="control-group" style={{ marginBottom: '1rem' }}>
+                  <label>TITLE</label>
+                  <input className="input-text" type="text" value={slide.title} onChange={e => {
+                    const newSlides = [...heroSlides];
+                    newSlides[index].title = e.target.value;
+                    setHeroSlides(newSlides);
+                  }} />
+                </div>
+
+                <div className="control-group" style={{ marginBottom: '1rem' }}>
+                  <label>SUBTITLE</label>
+                  <input className="input-text" type="text" value={slide.subtitle} onChange={e => {
+                    const newSlides = [...heroSlides];
+                    newSlides[index].subtitle = e.target.value;
+                    setHeroSlides(newSlides);
+                  }} />
+                </div>
+
+                <div className="control-group" style={{ marginBottom: '1rem' }}>
+                  <label>SLIDE DURATION (SECONDS)</label>
+                  <input className="input-text" type="number" min="1" placeholder="Default: 5" value={slide.duration || ''} onChange={e => {
+                    const newSlides = [...heroSlides];
+                    newSlides[index].duration = e.target.value;
+                    setHeroSlides(newSlides);
+                  }} />
+                </div>
+
+                <div className="control-group">
+                  <label>BACKGROUND MEDIA (IMAGE / VIDEO / YOUTUBE)</label>
+                  {slide.image && (
+                    getYoutubeId(slide.image) ? (
+                      <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '1rem', overflow: 'hidden', background: '#000' }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYoutubeId(slide.image)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(slide.image)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3`}
+                          style={{ width: '100%', height: '100%', pointerEvents: 'none', transform: 'scale(1.15)' }}
+                          frameBorder="0"
+                          allow="autoplay; encrypted-media"
+                        />
+                      </div>
+                    ) : slide.image.startsWith('data:video/') || slide.image.endsWith('.mp4') || slide.image.endsWith('.webm') ? (
+                      <video src={slide.image} autoPlay loop muted playsInline style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
+                    ) : (
+                      <img src={slide.image} alt="Hero Preview" style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
+                    )
+                  )}
+                  <input type="text" className="input-text" placeholder="Atau paste URL YouTube / Eksternal Video di sini (opsional)" value={slide.image} onChange={e => {
+                    const newSlides = [...heroSlides];
+                    newSlides[index].image = e.target.value;
+                    setHeroSlides(newSlides);
+                  }} style={{ marginBottom: '1rem' }} />
+                  <div style={{ position: 'relative', overflow: 'hidden' }}>
+                    <button type="button" className="btn-secondary" style={{ width: '100%' }}>+ UPLOAD NEW BACKGROUND</button>
+                    <input type="file" accept="image/*,video/mp4,video/webm" onChange={(e) => handleImageUpload(e, index)} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="btn-secondary" onClick={handleAddSlide} style={{ alignSelf: 'flex-start' }}>+ ADD NEW SLIDE</button>
           </>
         )}
 
@@ -3147,7 +3146,7 @@ function AdminSettings() {
         {activeTab === 'pricing' && (
           <>
             <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem' }}>HARGA JERSEY (CREATE YOURS)</h3>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               {/* Atasan + Celana */}
               <div>
@@ -3241,7 +3240,7 @@ export function AdminMegsThrive() {
         if (data && data.megs_thrive_settings) {
           try {
             setConfig(JSON.parse(data.megs_thrive_settings));
-          } catch(e) {}
+          } catch (e) { }
         }
         setLoading(false);
       });
@@ -3302,14 +3301,14 @@ export function AdminMegsThrive() {
     <div style={{ paddingBottom: '4rem' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', marginBottom: '2rem' }}>MEGS THRIVE SETTINGS</h2>
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px' }}>
-        
+
         {/* HERO */}
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>HERO SECTION</h3>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Title</label><input type="text" className="input-text" value={config.heroTitle} onChange={e => handleChange('heroTitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><textarea className="input-text" rows={3} value={config.heroSubtitle} onChange={e => handleChange('heroSubtitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Button Text</label><input type="text" className="input-text" value={config.heroBtnText} onChange={e => handleChange('heroBtnText', e.target.value)} /></div>
-          
+
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3318,7 +3317,7 @@ export function AdminMegsThrive() {
             </div>
             {config.heroBgImg && <img src={config.heroBgImg} alt="Hero preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
-          
+
           <div className="control-group"><label>Background Image Link</label><input type="text" className="input-text" value={config.heroBgLink || ''} onChange={e => handleChange('heroBgLink', e.target.value)} placeholder="e.g. /products-thrive" /></div>
         </div>
 
@@ -3327,7 +3326,7 @@ export function AdminMegsThrive() {
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>PROMO SECTION</h3>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Section Title</label><input type="text" className="input-text" value={config.promoTitle} onChange={e => handleChange('promoTitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><input type="text" className="input-text" value={config.promoSubtitle} onChange={e => handleChange('promoSubtitle', e.target.value)} /></div>
-          
+
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Promo 1 Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3337,7 +3336,7 @@ export function AdminMegsThrive() {
             {config.promo1Img && <img src={config.promo1Img} alt="Promo 1 preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Promo 1 Link</label><input type="text" className="input-text" value={config.promo1Link || ''} onChange={e => handleChange('promo1Link', e.target.value)} placeholder="e.g. /products-thrive/1" /></div>
-          
+
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Promo 2 Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3360,7 +3359,7 @@ export function AdminMegsThrive() {
         {/* MANIFESTO */}
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>MANIFESTO SECTION</h3>
-          
+
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload (Desktop)</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3369,7 +3368,7 @@ export function AdminMegsThrive() {
             </div>
             {config.manifestoBgImg && <img src={config.manifestoBgImg} alt="Manifesto preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
-          
+
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload (Mobile)</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
