@@ -37,12 +37,13 @@ function buildReportSummaryAndRows(ordersToExport: any[]) {
 
     const itemsListHtml = Array.isArray(parsedItems) && parsedItems.length > 0
       ? parsedItems
-        .map(
-          (item: any) =>
-            `• <strong>${escapeHtml(item.quantity || 1)}x ${escapeHtml(item.name || 'Produk')}</strong>${item.selectedSize ? ` (Ukuran: ${escapeHtml(item.selectedSize)})` : ''
-            } — Rp ${escapeHtml(item.price || '0')}`
-        )
-        .join('<br/>')
+          .map(
+            (item: any) =>
+              `• <strong>${escapeHtml(item.quantity || 1)}x ${escapeHtml(item.name || 'Produk')}</strong>${
+                item.selectedSize ? ` (Ukuran: ${escapeHtml(item.selectedSize)})` : ''
+              } — Rp ${escapeHtml(item.price || '0')}`
+          )
+          .join('<br/>')
       : '-';
 
     const amount = parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0;
@@ -670,7 +671,7 @@ function AdminDashboard() {
           const totalRevenue = data
             .filter(o => o.status === 'selesai' || o.status === 'dikirim')
             .reduce((sum, order) => sum + (parseInt(order.total_price) || 0), 0);
-
+          
           setStats({ totalOrders, pendingOrders, totalRevenue });
           setAllOrders(data);
           setRecentOrders(data.slice(0, 5));
@@ -710,7 +711,7 @@ function AdminDashboard() {
           </button>
         </div>
       </div>
-
+      
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-text-main)' }}>
           <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>TOTAL REVENUE (Dikirim/Selesai)</h3>
@@ -745,10 +746,10 @@ function AdminDashboard() {
                 <td style={{ padding: '1rem 0' }}>{new Date(order.created_at).toLocaleDateString()}</td>
                 <td style={{ padding: '1rem 0' }}>{order.customer_name}</td>
                 <td style={{ padding: '1rem 0' }}>
-                  <span style={{
-                    padding: '0.2rem 0.5rem',
-                    background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : order.status === 'menunggu pembayaran' ? '#ff9900' : 'var(--color-border)',
-                    color: '#fff',
+                  <span style={{ 
+                    padding: '0.2rem 0.5rem', 
+                    background: order.status === 'selesai' ? '#4CAF50' : order.status === 'dikirim' ? '#9C27B0' : order.status === 'diproses' ? '#2196F3' : order.status === 'menunggu pembayaran' ? '#ff9900' : 'var(--color-border)', 
+                    color: '#fff', 
                     borderRadius: '4px',
                     fontSize: '0.8rem',
                     textTransform: 'uppercase'
@@ -870,7 +871,7 @@ function AdminBookkeeping() {
       if (Array.isArray(items)) {
         return sum + items.reduce((acc, i) => acc + (parseInt(i.quantity) || 1), 0);
       }
-    } catch { }
+    } catch {}
     return sum;
   }, 0);
 
@@ -1112,7 +1113,7 @@ function AdminBookkeeping() {
                 let items: any[] = [];
                 try {
                   items = JSON.parse(order.order_items || '[]');
-                } catch { }
+                } catch {}
                 const qty = Array.isArray(items)
                   ? items.reduce((s, i) => s + (parseInt(i.quantity) || 1), 0)
                   : 0;
@@ -1190,61 +1191,12 @@ function AdminBookkeeping() {
 function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [trackingDrafts, setTrackingDrafts] = useState<Record<number, { resi: string; courier: string; newNote: string; newLoc: string }>>({});
-  const [savingTrackingId, setSavingTrackingId] = useState<number | null>(null);
-
-  const [trackingMap, setTrackingMap] = useState<Record<string, { resi: string; courier: string; logs: any[] }>>({});
-  const [binderbyteKey, setBinderbyteKey] = useState('');
-  const [showApiConfig, setShowApiConfig] = useState(false);
-  const [savingApiKey, setSavingApiKey] = useState(false);
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
-      const [ordersRes, settingsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/orders`),
-        fetch(`${apiUrl}/api/settings`)
-      ]);
-      const data = await ordersRes.json();
-      const settingsData = await settingsRes.json().catch(() => ({}));
-
-      if (settingsData && settingsData.binderbyte_api_key) {
-        setBinderbyteKey(settingsData.binderbyte_api_key);
-      }
-
-      let savedMap: Record<string, { resi: string; courier: string; logs: any[] }> = {};
-      if (settingsData && settingsData.megs_order_tracking) {
-        try {
-          savedMap = JSON.parse(settingsData.megs_order_tracking);
-        } catch {}
-      }
-      setTrackingMap(savedMap);
-
-      if (Array.isArray(data)) {
-        const enriched = data.map((o: any) => {
-          const mapEntry = savedMap[String(o.id)];
-          return {
-            ...o,
-            tracking_number: o.tracking_number || mapEntry?.resi || '',
-            courier: o.courier || mapEntry?.courier || 'J&T Express',
-            tracking_logs: o.tracking_logs || (mapEntry?.logs ? JSON.stringify(mapEntry.logs) : '')
-          };
-        });
-        setOrders(enriched);
-
-        const drafts: Record<number, { resi: string; courier: string; newNote: string; newLoc: string }> = {};
-        enriched.forEach((o: any) => {
-          drafts[o.id] = {
-            resi: o.tracking_number || '',
-            courier: o.courier || 'J&T Express',
-            newNote: '',
-            newLoc: 'CICURUG, KAB. SUKABUMI'
-          };
-        });
-        setTrackingDrafts(drafts);
-      } else {
-        setOrders([]);
-      }
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`);
+      const data = await res.json();
+      setOrders(Array.isArray(data) ? data : []);
     } catch {
       console.error('Failed to load orders');
     } finally {
@@ -1256,130 +1208,16 @@ function AdminOrders() {
     fetchOrders();
   }, []);
 
-  const handleSaveApiKey = async () => {
-    setSavingApiKey(true);
-    try {
-      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
-        body: JSON.stringify({ binderbyte_api_key: binderbyteKey.trim() })
-      });
-      setShowApiConfig(false);
-    } catch {
-      alert('Gagal menyimpan API Key.');
-    } finally {
-      setSavingApiKey(false);
-    }
-  };
-
   const updateStatus = async (id: number, status: string) => {
     try {
-      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
-      await fetch(`${apiUrl}/api/orders/${id}`, {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
         body: JSON.stringify({ status })
       });
-
-      const currentEntry = trackingMap[String(id)] || { resi: '', courier: 'J&T Express', logs: [] };
-      const statusMsg =
-        status === 'diproses'
-          ? 'Pembayaran terverifikasi. Pesanan sedang dikemas di Gudang MEGS Cicurug, Kab. Sukabumi.'
-          : status === 'dikirim'
-            ? `Paket telah diserahkan ke agen ekspedisi ${currentEntry.courier || 'Kurir'}${currentEntry.resi ? ` dengan No. Resi ${currentEntry.resi}` : ''}.`
-            : status === 'selesai'
-              ? 'Paket telah diterima di alamat tujuan. Pesanan selesai.'
-              : 'Menunggu konfirmasi pembayaran.';
-
-      const updatedMap = {
-        ...trackingMap,
-        [String(id)]: {
-          ...currentEntry,
-          logs: [
-            { date: new Date().toISOString(), desc: statusMsg, location: 'CICURUG, KAB. SUKABUMI' },
-            ...(currentEntry.logs || [])
-          ]
-        }
-      };
-      setTrackingMap(updatedMap);
-      await fetch(`${apiUrl}/api/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
-        body: JSON.stringify({ megs_order_tracking: JSON.stringify(updatedMap) })
-      });
-
       fetchOrders();
     } catch (e) {
       alert('Error updating status');
-    }
-  };
-
-  const handleSaveTracking = async (order: any) => {
-    const draft = trackingDrafts[order.id] || { resi: '', courier: 'J&T Express', newNote: '', newLoc: 'CICURUG, KAB. SUKABUMI' };
-    setSavingTrackingId(order.id);
-    try {
-      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
-      const cleanResi = draft.resi.trim().toUpperCase();
-      const nextStatus =
-        cleanResi && (order.status === 'menunggu pembayaran' || order.status === 'diproses')
-          ? 'dikirim'
-          : order.status;
-
-      const currentEntry = trackingMap[String(order.id)] || {
-        resi: order.tracking_number || '',
-        courier: order.courier || 'J&T Express',
-        logs: []
-      };
-
-      const nextLogs = [...(currentEntry.logs || [])];
-      if (draft.newNote.trim()) {
-        nextLogs.unshift({
-          date: new Date().toISOString(),
-          desc: draft.newNote.trim(),
-          location: draft.newLoc.trim() || 'CICURUG, KAB. SUKABUMI'
-        });
-      } else if (cleanResi && cleanResi !== currentEntry.resi) {
-        nextLogs.unshift({
-          date: new Date().toISOString(),
-          desc: `Paket telah diserahkan ke agen ekspedisi ${draft.courier} di Drop Point Cicurug, Kab. Sukabumi (No. Resi: ${cleanResi}).`,
-          location: 'CICURUG, KAB. SUKABUMI'
-        });
-      }
-
-      const updatedMap = {
-        ...trackingMap,
-        [String(order.id)]: {
-          resi: cleanResi,
-          courier: draft.courier,
-          logs: nextLogs
-        }
-      };
-
-      await Promise.all([
-        fetch(`${apiUrl}/api/orders/${order.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
-          body: JSON.stringify({
-            status: nextStatus,
-            tracking_number: cleanResi,
-            courier: draft.courier,
-            new_log_entry: draft.newNote.trim()
-              ? { desc: draft.newNote.trim(), location: draft.newLoc.trim() || 'CICURUG, KAB. SUKABUMI' }
-              : undefined
-          })
-        }),
-        fetch(`${apiUrl}/api/settings`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
-          body: JSON.stringify({ megs_order_tracking: JSON.stringify(updatedMap) })
-        })
-      ]);
-
-      await fetchOrders();
-    } catch {
-      alert('Gagal menyimpan data resi.');
-    } finally {
-      setSavingTrackingId(null);
     }
   };
 
@@ -1398,17 +1236,9 @@ function AdminOrders() {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>Orders</h2>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setShowApiConfig(!showApiConfig)}
-            className="btn-secondary"
-            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem' }}
-          >
-            ⚙ API CEK RESI KURIR {binderbyteKey ? '(AKTIF ✓)' : '(ATUR)'}
-          </button>
           <button
             type="button"
             onClick={() => printOrSaveOrdersPDF(orders, 'Daftar Semua Pesanan')}
@@ -1430,47 +1260,10 @@ function AdminOrders() {
         </div>
       </div>
 
-      {/* Panel Pengaturan API Cek Resi Real-Time (Gaya Berdu) */}
-      {showApiConfig && (
-        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '2rem' }}>
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>
-            INTEGRASI API CEK RESI OTOMATIS (J&amp;T, JNE, SICEPAT, ID EXPRESS, ANTERAJA, POS, DLL.)
-          </h3>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
-            Agar fitur Cek Resi menarik data posisi paket langsung dari server ekspedisi secara otomatis (seperti Berdu Cek Resi), masukkan <strong>API Key Binderbyte</strong> (Gratis daftar di <code>binderbyte.com</code>). Untuk kurir <strong>Shopee Express (SPX)</strong> dan <strong>Ninja Xpress</strong> sudah berjalan otomatis tanpa API Key.
-          </p>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              className="input-text"
-              style={{ flex: 1, minWidth: '260px' }}
-              placeholder="Tempel Binderbyte API Key di sini..."
-              value={binderbyteKey}
-              onChange={e => setBinderbyteKey(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={handleSaveApiKey}
-              disabled={savingApiKey}
-              className="btn-primary"
-              style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem' }}
-            >
-              {savingApiKey ? 'MENYIMPAN...' : 'SIMPAN API KEY'}
-            </button>
-          </div>
-        </div>
-      )}
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {loading ? <p>Loading...</p> : orders.length === 0 ? <p>No orders found.</p> : orders.map(order => {
           let items = [];
           try { items = JSON.parse(order.order_items); } catch (e) { }
-          const draft = trackingDrafts[order.id] || {
-            resi: order.tracking_number || '',
-            courier: order.courier || 'J&T Express',
-            newNote: '',
-            newLoc: 'CICURUG, KAB. SUKABUMI'
-          };
 
           return (
             <div key={order.id} style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1500,124 +1293,12 @@ function AdminOrders() {
                 </div>
               </div>
 
-              {/* INPUT RESI & UPDATE KETERANGAN POSISI PAKET REAL-TIME */}
-              <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
-                  <div style={{ flex: '1 1 180px' }}>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.3rem' }}>
-                      EKSPEDISI PENGIRIMAN
-                    </label>
-                    <select
-                      className="input-text"
-                      style={{ width: '100%', padding: '0.6rem' }}
-                      value={draft.courier}
-                      onChange={e =>
-                        setTrackingDrafts(prev => ({
-                          ...prev,
-                          [order.id]: { ...draft, courier: e.target.value }
-                        }))
-                      }
-                    >
-                      <option value="J&T Express">J&amp;T Express</option>
-                      <option value="JNE Express">JNE Express</option>
-                      <option value="SiCepat Ekspres">SiCepat Ekspres</option>
-                      <option value="Shopee Express (SPX)">Shopee Express (SPX)</option>
-                      <option value="ID Express">ID Express</option>
-                      <option value="Ninja Xpress">Ninja Xpress</option>
-                      <option value="AnterAja">AnterAja</option>
-                      <option value="Pos Indonesia">Pos Indonesia</option>
-                      <option value="Lion Parcel">Lion Parcel</option>
-                      <option value="TIKI">TIKI</option>
-                    </select>
-                  </div>
-
-                  <div style={{ flex: '2 1 220px' }}>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.3rem' }}>
-                      NOMOR RESI (AWB)
-                    </label>
-                    <input
-                      type="text"
-                      className="input-text"
-                      style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }}
-                      placeholder="Contoh: JP1234567890"
-                      value={draft.resi}
-                      onChange={e =>
-                        setTrackingDrafts(prev => ({
-                          ...prev,
-                          [order.id]: { ...draft, resi: e.target.value.toUpperCase() }
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSaveTracking(order)}
-                    disabled={savingTrackingId === order.id}
-                    className="btn-primary"
-                    style={{ padding: '0.65rem 1.25rem', fontSize: '0.78rem' }}
-                  >
-                    {savingTrackingId === order.id ? 'MENYIMPAN...' : 'SIMPAN RESI / UPDATE'}
-                  </button>
-
-                  {order.tracking_number && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const cleanPhone = String(order.customer_phone || '').replace(/^0/, '62').replace(/\D/g, '');
-                        const msg = `Halo Kak ${order.customer_name}, pesanan Anda di *MEGS Apparel* (Order #${order.id}) telah dikirim dari Cicurug, Sukabumi!\n\n*Ekspedisi:* ${order.courier || 'J&T Express'}\n*Nomor Resi:* ${order.tracking_number}\n\nSilakan cek posisi paket Anda secara real-time di menu *TRACK ORDER* pada website kami dengan memasukkan Nomor Resi tersebut. Terima kasih!`;
-                        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-                      }}
-                      className="btn-secondary"
-                      style={{ padding: '0.65rem 1rem', fontSize: '0.75rem' }}
-                    >
-                      KIRIM RESI KE WA
-                    </button>
-                  )}
-                </div>
-
-                {/* Tambah Keterangan Posisi Paket (Opsional) */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    className="input-text"
-                    style={{ flex: '2 1 260px', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
-                    placeholder="Tambah keterangan status baru (opsional, mis: Paket tiba di Sorting Center Bogor)..."
-                    value={draft.newNote}
-                    onChange={e =>
-                      setTrackingDrafts(prev => ({
-                        ...prev,
-                        [order.id]: { ...draft, newNote: e.target.value }
-                      }))
-                    }
-                  />
-                  <input
-                    type="text"
-                    className="input-text"
-                    style={{ flex: '1 1 160px', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
-                    placeholder="Lokasi (mis: BOGOR)"
-                    value={draft.newLoc}
-                    onChange={e =>
-                      setTrackingDrafts(prev => ({
-                        ...prev,
-                        [order.id]: { ...draft, newLoc: e.target.value }
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-
               <div className="admin-grid-2" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
                 <div>
                   <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>CUSTOMER INFO</h4>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: '0 0 0.2rem 0' }}><strong>Name:</strong> {order.customer_name}</p>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: '0 0 0.2rem 0' }}><strong>Phone:</strong> {order.customer_phone}</p>
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: 0, whiteSpace: 'pre-line' }}><strong>Address:</strong> {order.customer_address}</p>
-                  {order.tracking_number && (
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', margin: '0.5rem 0 0 0', color: '#4CAF50' }}>
-                      <strong>No. Resi Terdaftar:</strong> {order.tracking_number} ({order.courier || 'Ekspedisi'})
-                    </p>
-                  )}
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: 0 }}><strong>Address:</strong> {order.customer_address}</p>
                 </div>
                 <div>
                   <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>ITEMS ({items.length})</h4>
@@ -1630,7 +1311,7 @@ function AdminOrders() {
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem', fontFamily: 'var(--font-sans)', fontWeight: 900 }}>
                       <span>TOTAL</span>
-                      <span>Rp. {(parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0).toLocaleString('id-ID')}</span>
+                      <span>{order.total_price}</span>
                     </div>
                   </div>
                 </div>
@@ -2384,7 +2065,7 @@ function AdminCreateYoursForm() {
               if (item.form_config) {
                 try {
                   setFormFields(JSON.parse(item.form_config));
-                } catch (e) { }
+                } catch(e) {}
               }
             }
           }
@@ -2461,37 +2142,37 @@ function AdminCreateYoursForm() {
 
           {formFields.map((field, fieldIdx) => (
             <div key={fieldIdx} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-              <button
-                type="button"
+              <button 
+                type="button" 
                 onClick={() => setFormFields(formFields.filter((_, i) => i !== fieldIdx))}
                 style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-white)', border: 'none', padding: '0.3rem 0.6rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
               >
                 HAPUS FIELD
               </button>
-
+              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem', maxWidth: '300px' }}>
                 <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>NAMA FIELD (Contoh: PANTS / NAMA PAKET)</label>
-                <input
-                  type="text"
-                  className="input-text"
-                  value={field.label}
+                <input 
+                  type="text" 
+                  className="input-text" 
+                  value={field.label} 
                   onChange={e => {
                     const newFields = [...formFields];
                     newFields[fieldIdx].label = e.target.value;
                     setFormFields(newFields);
-                  }}
+                  }} 
                 />
               </div>
 
               <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', marginBottom: '1rem' }}>PILIHAN (OPTIONS)</h4>
-
+              
               {field.options.map((option: any, optIdx: number) => (
                 <div key={optIdx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: '1', minWidth: '150px' }}>
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>LABEL (Contoh: BASIC)</label>
-                    <input
-                      type="text"
-                      className="input-text"
+                    <input 
+                      type="text" 
+                      className="input-text" 
                       value={option.label}
                       onChange={e => {
                         const newFields = [...formFields];
@@ -2505,9 +2186,9 @@ function AdminCreateYoursForm() {
                     <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', display: 'block', marginBottom: '0.3rem' }}>HARGA TAMBAHAN (+/- Rp)</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>Rp</span>
-                      <input
-                        type="number"
-                        className="input-text"
+                      <input 
+                        type="number" 
+                        className="input-text" 
                         value={option.priceModifier === 0 ? '' : option.priceModifier}
                         onChange={e => {
                           const newFields = [...formFields];
@@ -2518,8 +2199,8 @@ function AdminCreateYoursForm() {
                       />
                     </div>
                   </div>
-                  <button
-                    type="button"
+                  <button 
+                    type="button" 
                     className="btn-secondary"
                     onClick={() => {
                       const newFields = [...formFields];
@@ -2533,8 +2214,8 @@ function AdminCreateYoursForm() {
                 </div>
               ))}
 
-              <button
-                type="button"
+              <button 
+                type="button" 
                 className="btn-secondary"
                 style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}
                 onClick={() => {
@@ -2548,9 +2229,9 @@ function AdminCreateYoursForm() {
             </div>
           ))}
 
-          <button
-            type="button"
-            className="btn-secondary"
+          <button 
+            type="button" 
+            className="btn-secondary" 
             style={{ width: '100%' }}
             onClick={() => {
               setFormFields([...formFields, { id: `f_${Date.now()}`, label: '', type: 'select', options: [{ label: '', value: '', priceModifier: 0 }] }]);
@@ -2667,7 +2348,7 @@ function ManageAdmins() {
   return (
     <div style={{ maxWidth: '800px' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0' }}>Manage Admins</h2>
-
+      
       <div style={{ background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', marginBottom: '2rem' }}>
         <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, marginTop: 0 }}>Add New Admin</h3>
         <form onSubmit={handleAddAdmin} className="admin-form-row">
@@ -2743,16 +2424,16 @@ function AdminCoupons() {
     try {
       const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/coupons`, {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || ''
         },
-        body: JSON.stringify({
-          code,
-          discount_percentage: parseInt(discountPercent),
-          valid_from: validFrom || null,
-          valid_until: validUntil || null,
-          usage_limit: usageLimit ? parseInt(usageLimit) : null
+        body: JSON.stringify({ 
+          code, 
+          discount_percentage: parseInt(discountPercent), 
+          valid_from: validFrom || null, 
+          valid_until: validUntil || null, 
+          usage_limit: usageLimit ? parseInt(usageLimit) : null 
         })
       });
       const data = await res.json();
@@ -2906,7 +2587,7 @@ function AdminSettings() {
         if (data.about_image) setAboutImage(data.about_image);
         if (data.about_text) setAboutText(data.about_text);
         if (data.create_yours_pricing) {
-          try { setPricing(JSON.parse(data.create_yours_pricing)); } catch (e) { }
+          try { setPricing(JSON.parse(data.create_yours_pricing)); } catch(e) {}
         }
       });
   }, []);
@@ -2934,7 +2615,7 @@ function AdminSettings() {
           setStatus('Gagal mengunggah: ' + data.error);
         }
       } catch (err: any) {
-        setStatus('Error: ' + err.message);
+         setStatus('Error: ' + err.message);
       }
     };
 
@@ -2948,7 +2629,7 @@ function AdminSettings() {
       reader.readAsDataURL(file);
       return;
     }
-
+    
     // For images, do not resize to keep HD quality
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -3016,21 +2697,21 @@ function AdminSettings() {
   return (
     <div style={{ maxWidth: '800px' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: '0 0 2rem 0' }}>Home Settings</h2>
-
+      
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <button
+        <button 
           onClick={() => setActiveTab('hero')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'hero' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           HERO SLIDES
         </button>
-        <button
+        <button 
           onClick={() => setActiveTab('about')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'about' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           ABOUT SECTION
         </button>
-        <button
+        <button 
           type="button"
           onClick={() => setActiveTab('pricing')}
           style={{ padding: '0.8rem 2rem', background: activeTab === 'pricing' ? 'var(--color-bg-card)' : 'transparent', color: 'var(--color-white)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
@@ -3040,88 +2721,88 @@ function AdminSettings() {
       </div>
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)' }}>
-
+        
         {activeTab === 'hero' && (
           <>
 
-            {heroSlides.map((slide, index) => (
-              <div
-                key={index}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(index)}
-                style={{ border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <div style={{ cursor: 'grab', padding: '0.2rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                  </div>
-                  <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', margin: 0 }}>SLIDE {index + 1}</h3>
-                </div>
-                {heroSlides.length > 1 && (
-                  <button type="button" onClick={() => handleRemoveSlide(index)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>REMOVE</button>
-                )}
-
-                <div className="control-group" style={{ marginBottom: '1rem' }}>
-                  <label>TITLE</label>
-                  <input className="input-text" type="text" value={slide.title} onChange={e => {
-                    const newSlides = [...heroSlides];
-                    newSlides[index].title = e.target.value;
-                    setHeroSlides(newSlides);
-                  }} />
-                </div>
-
-                <div className="control-group" style={{ marginBottom: '1rem' }}>
-                  <label>SUBTITLE</label>
-                  <input className="input-text" type="text" value={slide.subtitle} onChange={e => {
-                    const newSlides = [...heroSlides];
-                    newSlides[index].subtitle = e.target.value;
-                    setHeroSlides(newSlides);
-                  }} />
-                </div>
-
-                <div className="control-group" style={{ marginBottom: '1rem' }}>
-                  <label>SLIDE DURATION (SECONDS)</label>
-                  <input className="input-text" type="number" min="1" placeholder="Default: 5" value={slide.duration || ''} onChange={e => {
-                    const newSlides = [...heroSlides];
-                    newSlides[index].duration = e.target.value;
-                    setHeroSlides(newSlides);
-                  }} />
-                </div>
-
-                <div className="control-group">
-                  <label>BACKGROUND MEDIA (IMAGE / VIDEO / YOUTUBE)</label>
-                  {slide.image && (
-                    getYoutubeId(slide.image) ? (
-                      <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '1rem', overflow: 'hidden', background: '#000' }}>
-                        <iframe
-                          src={`https://www.youtube.com/embed/${getYoutubeId(slide.image)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(slide.image)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3`}
-                          style={{ width: '100%', height: '100%', pointerEvents: 'none', transform: 'scale(1.15)' }}
-                          frameBorder="0"
-                          allow="autoplay; encrypted-media"
-                        />
-                      </div>
-                    ) : slide.image.startsWith('data:video/') || slide.image.endsWith('.mp4') || slide.image.endsWith('.webm') ? (
-                      <video src={slide.image} autoPlay loop muted playsInline style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
-                    ) : (
-                      <img src={slide.image} alt="Hero Preview" style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
-                    )
-                  )}
-                  <input type="text" className="input-text" placeholder="Atau paste URL YouTube / Eksternal Video di sini (opsional)" value={slide.image} onChange={e => {
-                    const newSlides = [...heroSlides];
-                    newSlides[index].image = e.target.value;
-                    setHeroSlides(newSlides);
-                  }} style={{ marginBottom: '1rem' }} />
-                  <div style={{ position: 'relative', overflow: 'hidden' }}>
-                    <button type="button" className="btn-secondary" style={{ width: '100%' }}>+ UPLOAD NEW BACKGROUND</button>
-                    <input type="file" accept="image/*,video/mp4,video/webm" onChange={(e) => handleImageUpload(e, index)} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
-                  </div>
-                </div>
+        {heroSlides.map((slide, index) => (
+          <div
+            key={index}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(index)}
+            style={{ border: '1px solid var(--color-border)', padding: '1.5rem', position: 'relative', background: 'var(--color-bg-main)', cursor: 'grab', opacity: draggedIndex === index ? 0.5 : 1 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div style={{ cursor: 'grab', padding: '0.2rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               </div>
-            ))}
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.2rem', margin: 0 }}>SLIDE {index + 1}</h3>
+            </div>
+            {heroSlides.length > 1 && (
+              <button type="button" onClick={() => handleRemoveSlide(index)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-border)', color: 'var(--color-text-main)', border: 'none', padding: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>REMOVE</button>
+            )}
 
-            <button type="button" className="btn-secondary" onClick={handleAddSlide} style={{ alignSelf: 'flex-start' }}>+ ADD NEW SLIDE</button>
+            <div className="control-group" style={{ marginBottom: '1rem' }}>
+              <label>TITLE</label>
+              <input className="input-text" type="text" value={slide.title} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].title = e.target.value;
+                setHeroSlides(newSlides);
+              }} />
+            </div>
+
+            <div className="control-group" style={{ marginBottom: '1rem' }}>
+              <label>SUBTITLE</label>
+              <input className="input-text" type="text" value={slide.subtitle} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].subtitle = e.target.value;
+                setHeroSlides(newSlides);
+              }} />
+            </div>
+
+            <div className="control-group" style={{ marginBottom: '1rem' }}>
+              <label>SLIDE DURATION (SECONDS)</label>
+              <input className="input-text" type="number" min="1" placeholder="Default: 5" value={slide.duration || ''} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].duration = e.target.value;
+                setHeroSlides(newSlides);
+              }} />
+            </div>
+
+            <div className="control-group">
+              <label>BACKGROUND MEDIA (IMAGE / VIDEO / YOUTUBE)</label>
+              {slide.image && (
+                getYoutubeId(slide.image) ? (
+                  <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '1rem', overflow: 'hidden', background: '#000' }}>
+                    <iframe 
+                      src={`https://www.youtube.com/embed/${getYoutubeId(slide.image)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(slide.image)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3`}
+                      style={{ width: '100%', height: '100%', pointerEvents: 'none', transform: 'scale(1.15)' }}
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
+                    />
+                  </div>
+                ) : slide.image.startsWith('data:video/') || slide.image.endsWith('.mp4') || slide.image.endsWith('.webm') ? (
+                  <video src={slide.image} autoPlay loop muted playsInline style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
+                ) : (
+                  <img src={slide.image} alt="Hero Preview" style={{ width: '100%', height: '200px', objectFit: 'cover', marginBottom: '1rem' }} />
+                )
+              )}
+              <input type="text" className="input-text" placeholder="Atau paste URL YouTube / Eksternal Video di sini (opsional)" value={slide.image} onChange={e => {
+                const newSlides = [...heroSlides];
+                newSlides[index].image = e.target.value;
+                setHeroSlides(newSlides);
+              }} style={{ marginBottom: '1rem' }} />
+              <div style={{ position: 'relative', overflow: 'hidden' }}>
+                <button type="button" className="btn-secondary" style={{ width: '100%' }}>+ UPLOAD NEW BACKGROUND</button>
+                <input type="file" accept="image/*,video/mp4,video/webm" onChange={(e) => handleImageUpload(e, index)} style={{ fontSize: '100px', position: 'absolute', left: 0, top: 0, opacity: 0, cursor: 'pointer' }} />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button type="button" className="btn-secondary" onClick={handleAddSlide} style={{ alignSelf: 'flex-start' }}>+ ADD NEW SLIDE</button>
           </>
         )}
 
@@ -3146,7 +2827,7 @@ function AdminSettings() {
         {activeTab === 'pricing' && (
           <>
             <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.5rem', marginBottom: '1rem' }}>HARGA JERSEY (CREATE YOURS)</h3>
-
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               {/* Atasan + Celana */}
               <div>
@@ -3240,7 +2921,7 @@ export function AdminMegsThrive() {
         if (data && data.megs_thrive_settings) {
           try {
             setConfig(JSON.parse(data.megs_thrive_settings));
-          } catch (e) { }
+          } catch(e) {}
         }
         setLoading(false);
       });
@@ -3301,14 +2982,14 @@ export function AdminMegsThrive() {
     <div style={{ paddingBottom: '4rem' }}>
       <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', marginBottom: '2rem' }}>MEGS THRIVE SETTINGS</h2>
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px' }}>
-
+        
         {/* HERO */}
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>HERO SECTION</h3>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Title</label><input type="text" className="input-text" value={config.heroTitle} onChange={e => handleChange('heroTitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><textarea className="input-text" rows={3} value={config.heroSubtitle} onChange={e => handleChange('heroSubtitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Button Text</label><input type="text" className="input-text" value={config.heroBtnText} onChange={e => handleChange('heroBtnText', e.target.value)} /></div>
-
+          
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3317,7 +2998,7 @@ export function AdminMegsThrive() {
             </div>
             {config.heroBgImg && <img src={config.heroBgImg} alt="Hero preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
-
+          
           <div className="control-group"><label>Background Image Link</label><input type="text" className="input-text" value={config.heroBgLink || ''} onChange={e => handleChange('heroBgLink', e.target.value)} placeholder="e.g. /products-thrive" /></div>
         </div>
 
@@ -3326,7 +3007,7 @@ export function AdminMegsThrive() {
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>PROMO SECTION</h3>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Section Title</label><input type="text" className="input-text" value={config.promoTitle} onChange={e => handleChange('promoTitle', e.target.value)} /></div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Subtitle</label><input type="text" className="input-text" value={config.promoSubtitle} onChange={e => handleChange('promoSubtitle', e.target.value)} /></div>
-
+          
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Promo 1 Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3336,7 +3017,7 @@ export function AdminMegsThrive() {
             {config.promo1Img && <img src={config.promo1Img} alt="Promo 1 preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
           <div className="control-group" style={{ marginBottom: '1rem' }}><label>Promo 1 Link</label><input type="text" className="input-text" value={config.promo1Link || ''} onChange={e => handleChange('promo1Link', e.target.value)} placeholder="e.g. /products-thrive/1" /></div>
-
+          
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Promo 2 Image URL / Upload</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3359,7 +3040,7 @@ export function AdminMegsThrive() {
         {/* MANIFESTO */}
         <div style={{ background: 'var(--color-bg-card)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
           <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-sans)' }}>MANIFESTO SECTION</h3>
-
+          
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload (Desktop)</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -3368,7 +3049,7 @@ export function AdminMegsThrive() {
             </div>
             {config.manifestoBgImg && <img src={config.manifestoBgImg} alt="Manifesto preview" style={{ height: '80px', objectFit: 'cover', marginTop: '0.5rem', border: '1px solid var(--color-border)' }} />}
           </div>
-
+          
           <div className="control-group" style={{ marginBottom: '1rem' }}>
             <label>Background Image URL / Upload (Mobile)</label>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
