@@ -48,6 +48,18 @@ export default function MegsStyleView() {
   const { setTheme, products } = useShop();
   const productScroll = useDraggableScroll();
   const [loading, setLoading] = useState(true);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobileViewport(e.matches);
+    setIsMobileViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
   const [config, setConfig] = useState<any>({
     heroTitle: 'MEGS THRIVE',
     heroSubtitle: 'Technical fabrics combined with utilitarian design. Premium activewear that moves with you, whatever the environment throws your way.',
@@ -113,7 +125,7 @@ export default function MegsStyleView() {
 
       {/* TOP TITLE SECTION */}
       <section style={{
-        width: '100vw',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -156,7 +168,7 @@ export default function MegsStyleView() {
       {/* HERO IMAGE SECTION */}
       <section style={{
         position: 'relative',
-        width: '100vw',
+        width: '100%',
         margin: '0',
         display: 'flex',
         background: '#666666',
@@ -351,15 +363,24 @@ export default function MegsStyleView() {
 
       {/* MANIFESTO BANNER */}
       {renderLink(config.manifestoLink, (
-        <section style={{ width: '100%', display: 'flex', background: '#000', transition: 'transform 0.3s' }}
+        <section style={{ width: '100%', display: 'flex', justifyContent: 'center', background: '#F5F5F0', transition: 'transform 0.3s' }}
           onMouseOver={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(0.99)')}
           onMouseOut={e => config.manifestoLink && (e.currentTarget.style.transform = 'scale(1)')}>
-        <div style={{ width: '100%', overflow: 'hidden', display: 'flex', justifyContent: 'center', background: 'var(--color-bg-main)' }}>
-          <img src={config.manifestoBgImg} alt="Manifesto Desktop" className={config.manifestoMobileBgImg ? "desktop-only" : ""} style={{ width: '100%', maxWidth: '2000px', height: 'auto', objectFit: 'contain', display: 'block' }} />
-          {config.manifestoMobileBgImg && (
-            <img src={config.manifestoMobileBgImg} alt="Manifesto Mobile" className="mobile-only" style={{ width: '100%', maxWidth: '1000px', height: 'auto', objectFit: 'contain', display: 'block' }} />
-          )}
-        </div>
+          <div style={{ width: '100%', overflow: 'hidden', display: 'flex', justifyContent: 'center', background: 'var(--color-bg-main)' }}>
+            {!isMobileViewport ? (
+              <img
+                src={config.manifestoBgImg}
+                alt="Manifesto Desktop"
+                style={{ width: '100%', maxWidth: '2000px', height: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <img
+                src={config.manifestoMobileBgImg || config.manifestoBgImg}
+                alt="Manifesto Mobile"
+                style={{ width: '100%', maxWidth: '1000px', height: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+            )}
+          </div>
         </section>
       ))}
 

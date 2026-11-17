@@ -35,7 +35,7 @@ async function verifyAdmin(c: any): Promise<boolean> {
     if (!username || !hash) return false;
     const admin = await c.env.DB.prepare("SELECT id FROM admins WHERE username = ? AND password_hash = ?").bind(username, hash).first();
     return !!admin;
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 }
@@ -44,7 +44,7 @@ async function verifyAdmin(c: any): Promise<boolean> {
 app.post('/api/login', async (c) => {
   try {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)`).run();
-    
+
     const { results } = await c.env.DB.prepare("SELECT * FROM admins").all();
     if (results.length === 0) {
       const defaultHash = await hashPassword('admin');
@@ -71,7 +71,7 @@ app.get('/api/admins', async (c) => {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
     const { results } = await c.env.DB.prepare("SELECT id, username FROM admins").all();
     return c.json(results);
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -84,7 +84,7 @@ app.post('/api/admins', async (c) => {
     const hash = await hashPassword(password);
     await c.env.DB.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").bind(username, hash).run();
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -95,7 +95,7 @@ app.delete('/api/admins/:id', async (c) => {
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM admins WHERE id = ?").bind(id).run();
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -106,7 +106,7 @@ app.put('/api/admins/:id', async (c) => {
     const id = c.req.param('id');
     const { username, password } = await c.req.json();
     if (!username) return c.json({ error: 'Missing username' }, 400);
-    
+
     if (password) {
       const hash = await hashPassword(password);
       await c.env.DB.prepare("UPDATE admins SET username = ?, password_hash = ? WHERE id = ?").bind(username, hash, id).run();
@@ -114,7 +114,7 @@ app.put('/api/admins/:id', async (c) => {
       await c.env.DB.prepare("UPDATE admins SET username = ? WHERE id = ?").bind(username, id).run();
     }
     return c.json({ success: true });
-  } catch(e: any) {
+  } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
@@ -144,14 +144,14 @@ app.get('/api/products/:id', async (c) => {
 app.post('/api/products', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const body = await c.req.json();
     const { name, price, category, img, description, sizes } = body;
-    
+
     const info = await c.env.DB.prepare(
       "INSERT INTO products (name, price, category, img, description, sizes) VALUES (?, ?, ?, ?, ?, ?)"
     ).bind(
-      name, price, category, 
+      name, price, category,
       typeof img === 'string' ? img : JSON.stringify(img),
       description || '',
       typeof sizes === 'string' ? sizes : JSON.stringify(sizes)
@@ -166,7 +166,7 @@ app.post('/api/products', async (c) => {
 app.put('/api/products/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { name, price, category, img, description, sizes } = body;
@@ -174,7 +174,7 @@ app.put('/api/products/:id', async (c) => {
     const result = await c.env.DB.prepare(
       "UPDATE products SET name = ?, price = ?, category = ?, img = ?, description = ?, sizes = ? WHERE id = ?"
     ).bind(
-      name, price, category, 
+      name, price, category,
       typeof img === 'string' ? img : JSON.stringify(img),
       description || '',
       typeof sizes === 'string' ? sizes : JSON.stringify(sizes),
@@ -191,7 +191,7 @@ app.put('/api/products/:id', async (c) => {
 app.delete('/api/products/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -226,10 +226,10 @@ app.get('/api/articles/:id', async (c) => {
 app.post('/api/articles', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const body = await c.req.json();
     const { title, excerpt, content, images, created_at } = body;
-    
+
     let info;
     if (created_at) {
       info = await c.env.DB.prepare(
@@ -254,7 +254,7 @@ app.post('/api/articles', async (c) => {
 app.put('/api/articles/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { title, excerpt, content, images, created_at } = body;
@@ -284,7 +284,7 @@ app.put('/api/articles/:id', async (c) => {
 app.delete('/api/articles/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM articles WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -300,7 +300,7 @@ app.get('/api/create-yours', async (c) => {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
     try {
       await c.env.DB.prepare(`ALTER TABLE create_yours ADD COLUMN form_config TEXT`).run();
-    } catch(e) {}
+    } catch (e) { }
     const { results } = await c.env.DB.prepare("SELECT * FROM create_yours ORDER BY id DESC").all();
     c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     return c.json(results);
@@ -312,14 +312,14 @@ app.get('/api/create-yours', async (c) => {
 app.post('/api/create-yours', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS create_yours (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT, description TEXT)`).run();
     try {
       await c.env.DB.prepare(`ALTER TABLE create_yours ADD COLUMN form_config TEXT`).run();
-    } catch(e) {}
+    } catch (e) { }
     const body = await c.req.json();
     const { name, image, description, form_config } = body;
-    
+
     const info = await c.env.DB.prepare("INSERT INTO create_yours (name, image, description, form_config) VALUES (?, ?, ?, ?)").bind(name, image || '', description || '', form_config || '').run();
     return c.json({ success: true, id: info.meta.last_row_id });
   } catch (e: any) {
@@ -330,7 +330,7 @@ app.post('/api/create-yours', async (c) => {
 app.put('/api/create-yours/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { name, image, description, form_config } = body;
@@ -346,7 +346,7 @@ app.put('/api/create-yours/:id', async (c) => {
 app.delete('/api/create-yours/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM create_yours WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -398,12 +398,44 @@ app.post('/api/orders', async (c) => {
       return c.json({ error: 'Mohon tunggu beberapa detik sebelum mengirim pesanan kembali.' }, 429);
     }
 
-    // 4. Optional Cloudflare Turnstile Server-Side Siteverify (when TURNSTILE_SECRET_KEY is configured)
-    if (c.env.TURNSTILE_SECRET_KEY && turnstile_token && !String(turnstile_token).startsWith('cf-fallback-')) {
+    // 4. Mandatory Server-Side Anti-Bot Verification (Cloudflare Turnstile + SHA-256 Proof-of-Work)
+    if (!turnstile_token || typeof turnstile_token !== 'string') {
+      return c.json({ error: 'Verifikasi anti-bot diperlukan sebelum membuat pesanan.' }, 403);
+    }
+
+    let cfTokenToVerify = turnstile_token;
+    let powTokenToVerify = '';
+
+    if (turnstile_token.startsWith('{')) {
+      try {
+        const bundle = JSON.parse(turnstile_token);
+        cfTokenToVerify = typeof bundle.cf === 'string' ? bundle.cf : '';
+        powTokenToVerify = typeof bundle.pow === 'string' ? bundle.pow : '';
+      } catch {
+        return c.json({ error: 'Format token keamanan tidak valid.' }, 403);
+      }
+    } else if (turnstile_token.startsWith('pow.')) {
+      powTokenToVerify = turnstile_token;
+      cfTokenToVerify = '';
+    }
+
+    if (powTokenToVerify) {
+      const isValidPow = await verifyPowToken(powTokenToVerify);
+      if (!isValidPow) {
+        return c.json({ error: 'Token keamanan tidak valid atau sudah kedaluwarsa. Silakan verifikasi ulang.' }, 403);
+      }
+    } else if (!c.env.TURNSTILE_SECRET_KEY) {
+      return c.json({ error: 'Token verifikasi anti-bot tidak valid.' }, 403);
+    }
+
+    if (c.env.TURNSTILE_SECRET_KEY) {
+      if (!cfTokenToVerify) {
+        return c.json({ error: 'Verifikasi Cloudflare Turnstile diperlukan.' }, 403);
+      }
       try {
         const formData = new FormData();
         formData.append('secret', c.env.TURNSTILE_SECRET_KEY);
-        formData.append('response', String(turnstile_token));
+        formData.append('response', cfTokenToVerify);
         if (c.req.header('CF-Connecting-IP')) {
           formData.append('remoteip', c.req.header('CF-Connecting-IP')!);
         }
@@ -413,10 +445,10 @@ app.post('/api/orders', async (c) => {
         });
         const verifyOutcome: any = await verifyRes.json();
         if (!verifyOutcome.success) {
-          return c.json({ error: 'Verifikasi Cloudflare gagal. Silakan muat ulang halaman.' }, 403);
+          return c.json({ error: 'Verifikasi Cloudflare Turnstile gagal. Silakan muat ulang halaman.' }, 403);
         }
       } catch {
-        // Allow fallback if Turnstile verification endpoint is temporarily unreachable
+        return c.json({ error: 'Gagal menghubungi server verifikasi Cloudflare. Silakan coba lagi.' }, 403);
       }
     }
 
@@ -450,11 +482,11 @@ app.post('/api/orders', async (c) => {
 app.put('/api/orders/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     const data = await c.req.json();
     const { status } = data;
-    
+
     if (!status) return c.json({ error: 'Missing status field' }, 400);
 
     const result = await c.env.DB.prepare("UPDATE orders SET status = ? WHERE id = ?")
@@ -470,7 +502,7 @@ app.put('/api/orders/:id', async (c) => {
 app.delete('/api/orders/:id', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     const id = c.req.param('id');
     await c.env.DB.prepare("DELETE FROM orders WHERE id = ?").bind(id).run();
     return c.json({ success: true });
@@ -484,7 +516,7 @@ app.delete('/api/orders/:id', async (c) => {
 app.get('/api/settings', async (c) => {
   try {
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
-    
+
     const { results } = await c.env.DB.prepare("SELECT * FROM settings").all();
     const settingsObj = results.reduce((acc: any, row: any) => {
       acc[row.key] = row.value;
@@ -499,9 +531,9 @@ app.get('/api/settings', async (c) => {
 app.put('/api/settings', async (c) => {
   try {
     if (!(await verifyAdmin(c))) return c.json({ error: 'Unauthorized' }, 401);
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`).run();
-    
+
     const body = await c.req.json();
     const stmts = [];
     for (const [key, value] of Object.entries(body)) {
@@ -533,13 +565,13 @@ app.post('/api/upload', async (c) => {
 
     const mimeType = match[1];
     const base64Data = match[2];
-    
+
     const id = crypto.randomUUID();
 
     // Chunk size: 700KB (700,000 chars of base64) to safely stay under D1's 1MB row limit
     const CHUNK_SIZE = 700000;
     const stmts = [];
-    
+
     stmts.push(c.env.DB.prepare("INSERT INTO media (id, mime_type) VALUES (?, ?)").bind(id, mimeType));
 
     for (let i = 0; i < base64Data.length; i += CHUNK_SIZE) {
@@ -548,7 +580,7 @@ app.post('/api/upload', async (c) => {
     }
 
     await c.env.DB.batch(stmts);
-    
+
     let ext = '';
     if (mimeType.includes('video/mp4')) ext = '.mp4';
     else if (mimeType.includes('video/webm')) ext = '.webm';
@@ -568,10 +600,10 @@ app.get('/api/media/:id', async (c) => {
     if (id.includes('.')) {
       id = id.split('.')[0];
     }
-    
+
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
     await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS media_chunks (media_id TEXT, chunk_index INTEGER, data TEXT, PRIMARY KEY (media_id, chunk_index))`).run();
-    
+
     const mediaRow = await c.env.DB.prepare("SELECT mime_type FROM media WHERE id = ?").bind(id).first();
     if (!mediaRow) return c.json({ error: 'Not found' }, 404);
 
@@ -579,12 +611,12 @@ app.get('/api/media/:id', async (c) => {
     if (!results || results.length === 0) return c.json({ error: 'Chunks not found' }, 404);
 
     const base64Data = results.map((r: any) => r.data).join('');
-    
+
     const binaryString = atob(base64Data);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      bytes[i] = binaryString.charCodeAt(i);
     }
 
     return new Response(bytes.buffer, {
@@ -619,7 +651,7 @@ app.post('/api/coupons', async (c) => {
     const result = await c.env.DB.prepare(
       "INSERT INTO coupons (code, discount_percentage, valid_from, valid_until, usage_limit, used_count) VALUES (?, ?, ?, ?, ?, 0)"
     ).bind(code.toUpperCase(), discount_percentage, valid_from || null, valid_until || null, usage_limit || null).run();
-    
+
     return c.json({ success: true, id: result.meta.last_row_id });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);

@@ -91,10 +91,10 @@ export function SearchOverlay() {
 
       {/* Dropdown Search Bar under Navbar */}
       <div style={{
-        position: 'fixed', top: '75px', left: 0, width: '100vw', 
+        position: 'fixed', top: '68px', left: 0, width: '100vw', 
         background: 'color-mix(in srgb, var(--color-bg-main) 95%, transparent)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', 
         color: 'var(--color-text-main)', borderBottom: '1px solid var(--color-border)', zIndex: 999,
-        padding: '1.5rem 3rem',
+        padding: '1.15rem clamp(1rem, 4vw, 3rem)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         transformOrigin: 'top', animation: 'slideDown 0.2s ease-out forwards'
       }}>
@@ -103,7 +103,7 @@ export function SearchOverlay() {
         <div style={{
           width: '100%', maxWidth: '1000px', display: 'flex', alignItems: 'center', 
           border: '1px solid var(--color-border)', borderRadius: '8px',
-          padding: '0.8rem 1.5rem', background: 'color-mix(in srgb, var(--color-bg-main) 40%, transparent)'
+          padding: '0.7rem clamp(0.85rem, 2.5vw, 1.5rem)', background: 'color-mix(in srgb, var(--color-bg-main) 40%, transparent)'
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--color-text-muted)', marginRight: '1rem'}}>
             <circle cx="11" cy="11" r="8"></circle>

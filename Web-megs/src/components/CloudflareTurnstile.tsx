@@ -26,19 +26,50 @@ type CloudflareTurnstileProps = {
   onExpire: () => void;
 };
 
-// Uses custom VITE_TURNSTILE_SITE_KEY if configured, otherwise defaults to Cloudflare's official universal sitekey
-const TURNSTILE_SITE_KEY =
-  (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
-
+const ENV_SITE_KEY = ((import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || '').trim();
+const TURNSTILE_SITE_KEY = ENV_SITE_KEY || '0x4AAAAAAGFfbcjD_81L3rVZ';
 const TURNSTILE_SCRIPT_ID = 'cf-turnstile-script';
+
+async function sha256Hex(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function computeProofOfWork(seed: string, timestamp: number): Promise<{ nonce: number; hash: string }> {
+  let nonce = 0;
+  while (nonce < 250000) {
+    const hash = await sha256Hex(`${seed}:${timestamp}:${nonce}`);
+    if (hash.startsWith('000')) {
+      return { nonce, hash };
+    }
+    nonce++;
+    if (nonce % 350 === 0) {
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+  const fallbackHash = await sha256Hex(`${seed}:${timestamp}:${nonce}`);
+  return { nonce, hash: fallbackHash };
+}
+
+async function buildSignedAntiBotToken(cfToken: string): Promise<string> {
+  const seedArray = new Uint8Array(12);
+  crypto.getRandomValues(seedArray);
+  const seed = Array.from(seedArray)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  const ts = Date.now();
+  const { nonce, hash } = await computeProofOfWork(seed, ts);
+  const pow = btoa(JSON.stringify({ v: 1, seed, ts, nonce, hash }));
+  return JSON.stringify({ cf: cfToken, pow: `pow.${pow}` });
+}
 
 export function CloudflareTurnstile({ onVerify, onExpire }: CloudflareTurnstileProps) {
   const { theme } = useShop();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [scriptFailed, setScriptFailed] = useState(false);
-  const [fallbackChecked, setFallbackChecked] = useState(false);
-  const [fallbackVerifying, setFallbackVerifying] = useState(false);
+  const [widgetUnavailable, setWidgetUnavailable] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -56,20 +87,28 @@ export function CloudflareTurnstile({ onVerify, onExpire }: CloudflareTurnstileP
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: theme === 'dark' ? 'dark' : 'light',
-          callback: (token: string) => {
-            if (!isCancelled) onVerify(token);
+          size: 'flexible',
+          callback: async (cfToken: string) => {
+            if (isCancelled) return;
+            try {
+              const combinedToken = await buildSignedAntiBotToken(cfToken);
+              if (!isCancelled) onVerify(combinedToken);
+            } catch {
+              if (!isCancelled) onVerify(cfToken);
+            }
           },
           'expired-callback': () => {
             if (!isCancelled) onExpire();
           },
           'error-callback': () => {
             if (!isCancelled) {
-              setScriptFailed(true);
+              setWidgetUnavailable(true);
+              onExpire();
             }
           }
         });
       } catch {
-        if (!isCancelled) setScriptFailed(true);
+        if (!isCancelled) setWidgetUnavailable(true);
       }
     };
 
@@ -88,22 +127,14 @@ export function CloudflareTurnstile({ onVerify, onExpire }: CloudflareTurnstileP
 
       const handleLoad = () => renderWidget();
       const handleError = () => {
-        if (!isCancelled) setScriptFailed(true);
+        if (!isCancelled) setWidgetUnavailable(true);
       };
 
       script.addEventListener('load', handleLoad);
       script.addEventListener('error', handleError);
 
-      // Safety timeout if script is blocked by browser privacy extension
-      const fallbackTimer = window.setTimeout(() => {
-        if (!window.turnstile && !isCancelled) {
-          setScriptFailed(true);
-        }
-      }, 4500);
-
       return () => {
         isCancelled = true;
-        window.clearTimeout(fallbackTimer);
         script?.removeEventListener('load', handleLoad);
         script?.removeEventListener('error', handleError);
         if (widgetIdRef.current && window.turnstile) {
@@ -130,136 +161,33 @@ export function CloudflareTurnstile({ onVerify, onExpire }: CloudflareTurnstileP
     };
   }, [theme]);
 
-  const handleFallbackClick = () => {
-    if (fallbackChecked || fallbackVerifying) return;
-    setFallbackVerifying(true);
-    window.setTimeout(() => {
-      setFallbackVerifying(false);
-      setFallbackChecked(true);
-      onVerify(`cf-fallback-${Date.now()}`);
-    }, 650);
-  };
+  if (widgetUnavailable) {
+    return (
+      <div
+        style={{
+          padding: '0.85rem 1rem',
+          border: '1px solid #ff4444',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.75rem',
+          color: '#ff4444',
+          textAlign: 'center'
+        }}
+      >
+        Widget keamanan Cloudflare gagal dimuat. Nonaktifkan pemblokir skrip/adblock lalu muat ulang halaman.
+      </div>
+    );
+  }
 
   return (
     <div
+      ref={containerRef}
       style={{
-        padding: '1rem 1.15rem',
-        background: 'var(--color-bg-main)',
-        border: '1px solid var(--color-border)',
+        width: '100%',
+        minHeight: '65px',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '0.65rem'
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.68rem',
-            color: 'var(--color-text-muted)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase'
-          }}
-        >
-          PROTEKSI ANTI-SPAM &amp; BOT
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.64rem',
-            color: '#F48120',
-            fontWeight: 700,
-            letterSpacing: '0.04em'
-          }}
-        >
-          CLOUDFLARE TURNSTILE
-        </span>
-      </div>
-
-      {!scriptFailed ? (
-        <div
-          ref={containerRef}
-          style={{
-            minHeight: '65px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            overflowX: 'auto'
-          }}
-        />
-      ) : (
-        /* Interactive Cloudflare-styled Fallback if external challenge script is blocked by adblocker/firewall */
-        <div
-          role="checkbox"
-          aria-checked={fallbackChecked}
-          tabIndex={0}
-          onClick={handleFallbackClick}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleFallbackClick();
-            }
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.85rem 1rem',
-            border: '1px solid var(--color-border)',
-            background: 'var(--color-bg-card)',
-            cursor: fallbackChecked ? 'default' : 'pointer',
-            userSelect: 'none'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div
-              style={{
-                width: '24px',
-                height: '24px',
-                border: fallbackChecked ? '2px solid #22c55e' : '2px solid var(--color-text-main)',
-                background: fallbackChecked ? '#22c55e' : 'transparent',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.85rem',
-                fontWeight: 900,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {fallbackVerifying ? (
-                <span
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    border: '2px solid var(--color-text-main)',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                    animation: 'spinLogo 0.7s linear infinite'
-                  }}
-                />
-              ) : fallbackChecked ? (
-                '✓'
-              ) : (
-                ''
-              )}
-            </div>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.88rem', fontWeight: 600 }}>
-              {fallbackVerifying
-                ? 'Memverifikasi browser Anda...'
-                : fallbackChecked
-                  ? 'Terverifikasi bukan bot'
-                  : 'Verifikasi bahwa Anda manusia'}
-            </span>
-          </div>
-
-          <div style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--color-text-muted)' }}>
-            <div style={{ color: '#F48120', fontWeight: 700 }}>CLOUDFLARE</div>
-            <div>Security Check</div>
-          </div>
-        </div>
-      )}
-    </div>
+    />
   );
 }

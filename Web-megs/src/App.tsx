@@ -658,13 +658,13 @@ function Navbar() {
                 width: '100%',
                 background: 'none',
                 border: 'none',
-                padding: '1.2rem 0',
+                padding: '1rem 0',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: 800,
-                fontSize: '1.8rem',
+                fontSize: 'clamp(1.45rem, 5vw, 1.8rem)',
                 letterSpacing: '-0.02em',
                 color: 'var(--color-text-main)',
                 textTransform: 'uppercase',
@@ -787,15 +787,15 @@ function HomeView() {
           setHeroSlides(slidesToSave);
         }
         if (slidesToSave.length > 0) {
-          try { sessionStorage.setItem('megs_cache_hero_slides', JSON.stringify(slidesToSave)); } catch {}
+          try { sessionStorage.setItem('megs_cache_hero_slides', JSON.stringify(slidesToSave)); } catch { }
         }
         if (data.about_image) {
           setAboutImage(data.about_image);
-          try { sessionStorage.setItem('megs_cache_about_img', data.about_image); } catch {}
+          try { sessionStorage.setItem('megs_cache_about_img', data.about_image); } catch { }
         }
         if (data.about_text) {
           setAboutText(data.about_text);
-          try { sessionStorage.setItem('megs_cache_about_text', data.about_text); } catch {}
+          try { sessionStorage.setItem('megs_cache_about_text', data.about_text); } catch { }
         }
       })
       .catch(console.error)
@@ -975,17 +975,17 @@ function HomeView() {
         )}
       </div>
 
-      <div className="page-content" style={{ paddingTop: '0' }}>
+      <div className="page-content megs-home-content" style={{ padding: 0, width: '100%', maxWidth: '100%' }}>
 
         {/* ABOUT US SECTION */}
-        <div className="about-section" style={{ padding: '6rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto', gap: '4rem', alignItems: 'center' }}>
+        <div className="about-section" style={{ padding: '6rem 3rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', maxWidth: '1360px', margin: '0 auto', gap: '4rem', alignItems: 'center' }}>
             {aboutImage && (
-              <div style={{ flex: '1 1 400px' }}>
-                <img src={aboutImage} alt="About MEGS" loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+              <div style={{ flex: '1 1 420px' }}>
+                <img src={aboutImage} alt="About MEGS" loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'cover', border: '1px solid var(--color-border)' }} />
               </div>
             )}
-            <div style={{ flex: '1 1 400px', textAlign: 'left' }}>
+            <div style={{ flex: '1 1 420px', textAlign: 'left' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', color: 'var(--color-text-main)', letterSpacing: '-0.02em', margin: '0 0 1.5rem 0', textTransform: 'uppercase' }}>ABOUT US</h2>
               <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '1rem', whiteSpace: 'pre-wrap' }}>
                 {aboutText}
@@ -996,12 +996,12 @@ function HomeView() {
 
         {/* ARCHIVES SECTION */}
         {!loading && articles.length > 0 && (
-          <div style={{ padding: '4rem 0 0 0', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem', padding: '0 2rem' }}>
+          <div style={{ padding: '4.5rem 0 0 0', borderTop: '1px solid var(--color-border)', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem', padding: '0 2rem' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>ARCHIVES</h2>
             </div>
             <style>{`.archive-scroll-container::-webkit-scrollbar { display: none; }`}</style>
-            <div className="slider-wrapper" style={{ position: 'relative' }}>
+            <div className="slider-wrapper" style={{ position: 'relative', width: '100%' }}>
               <button onClick={() => { if (archiveScroll.ref.current) archiveScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
               </button>
@@ -1016,7 +1016,7 @@ function HomeView() {
                 onMouseUp={archiveScroll.onMouseUp}
                 onMouseMove={archiveScroll.onMouseMove}
                 onClickCapture={archiveScroll.onClickCapture}
-                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2rem', ...archiveScroll.style }}
+                style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', padding: '0 2.5rem 1rem 2.5rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2.5rem', width: '100%', ...archiveScroll.style }}
               >
                 {articles.slice(0, 6).map(article => {
                   const imagesArr = article.images ? (typeof article.images === 'string' ? JSON.parse(article.images) : article.images) : [];
@@ -1053,13 +1053,13 @@ function HomeView() {
 
         {/* CREATE YOURS SECTION */}
         {!loading && createYoursItems.length > 0 && (
-          <div style={{ padding: '4rem 0', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem', maxWidth: '1200px', margin: '0 auto 3rem auto', padding: '0 2rem' }}>
+          <div style={{ padding: '4.5rem 0', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem', width: '100%', padding: '0 2rem' }}>
               <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', margin: 0, textAlign: 'center' }}>CREATE YOURS</h2>
             </div>
 
             <style>{`.create-yours-scroll::-webkit-scrollbar { display: none; }`}</style>
-            <div className="slider-wrapper" style={{ position: 'relative' }}>
+            <div className="slider-wrapper" style={{ position: 'relative', width: '100%' }}>
               <button onClick={() => { if (createYoursScroll.ref.current) createYoursScroll.ref.current.scrollBy({ left: -400, behavior: 'smooth' }) }} className="slider-nav-btn slider-nav-left" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
               </button>
@@ -1074,7 +1074,7 @@ function HomeView() {
                 onMouseUp={createYoursScroll.onMouseUp}
                 onMouseMove={createYoursScroll.onMouseMove}
                 onClickCapture={createYoursScroll.onClickCapture}
-                style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '0 2rem 1rem 2rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2rem', ...createYoursScroll.style }}
+                style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', padding: '0 2.5rem 1rem 2.5rem', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollPadding: '0 2.5rem', width: '100%', ...createYoursScroll.style }}
               >
                 {createYoursItems.map(item => (
                   <Link to={`/create-yours?category=${encodeURIComponent(item.name)}`} key={item.id} className="archive-card slider-item slider-item-create" style={{ aspectRatio: '3/4' }}>
@@ -1105,7 +1105,7 @@ function HomeView() {
         {/* CATEGORIES SECTION */}
         {!loading && products.length > 0 && (
           <>
-            <div style={{ background: 'var(--color-bg-card)', padding: '0 0 5rem 0', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ background: 'var(--color-bg-main)', padding: '0 0 5rem 0', borderTop: '1px solid var(--color-border)', width: '100%' }}>
               <div style={{ padding: '4rem 2rem 2rem 2rem', textAlign: 'center' }}>
                 <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', color: 'var(--color-text-main)', letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 0.9, width: '100%', textAlign: 'center' }}>SHOP BY CATEGORY</h2>
               </div>
@@ -1150,7 +1150,7 @@ function HomeView() {
                 onMouseUp={productScroll.onMouseUp}
                 onMouseMove={productScroll.onMouseMove}
                 onClickCapture={productScroll.onClickCapture}
-                style={{ ...productScroll.style, scrollPadding: '0 2rem' }}
+                style={{ ...productScroll.style, padding: '2.5rem 2.5rem', scrollPadding: '0 2.5rem', width: '100%' }}
               >
                 {products.slice(0, 5).map(product => {
                   let displayImg = product.img;
@@ -1236,7 +1236,7 @@ function ProductListView() {
         </h1>
         <p style={{ textAlign: 'left', margin: '1rem 0 0 0', color: 'var(--color-text-muted)' }}>Our complete catalog of performance gear.</p>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
           <Link to="/product" style={{
             padding: '0.5rem 1.5rem',
             border: '1px solid var(--color-border)',
@@ -1290,7 +1290,7 @@ function ProductListView() {
                   <p>Rp. {product.price}</p>
                 </div>
               </Link>
-              <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1rem' }}>CHOOSE OPTIONS</Link>
+              <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>CHOOSE OPTIONS</Link>
             </div>
           )
         })}
@@ -1433,9 +1433,9 @@ function ProductDetailView() {
   };
 
   return (
-    <div className="page-content" style={{ paddingTop: '80px', maxWidth: '1400px', margin: '0 auto', display: 'flex', gap: '4rem', padding: '100px 2rem 4rem 2rem', flexWrap: 'wrap' }}>
+    <div className="page-content megs-product-detail-layout" style={{ paddingTop: '80px', maxWidth: '1400px', margin: '0 auto', display: 'flex', gap: '4rem', padding: '100px 2rem 4rem 2rem', flexWrap: 'wrap' }}>
       {/* LEFT: GALLERY */}
-      <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="megs-product-detail-col" style={{ flex: '1 1 560px', display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
         <div
           style={{
             position: 'relative',
@@ -1510,7 +1510,7 @@ function ProductDetailView() {
       </div>
 
       {/* RIGHT: DETAILS */}
-      <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column' }}>
+      <div className="megs-product-detail-col" style={{ flex: '1 1 380px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{ marginBottom: '2rem' }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{product.category}</p>
           <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3.5rem)', textTransform: 'uppercase', margin: '0 0 1rem 0', lineHeight: 1 }}>
@@ -1705,13 +1705,13 @@ Message: ${message}`;
   };
 
   return (
-    <div className="page-content" style={{ paddingTop: '80px', paddingBottom: '5rem', minHeight: '80vh' }}>
+    <div className="page-content" style={{ paddingTop: '105px', paddingBottom: '5rem', minHeight: '80vh' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '4rem', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center' }}>
+        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2.2rem, 6vw, 4rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '2rem', textAlign: 'center' }}>
           Contact Us
         </h1>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'clamp(2rem, 5vw, 4rem)' }}>
 
           {/* INFO COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -1806,19 +1806,19 @@ function JournalView() {
           return (
             <article key={article.id} style={{ borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: 1, minWidth: '300px' }}>
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+                <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
                     {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
                   </p>
-                  <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-0.03em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                  <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(1.6rem, 4.5vw, 2.5rem)', letterSpacing: '-0.03em', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1.1 }}>
                     {article.title}
                   </h2>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '1rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.95rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
                     {article.excerpt}
                   </p>
                   <Link to={`/archive/${article.id}`} className="btn-secondary">READ FULL STORY</Link>
                 </div>
-                <div style={{ flex: 1, minWidth: '300px', background: 'var(--color-accent)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div style={{ flex: '1 1 280px', minWidth: 0, width: '100%', background: 'var(--color-accent)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
                   {coverImage ? (
                     <img src={coverImage} alt="Cover" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
@@ -2064,7 +2064,7 @@ function CreateYoursView() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--color-bg-card)', padding: 'clamp(1.25rem, 4vw, 2rem)', border: '1px solid var(--color-border)' }}>
           <div className="control-group">
             <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>QTY (MIN 12, &lt;12 DILUAR PRICE LIST)</label>
             <input required className="input-text" type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g. 24" />
@@ -2087,7 +2087,7 @@ function CreateYoursView() {
                     </button>
                   )}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.85rem' }}>
                   {field.options?.map((opt: any, idx: number) => {
                     const isSelected = formValues[field.id] === opt.value;
                     return (
@@ -2477,9 +2477,14 @@ function CheckoutView() {
   const isStep3Complete = Boolean(selectedShippingOption);
 
   return (
-    <div className="page-content" style={{ paddingTop: '95px', paddingBottom: '6rem', minHeight: '85vh' }}>
+    <div className="page-content megs-checkout-page" style={{ paddingTop: '108px', paddingBottom: '6rem', minHeight: '85vh' }}>
       <style>
         {`
+          .megs-checkout-container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+          }
           .megs-checkout-layout {
             display: grid;
             grid-template-columns: minmax(0, 1.38fr) minmax(340px, 0.92fr);
@@ -2522,25 +2527,50 @@ function CheckoutView() {
             border-color: var(--color-text-main);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
           }
+          .megs-checkout-summary {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            position: sticky;
+            top: 95px;
+            overflow: hidden;
+          }
           @media (max-width: 980px) {
             .megs-checkout-layout {
               grid-template-columns: 1fr;
-              gap: 2rem;
+              gap: 1.75rem;
+            }
+            .megs-checkout-summary {
+              position: static;
+            }
+          }
+          @media (max-width: 768px) {
+            .megs-checkout-page {
+              padding-top: 92px !important;
+            }
+            .megs-checkout-container {
+              padding: 0;
             }
           }
           @media (max-width: 640px) {
             .megs-checkout-card {
-              padding: 1.35rem;
+              padding: 1.15rem;
             }
             .megs-checkout-grid-2 {
               grid-template-columns: 1fr;
-              gap: 1rem;
+              gap: 0.95rem;
+            }
+            .megs-courier-card {
+              padding: 0.9rem 1rem;
+              align-items: flex-start;
+            }
+            .megs-checkout-summary-block {
+              padding: 1.15rem !important;
             }
           }
         `}
       </style>
 
-      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.5rem' }}>
+      <div className="megs-checkout-container">
         {/* Top Navigation & Progress Bar */}
         <div
           style={{
@@ -3171,17 +3201,10 @@ function CheckoutView() {
           </form>
 
           {/* RIGHT COLUMN: Sticky Order Manifest / Summary */}
-          <aside
-            style={{
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              position: 'sticky',
-              top: '95px',
-              overflow: 'hidden'
-            }}
-          >
+          <aside className="megs-checkout-summary">
             {/* Summary Header */}
             <div
+              className="megs-checkout-summary-block"
               style={{
                 padding: '1.5rem 1.75rem',
                 borderBottom: '1px solid var(--color-border)',
@@ -3217,6 +3240,7 @@ function CheckoutView() {
 
             {/* Cart Items List */}
             <div
+              className="megs-checkout-summary-block"
               style={{
                 padding: '1.5rem 1.75rem',
                 maxHeight: '320px',
@@ -3367,11 +3391,11 @@ function CheckoutView() {
             </div>
 
             {/* Promo Coupon Section */}
-            <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--color-border)' }}>
+            <div className="megs-checkout-summary-block" style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--color-border)' }}>
               <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>
                 KODE VOUCHER / DISKON
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <input
                   type="text"
                   className="input-text"
@@ -3379,7 +3403,7 @@ function CheckoutView() {
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value)}
                   disabled={!!appliedCoupon}
-                  style={{ textTransform: 'uppercase', flex: 1, padding: '0.65rem 0.85rem', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}
+                  style={{ textTransform: 'uppercase', flex: '1 1 160px', minWidth: 0, padding: '0.65rem 0.85rem', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}
                 />
                 {!appliedCoupon ? (
                   <button
@@ -3415,7 +3439,7 @@ function CheckoutView() {
             </div>
 
             {/* Price Breakdown & CTA */}
-            <div style={{ padding: '1.5rem 1.75rem' }}>
+            <div className="megs-checkout-summary-block" style={{ padding: '1.5rem 1.75rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
                   <span>Subtotal Produk ({totalQuantity} pcs)</span>

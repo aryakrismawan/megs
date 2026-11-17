@@ -351,8 +351,9 @@ a {
 .product-slider {
   display: flex;
   overflow-x: auto;
-  gap: 2rem;
-  padding: 2rem;
+  gap: 1.5rem;
+  padding: 2.5rem 2.5rem;
+  width: 100%;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
@@ -361,35 +362,38 @@ a {
 }
 
 .product-slider > .product-card {
-  flex: 0 0 calc(20% - 1.6rem); /* Fit ~5 cards on large screens */
-  min-width: 280px;
+  flex: 0 0 calc((100% - 6rem) / 5); /* Fit 5 cards cleanly separated across the full screen */
+  min-width: 250px;
   scroll-snap-align: start;
 }
 
 .product-card {
   background: var(--color-bg-main);
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  border-radius: 4px; /* Slight rounding for a premium feel */
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .product-image-container {
   width: 100%;
-  aspect-ratio: 1/1; /* Square like the reference */
+  aspect-ratio: 1/1;
   overflow: hidden;
   position: relative;
   background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .product-image {
-  width: 90%;
-  height: 90%;
+  width: 92%;
+  height: 92%;
   object-fit: contain;
   transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -1046,6 +1050,7 @@ input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   aspect-ratio: 4/5;
   overflow: hidden;
+  border: 1px solid var(--color-border);
   text-decoration: none;
   color: #ffffff !important;
 }
@@ -1131,7 +1136,7 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 .mobile-only {
-  display: none;
+  display: none !important;
 }
 
 .archive-card:hover .archive-btn {
@@ -1145,11 +1150,11 @@ input[type=range]::-webkit-slider-runnable-track {
   scroll-snap-align: start;
 }
 .slider-item-archive {
-  width: calc(33.333% - 1.33rem);
+  width: calc((100% - 3rem) / 3);
   min-width: 320px;
 }
 .slider-item-create {
-  width: calc(33.333% - 1.33rem);
+  width: calc((100% - 3rem) / 3);
   min-width: 280px;
 }
 
@@ -1425,13 +1430,12 @@ html {
 
 /* Product Card Hover Polish */
 .product-card {
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+  transform: translateY(-4px);
+  box-shadow: none;
 }
 
 .product-card .btn-secondary {
@@ -1484,5 +1488,204 @@ html {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   COMPREHENSIVE MOBILE & TABLET RESPONSIVE SYSTEM
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* 1. Global Page Content & Header Spacing (preserve padding-top for fixed navbar clearance!) */
+  .page-content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .page-content.megs-home-content {
+    padding: 0 !important;
+  }
+
+  .page-header {
+    padding: 6.5rem 1rem 2rem !important;
+  }
+
+  .page-header h1 {
+    font-size: clamp(2.2rem, 10vw, 3.5rem) !important;
+    line-height: 0.95 !important;
+  }
+
+  .page-header p {
+    margin-top: 0.85rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* 2. Navbar & Mobile Menu Drawer */
+  .navbar {
+    padding: 0.85rem 1.15rem !important;
+  }
+
+  .brand-logo {
+    height: 38px !important;
+  }
+
+  .mobile-menu {
+    height: calc(100vh - 60px) !important;
+    overflow-y: auto !important;
+    padding: 1.5rem 1.25rem 4rem 1.25rem !important;
+  }
+
+  .mobile-menu a {
+    font-size: 1.45rem !important;
+    padding: 1rem 0 !important;
+  }
+
+  /* 3. Homepage Sections & Horizontal Sliders */
+  .about-section {
+    padding: 3.5rem 1.25rem !important;
+  }
+
+  .archive-scroll-container,
+  .create-yours-scroll {
+    padding: 0 1rem 1rem 1rem !important;
+    gap: 1rem !important;
+    scroll-padding: 0 1rem !important;
+  }
+
+  .slider-item-archive {
+    width: 82vw !important;
+    min-width: 260px !important;
+    scroll-snap-align: center !important;
+  }
+
+  .slider-item-create {
+    width: 78vw !important;
+    min-width: 245px !important;
+    scroll-snap-align: center !important;
+  }
+
+  .archive-card .archive-content {
+    padding: 1.25rem !important;
+    padding-bottom: 2rem !important;
+  }
+
+  .archive-card .archive-title {
+    font-size: 1.35rem !important;
+  }
+
+  .archive-card .archive-btn {
+    padding: 0.65rem 1.5rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* 4. Shop By Category (TOPS / BOTTOMS) */
+  .megs-category-tile {
+    padding: 2rem 1rem !important;
+  }
+
+  .megs-category-tile .megs-category-icon {
+    width: 62px !important;
+    height: 62px !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .megs-category-tile .megs-category-icon svg {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .megs-category-tile h3 {
+    font-size: 1.15rem !important;
+  }
+
+  /* 5. Product Slider & 2-Column Mobile Product Catalog Grid */
+  .product-slider {
+    padding: 1.5rem 1rem !important;
+    gap: 1rem !important;
+    scroll-padding: 0 1rem !important;
+  }
+
+  .product-slider > .product-card {
+    flex: 0 0 68vw !important;
+    min-width: 215px !important;
+    scroll-snap-align: center !important;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.85rem !important;
+    padding: 1rem 0 !important;
+  }
+
+  .product-image-container {
+    padding: 0.65rem !important;
+  }
+
+  .product-info {
+    padding: 0.85rem 0.6rem !important;
+    flex: 1;
+  }
+
+  .product-info h3 {
+    font-size: 0.84rem !important;
+    line-height: 1.25 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-info p {
+    font-size: 0.74rem !important;
+    margin-top: 0.35rem !important;
+  }
+
+  .new-badge {
+    top: 8px !important;
+    right: 8px !important;
+    font-size: 0.58rem !important;
+    padding: 3px 7px !important;
+  }
+
+  /* Always show CHOOSE OPTIONS button on touch devices without covering product info */
+  .product-card .btn-secondary {
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
+    padding: 0.65rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.02em !important;
+    margin-top: auto !important;
+    border-top: 1px solid var(--color-border) !important;
+  }
+
+  /* 6. Product Detail View Mobile Layout */
+  .megs-product-detail-layout {
+    flex-direction: column !important;
+    gap: 1.75rem !important;
+    padding: 84px 1rem 3.5rem 1rem !important;
+  }
+
+  .megs-product-detail-col {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 7. MEGS Thrive & Footer Responsive Polish */
+  .acg-grid-2 {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  .footer {
+    padding: 3.5rem 1.25rem 2.5rem 1.25rem !important;
+  }
+
+  .footer-grid {
+    margin-bottom: 3rem !important;
+    gap: 2rem 1.25rem !important;
   }
 }

@@ -21,6 +21,7 @@ export function BagToastNotification() {
 
   return createPortal(
     <div
+      className="megs-bag-toast-wrapper"
       style={{
         position: 'fixed',
         top: '86px',
@@ -69,8 +70,12 @@ export function BagToastNotification() {
             }
           }
           @media (max-width: 600px) {
-            .megs-bag-toast-card {
-              right: 16px !important;
+            .megs-bag-toast-wrapper {
+              top: 72px !important;
+              left: 12px !important;
+              right: 12px !important;
+              width: auto !important;
+              max-width: none !important;
             }
           }
         `}
