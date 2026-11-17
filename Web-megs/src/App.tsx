@@ -1541,92 +1541,804 @@ function ProductDetailView() {
   );
 }
 
-// --- TRACK ORDER VIEW ---
-function TrackOrderView() {
-  const [wa, setWa] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'result' | 'not_found'>('idle');
-  const [orders, setOrders] = useState<any[]>([]);
+// --- TRACK ORDER VIEW (GAYA BERDU CEK RESI REAL-TIME) ---
+function getOfficialCourierTrackUrl(courierName: string, resi: string): string {
+  const c = (courierName || '').toUpperCase();
+  if (c.includes('J&T') || c.includes('JNT')) return `https://jet.co.id/track`;
+  if (c.includes('SICEPAT')) return `https://www.sicepat.com/checkAwb`;
+  if (c.includes('SPX') || c.includes('SHOPEE')) return `https://spx.co.id/`;
+  if (c.includes('ID EXPRESS') || c.includes('IDE')) return `https://idexpress.com/lacak-paket`;
+  if (c.includes('NINJA')) return `https://www.ninjaxpress.co/id-id/tracking?tracking_id=${encodeURIComponent(resi)}`;
+  if (c.includes('ANTERAJA')) return `https://anteraja.id/tracking`;
+  if (c.includes('POS')) return `https://www.posindonesia.co.id/id/tracking/${encodeURIComponent(resi)}`;
+  if (c.includes('LION')) return `https://lionparcel.com/track/stt?q=${encodeURIComponent(resi)}`;
+  if (c.includes('TIKI')) return `https://www.tiki.id/id/track`;
+  return `https://www.jne.co.id/id/tracking/trace`;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!wa) return;
-    setStatus('loading');
+function formatManifestDate(dateVal: string): { datePart: string; timePart: string } {
+  if (!dateVal) return { datePart: '-', timePart: '' };
+  const parsed = new Date(dateVal.replace(' ', 'T'));
+  if (!isNaN(parsed.getTime())) {
+    return {
+      datePart: parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      timePart: parsed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+    };
+  }
+  const parts = String(dateVal).split(' ');
+  return {
+    datePart: parts[0] || dateVal,
+    timePart: parts.slice(1).join(' ')
+  };
+}
+
+function TrackOrderView() {
+  const [activeTab, setActiveTab] = useState<'RESI' | 'WA'>('RESI');
+  const [resiInput, setResiInput] = useState('');
+  const [courierSelect, setCourierSelect] = useState('AUTO');
+  const [waInput, setWaInput] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [trackingResult, setTrackingResult] = useState<any | null>(null);
+  const [waOrders, setWaOrders] = useState<any[]>([]);
+  const [copiedResi, setCopiedResi] = useState('');
+  const [lastSyncedTime, setLastSyncedTime] = useState('');
+
+  const [recentResiList, setRecentResiList] = useState<{ awb: string; courier: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('megs_recent_resi');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveRecentResi = (awb: string, courier: string) => {
+    const clean = awb.trim().toUpperCase();
+    if (!clean) return;
+    setRecentResiList(prev => {
+      const filtered = prev.filter(item => item.awb !== clean);
+      const updated = [{ awb: clean, courier }, ...filtered].slice(0, 6);
+      try {
+        localStorage.setItem('megs_recent_resi', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const removeRecentResi = (awb: string) => {
+    setRecentResiList(prev => {
+      const updated = prev.filter(item => item.awb !== awb);
+      try {
+        localStorage.setItem('megs_recent_resi', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const detectCourierCodeAndName = (awb: string, selected: string): { code: string; name: string } => {
+    const c = (selected || '').toLowerCase();
+    if (c === 'jnt' || c.includes('j&t')) return { code: 'jnt', name: 'J&T Express' };
+    if (c === 'jne' || c.includes('jne')) return { code: 'jne', name: 'JNE Express' };
+    if (c === 'sicepat' || c.includes('sicepat')) return { code: 'sicepat', name: 'SiCepat Ekspres' };
+    if (c === 'spx' || c.includes('shopee')) return { code: 'spx', name: 'Shopee Express (SPX)' };
+    if (c === 'ide' || c.includes('id express')) return { code: 'ide', name: 'ID Express' };
+    if (c === 'ninja' || c.includes('ninja')) return { code: 'ninja', name: 'Ninja Xpress' };
+    if (c === 'anteraja' || c.includes('anteraja')) return { code: 'anteraja', name: 'AnterAja' };
+    if (c === 'pos' || c.includes('pos')) return { code: 'pos', name: 'Pos Indonesia' };
+    if (c === 'lion' || c.includes('lion')) return { code: 'lion', name: 'Lion Parcel' };
+    if (c === 'tiki' || c.includes('tiki')) return { code: 'tiki', name: 'TIKI' };
+    if (c === 'wahana' || c.includes('wahana')) return { code: 'wahana', name: 'Wahana' };
+    if (c === 'sap' || c.includes('sap')) return { code: 'sap', name: 'SAP Express' };
+
+    const resi = awb.toUpperCase();
+    if (resi.startsWith('SPXID') || resi.startsWith('ID2')) return { code: 'spx', name: 'Shopee Express (SPX)' };
+    if (resi.startsWith('IDE') || resi.startsWith('IDS')) return { code: 'ide', name: 'ID Express' };
+    if (resi.startsWith('JP') || resi.startsWith('JX') || resi.startsWith('JD') || resi.startsWith('JT')) return { code: 'jnt', name: 'J&T Express' };
+    if (resi.startsWith('00') || resi.startsWith('TK')) return { code: 'sicepat', name: 'SiCepat Ekspres' };
+    if (resi.startsWith('NV') || resi.startsWith('NL')) return { code: 'ninja', name: 'Ninja Xpress' };
+    if (resi.startsWith('1000') || resi.startsWith('1100')) return { code: 'anteraja', name: 'AnterAja' };
+    if (resi.startsWith('P2') || resi.startsWith('POS')) return { code: 'pos', name: 'Pos Indonesia' };
+    if (resi.startsWith('11') || resi.startsWith('99') || resi.startsWith('LP')) return { code: 'lion', name: 'Lion Parcel' };
+    return { code: 'jne', name: 'JNE Express' };
+  };
+
+  const fetchResiTracking = async (targetAwb?: string, targetCourier?: string, isSilent = false) => {
+    const awb = (targetAwb ?? resiInput).trim().toUpperCase();
+    const courier = targetCourier ?? courierSelect;
+    if (!awb) return;
+
+    if (!isSilent) {
+      setLoading(true);
+      setErrorMsg('');
+      setTrackingResult(null);
+    }
 
     try {
-      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`);
-      const allOrders = await res.json();
+      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
 
-      const userOrders = allOrders.filter((o: any) => o.customer_phone === wa);
-      if (userOrders.length > 0) {
-        setOrders(userOrders);
-        setStatus('result');
-      } else {
-        setStatus('not_found');
+      // 1. Coba panggil endpoint /api/track-resi di Worker
+      try {
+        const res = await fetch(
+          `${apiUrl}/api/track-resi?awb=${encodeURIComponent(awb)}&courier=${encodeURIComponent(courier)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            setTrackingResult(data);
+            setErrorMsg('');
+            saveRecentResi(awb, courier);
+            setLastSyncedTime(
+              new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            );
+            return;
+          }
+        }
+      } catch {}
+
+      // 2. Fallback langsung ke /api/settings + Binderbyte API + /api/orders (berfungsi meskipun Worker belum di-redeploy)
+      const [ordersRes, settingsRes] = await Promise.all([
+        fetch(`${apiUrl}/api/orders`),
+        fetch(`${apiUrl}/api/settings`)
+      ]);
+      const allOrders = await ordersRes.json().catch(() => []);
+      const settingsData = await settingsRes.json().catch(() => ({}));
+
+      let trackingMap: Record<string, { resi: string; courier: string; logs: any[] }> = {};
+      if (settingsData && settingsData.megs_order_tracking) {
+        try {
+          trackingMap = JSON.parse(settingsData.megs_order_tracking);
+        } catch {}
       }
-    } catch (err) {
-      console.error(err);
-      setStatus('not_found');
+
+      const matchedOrder = Array.isArray(allOrders)
+        ? allOrders.find((o: any) => {
+            const mapEntry = trackingMap[String(o.id)];
+            const orderResi = String(o.tracking_number || mapEntry?.resi || '').trim().toUpperCase();
+            return orderResi === awb;
+          })
+        : null;
+
+      const mapEntry = matchedOrder ? trackingMap[String(matchedOrder.id)] : null;
+      const { code: courierCode, name: courierName } = detectCourierCodeAndName(
+        awb,
+        courier !== 'AUTO' ? courier : (matchedOrder?.courier || mapEntry?.courier || '')
+      );
+
+      const binderbyteKey = (settingsData?.binderbyte_api_key || '').trim();
+      if (binderbyteKey) {
+        try {
+          const bbRes = await fetch(
+            `https://api.binderbyte.com/v1/track?api_key=${encodeURIComponent(binderbyteKey)}&courier=${encodeURIComponent(courierCode)}&awb=${encodeURIComponent(awb)}`
+          );
+          const bbJson = await bbRes.json();
+          if (bbJson && bbJson.status === 200 && bbJson.data) {
+            const d = bbJson.data;
+            const history = Array.isArray(d.history)
+              ? d.history.map((h: any) => ({
+                  date: h.date || '',
+                  desc: h.desc || '',
+                  location: h.location || ''
+                }))
+              : [];
+            setTrackingResult({
+              success: true,
+              source: 'LIVE_COURIER_API',
+              summary: {
+                awb: d.summary?.awb || awb,
+                courier: d.summary?.courier || courierName,
+                service: d.summary?.service || 'Reguler',
+                status: (d.summary?.status || 'ON PROCESS').toUpperCase(),
+                date: d.summary?.date || history[0]?.date || '',
+                shipper: d.detail?.shipper || 'MEGS APPAREL (Cicurug, Kab. Sukabumi)',
+                receiver: d.detail?.receiver || matchedOrder?.customer_name || '-',
+                origin: d.detail?.origin || 'Cicurug, Kab. Sukabumi',
+                destination: d.detail?.destination || matchedOrder?.customer_address || '-'
+              },
+              history,
+              order: matchedOrder || null
+            });
+            setErrorMsg('');
+            saveRecentResi(awb, courier);
+            setLastSyncedTime(
+              new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            );
+            return;
+          }
+        } catch {}
+      }
+
+      if (matchedOrder) {
+        let realLogs: any[] = mapEntry?.logs || [];
+        if (realLogs.length === 0 && matchedOrder.tracking_logs) {
+          try {
+            realLogs = JSON.parse(matchedOrder.tracking_logs);
+          } catch {}
+        }
+        if (!Array.isArray(realLogs) || realLogs.length === 0) {
+          realLogs = [
+            {
+              date: matchedOrder.updated_at || matchedOrder.created_at,
+              desc: `Nomor Resi ${awb} (${matchedOrder.courier || mapEntry?.courier || courierName}) telah terdaftar untuk Order #${matchedOrder.id}. Status saat ini: ${(matchedOrder.status || '').toUpperCase()}.`,
+              location: 'CICURUG, KAB. SUKABUMI'
+            },
+            {
+              date: matchedOrder.created_at,
+              desc: `Pesanan #${matchedOrder.id} atas nama ${matchedOrder.customer_name} tercatat di sistem MEGS.`,
+              location: 'SISTEM MEGS APPAREL'
+            }
+          ];
+        }
+
+        const statusMap: Record<string, string> = {
+          'menunggu pembayaran': 'MENUNGGU PEMBAYARAN',
+          'diproses': 'SEDANG DIKEMAS (MANIFESTED)',
+          'dikirim': 'DALAM PENGIRIMAN (ON PROCESS)',
+          'selesai': 'TERKIRIM (DELIVERED)'
+        };
+
+        setTrackingResult({
+          success: true,
+          source: 'MEGS_DATABASE',
+          summary: {
+            awb,
+            courier: matchedOrder.courier || mapEntry?.courier || courierName,
+            service: 'Reguler',
+            status: statusMap[String(matchedOrder.status || '').toLowerCase()] || String(matchedOrder.status || 'ON PROCESS').toUpperCase(),
+            date: matchedOrder.updated_at || matchedOrder.created_at,
+            shipper: 'MEGS APPAREL (Cicurug, Kab. Sukabumi)',
+            receiver: matchedOrder.customer_name || '-',
+            origin: 'Cicurug, Kab. Sukabumi, Jawa Barat',
+            destination: matchedOrder.customer_address || '-'
+          },
+          history: realLogs,
+          order: matchedOrder
+        });
+        setErrorMsg('');
+        saveRecentResi(awb, courier);
+        setLastSyncedTime(
+          new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
+        return;
+      }
+
+      if (!isSilent) {
+        setTrackingResult(null);
+        setErrorMsg(
+          !binderbyteKey
+            ? `Nomor resi ${awb} (${courierName}) belum terdaftar pada daftar pesanan MEGS, dan API Key Kurir (Binderbyte) belum diaktifkan di menu Orders Admin Panel.`
+            : `Nomor resi ${awb} (${courierName}) tidak ditemukan atau belum tercatat di server ekspedisi.`
+        );
+      }
+    } catch {
+      if (!isSilent) {
+        setErrorMsg('Gagal menghubungi server pelacakan resi. Silakan periksa koneksi Anda dan coba kembali.');
+      }
+    } finally {
+      if (!isSilent) setLoading(false);
     }
+  };
+
+  const fetchWaOrders = async (isSilent = false) => {
+    const cleanDigits = waInput.replace(/\D/g, '');
+    if (!cleanDigits) return;
+
+    if (!isSilent) {
+      setLoading(true);
+      setErrorMsg('');
+      setWaOrders([]);
+    }
+
+    try {
+      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+      const [ordersRes, settingsRes] = await Promise.all([
+        fetch(`${apiUrl}/api/orders`),
+        fetch(`${apiUrl}/api/settings`)
+      ]);
+      const allOrders = await ordersRes.json().catch(() => []);
+      const settingsData = await settingsRes.json().catch(() => ({}));
+
+      let trackingMap: Record<string, { resi: string; courier: string; logs: any[] }> = {};
+      if (settingsData && settingsData.megs_order_tracking) {
+        try {
+          trackingMap = JSON.parse(settingsData.megs_order_tracking);
+        } catch {}
+      }
+
+      const matched = Array.isArray(allOrders)
+        ? allOrders
+            .filter((o: any) => String(o.customer_phone || '').replace(/\D/g, '').includes(cleanDigits))
+            .map((o: any) => {
+              const mapEntry = trackingMap[String(o.id)];
+              return {
+                ...o,
+                tracking_number: o.tracking_number || mapEntry?.resi || '',
+                courier: o.courier || mapEntry?.courier || ''
+              };
+            })
+        : [];
+
+      if (matched.length > 0) {
+        setWaOrders(matched);
+        setErrorMsg('');
+        setLastSyncedTime(
+          new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
+      } else if (!isSilent) {
+        setErrorMsg('Tidak ditemukan pesanan untuk Nomor WhatsApp tersebut.');
+      }
+    } catch {
+      if (!isSilent) {
+        setErrorMsg('Gagal memuat data pesanan.');
+      }
+    } finally {
+      if (!isSilent) setLoading(false);
+    }
+  };
+
+  // Polling Real-Time otomatis setiap 15 detik ketika hasil resi sedang ditampilkan
+  useEffect(() => {
+    if (activeTab === 'RESI' && trackingResult?.summary?.awb) {
+      const timer = setInterval(() => {
+        fetchResiTracking(trackingResult.summary.awb, courierSelect, true);
+      }, 15000);
+      return () => clearInterval(timer);
+    }
+    if (activeTab === 'WA' && waOrders.length > 0) {
+      const timer = setInterval(() => {
+        fetchWaOrders(true);
+      }, 15000);
+      return () => clearInterval(timer);
+    }
+  }, [activeTab, trackingResult, waOrders.length, courierSelect]);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedResi(text);
+    setTimeout(() => setCopiedResi(''), 2000);
   };
 
   return (
     <div className="page-content" style={{ paddingTop: '120px', paddingBottom: '5rem', minHeight: '80vh' }}>
-      <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1 }}>
-          TRACK ORDER
-        </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '3rem' }}>
-          ENTER YOUR WHATSAPP NUMBER TO CHECK THE STATUS OF YOUR DELIVERY.
-        </p>
+      <div style={{ maxWidth: '820px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2.25rem' }}>
+          <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: 'clamp(2.25rem, 5vw, 3.75rem)', letterSpacing: '-0.05em', textTransform: 'uppercase', marginBottom: '0.6rem', lineHeight: 1 }}>
+            CEK RESI &amp; LACAK PESANAN
+          </h1>
+          <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: '0.85rem', maxWidth: '580px', margin: '0 auto' }}>
+            Masukkan Nomor Resi pengiriman untuk melihat status dan riwayat perjalanan paket secara real-time.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left', background: 'var(--color-bg-card)', padding: '2rem', border: '1px solid var(--color-border)', marginBottom: '2rem' }}>
-          <div className="control-group">
-            <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>WHATSAPP NUMBER</label>
-            <input
-              required
-              className="input-text"
-              type="tel"
-              value={wa}
-              onChange={e => setWa(e.target.value)}
-              placeholder="e.g. 08123456789"
-            />
-          </div>
-          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }} disabled={status === 'loading'}>
-            {status === 'loading' ? 'TRACKING...' : 'TRACK ORDER'}
+        {/* Tab Pemilihan Mode: Cek Nomor Resi vs Cek via No. WhatsApp */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('RESI');
+              setErrorMsg('');
+            }}
+            style={{
+              padding: '0.9rem',
+              background: activeTab === 'RESI' ? 'var(--color-text-main)' : 'var(--color-bg-card)',
+              color: activeTab === 'RESI' ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+              border: 'none',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            CEK NOMOR RESI EKSPEDISI
           </button>
-        </form>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('WA');
+              setErrorMsg('');
+            }}
+            style={{
+              padding: '0.9rem',
+              background: activeTab === 'WA' ? 'var(--color-text-main)' : 'var(--color-bg-card)',
+              color: activeTab === 'WA' ? 'var(--color-bg-main)' : 'var(--color-text-main)',
+              border: 'none',
+              borderLeft: '1px solid var(--color-border)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            CARI RESI VIA NO. WHATSAPP
+          </button>
+        </div>
 
-        {status === 'not_found' && (
-          <div style={{ padding: '2rem', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'red', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-            ORDER NOT FOUND FOR THIS NUMBER.
+        {/* Form Cek Resi Gaya Berdu */}
+        {activeTab === 'RESI' ? (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.75rem', marginBottom: '2rem' }}>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                fetchResiTracking();
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>NOMOR RESI *</label>
+                  <input
+                    required
+                    className="input-text"
+                    type="text"
+                    value={resiInput}
+                    onChange={e => setResiInput(e.target.value.toUpperCase())}
+                    placeholder="Ketik Nomor Resi (Contoh: JP1234567890)"
+                    style={{ textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}
+                  />
+                </div>
+
+                <div className="control-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>KURIR / EKSPEDISI</label>
+                  <select
+                    className="input-text"
+                    value={courierSelect}
+                    onChange={e => setCourierSelect(e.target.value)}
+                  >
+                    <option value="AUTO">Deteksi Otomatis</option>
+                    <option value="jnt">J&amp;T Express</option>
+                    <option value="jne">JNE Express</option>
+                    <option value="sicepat">SiCepat Ekspres</option>
+                    <option value="spx">Shopee Express (SPX)</option>
+                    <option value="ide">ID Express</option>
+                    <option value="ninja">Ninja Xpress</option>
+                    <option value="anteraja">AnterAja</option>
+                    <option value="pos">Pos Indonesia</option>
+                    <option value="lion">Lion Parcel</option>
+                    <option value="tiki">TIKI</option>
+                    <option value="wahana">Wahana</option>
+                    <option value="sap">SAP Express</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.95rem' }} disabled={loading}>
+                {loading ? 'SEDANG MELACAK RESI...' : 'CEK RESI SEKARANG'}
+              </button>
+            </form>
+
+            {/* Riwayat Resi yang Pernah Dicari (Gaya Berdu Cek Resi) */}
+            {recentResiList.length > 0 && (
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>
+                  RIWAYAT CEK RESI TERAKHIR:
+                </span>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {recentResiList.map(item => (
+                    <div
+                      key={item.awb}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-main)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResiInput(item.awb);
+                          setCourierSelect(item.courier);
+                          fetchResiTracking(item.awb, item.courier);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-text-main)',
+                          padding: '0.35rem 0.65rem',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          fontWeight: 700
+                        }}
+                      >
+                        {item.awb}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRecentResi(item.awb)}
+                        aria-label="Hapus riwayat resi"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          borderLeft: '1px solid var(--color-border)',
+                          color: 'var(--color-text-muted)',
+                          padding: '0.35rem 0.5rem',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.75rem', marginBottom: '2rem' }}>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                fetchWaOrders(false);
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <div className="control-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>NOMOR WHATSAPP SAAT PEMESANAN *</label>
+                <input
+                  required
+                  className="input-text"
+                  type="tel"
+                  value={waInput}
+                  onChange={e => setWaInput(e.target.value)}
+                  placeholder="Contoh: 081234567890"
+                />
+              </div>
+              <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.95rem' }} disabled={loading}>
+                {loading ? 'MENCARI PESANAN...' : 'LIHAT PESANAN & NOMOR RESI'}
+              </button>
+            </form>
           </div>
         )}
 
-        {status === 'result' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
-            {orders.map((o, idx) => {
-              let displayStatus = o.status?.toUpperCase() || 'UNKNOWN';
-              if (displayStatus === 'MENUNGGU PEMBAYARAN') displayStatus = 'AWAITING PAYMENT';
-              if (displayStatus === 'SEDANG DIKIRIM') displayStatus = 'SHIPPING';
-              if (displayStatus === 'SELESAI') displayStatus = 'COMPLETED';
+        {/* Pesan Error Jujur (Tanpa Data Dummy) */}
+        {errorMsg && (
+          <div style={{ padding: '1.5rem', background: 'var(--color-bg-card)', border: '1px solid #ff4444', marginBottom: '2rem' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#ff4444', margin: 0, lineHeight: 1.5 }}>
+              {errorMsg}
+            </p>
+            {activeTab === 'RESI' && resiInput.trim() && (
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCopy(resiInput.trim().toUpperCase());
+                    window.open(getOfficialCourierTrackUrl(courierSelect, resiInput.trim()), '_blank');
+                  }}
+                  className="btn-secondary"
+                  style={{ padding: '0.6rem 1.1rem', fontSize: '0.75rem' }}
+                >
+                  SALIN RESI &amp; CEK LANGSUNG DI WEB KURIR &nearr;
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-              return (
-                <div key={idx} style={{ padding: '1.5rem', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900 }}>ORDER #{o.id}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                      {new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+        {/* HASIL CEK RESI GAYA BERDU (TABEL RINGKASAN + TABEL RIWAYAT PERJALANAN) */}
+        {activeTab === 'RESI' && trackingResult && (
+          <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+            {/* Bar Sinkronisasi Real-Time */}
+            <div
+              style={{
+                padding: '0.85rem 1.5rem',
+                background: 'var(--color-bg-main)',
+                borderBottom: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.73rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4CAF50', display: 'inline-block' }} />
+                <span>
+                  STATUS REAL-TIME ({trackingResult.source === 'LIVE_COURIER_API' ? 'SERVER EKSPEDISI' : 'DATABASE MEGS'})
+                </span>
+                {lastSyncedTime && <span style={{ color: 'var(--color-text-muted)' }}>• Diperbarui {lastSyncedTime} WIB</span>}
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchResiTracking(trackingResult.summary?.awb, courierSelect, false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-main)',
+                  padding: '0.3rem 0.7rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ↻ REFRESH DATA
+              </button>
+            </div>
+
+            <div style={{ padding: '1.75rem' }}>
+              {/* 1. TABEL INFORMASI RESI (GAYA BERDU) */}
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', margin: '0 0 1rem 0' }}>
+                INFORMASI PENGIRIMAN
+              </h3>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.83rem', marginBottom: '2rem', border: '1px solid var(--color-border)' }}>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '0.8rem 1rem', width: '35%', color: 'var(--color-text-muted)', background: 'var(--color-bg-main)' }}>
+                      No. Resi
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span>{trackingResult.summary?.awb}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(trackingResult.summary?.awb)}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid var(--color-border)',
+                          color: 'var(--color-text-main)',
+                          padding: '0.2rem 0.6rem',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copiedResi === trackingResult.summary?.awb ? '✓ Tersalin' : 'Salin'}
+                      </button>
+                    </td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', background: 'var(--color-bg-main)' }}>
+                      Ekspedisi
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem', fontWeight: 700 }}>
+                      {trackingResult.summary?.courier} {trackingResult.summary?.service ? `(${trackingResult.summary.service})` : ''}
+                    </td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', background: 'var(--color-bg-main)' }}>
+                      Status
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.65rem',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          background: String(trackingResult.summary?.status || '').includes('DELIVERED') || String(trackingResult.summary?.status || '').includes('SELESAI')
+                            ? '#4CAF50'
+                            : '#2196F3',
+                          color: '#fff'
+                        }}
+                      >
+                        {trackingResult.summary?.status || 'ON PROCESS'}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', background: 'var(--color-bg-main)' }}>
+                      Pengirim / Asal
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem' }}>
+                      <strong>{trackingResult.summary?.shipper || 'MEGS APPAREL'}</strong>
+                      {trackingResult.summary?.origin ? <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{trackingResult.summary.origin}</div> : null}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', background: 'var(--color-bg-main)' }}>
+                      Penerima / Tujuan
+                    </td>
+                    <td style={{ padding: '0.8rem 1rem', whiteSpace: 'pre-line' }}>
+                      <strong>{trackingResult.summary?.receiver || '-'}</strong>
+                      {trackingResult.summary?.destination ? <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>{trackingResult.summary.destination}</div> : null}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* 2. TABEL RIWAYAT PENGIRIMAN (HISTORY TIMELINE GAYA BERDU) */}
+              <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', textTransform: 'uppercase', margin: '0 0 1rem 0' }}>
+                RIWAYAT PERJALANAN PAKET
+              </h3>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', border: '1px solid var(--color-border)' }}>
+                <thead>
+                  <tr style={{ background: 'var(--color-bg-main)', borderBottom: '1px solid var(--color-border)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.75rem 1rem', width: '190px', color: 'var(--color-text-muted)' }}>WAKTU</th>
+                    <th style={{ padding: '0.75rem 1rem', color: 'var(--color-text-muted)' }}>KETERANGAN POSISI PAKET</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(trackingResult.history) && trackingResult.history.length > 0 ? (
+                    trackingResult.history.map((item: any, idx: number) => {
+                      const { datePart, timePart } = formatManifestDate(item.date);
+                      const isLatest = idx === 0;
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', background: isLatest ? 'color-mix(in srgb, var(--color-text-main) 5%, transparent)' : 'transparent' }}>
+                          <td style={{ padding: '0.9rem 1rem', verticalAlign: 'top', borderRight: '1px solid var(--color-border)' }}>
+                            <div style={{ fontWeight: isLatest ? 700 : 400, color: isLatest ? '#4CAF50' : 'var(--color-text-main)' }}>
+                              {datePart}
+                            </div>
+                            {timePart && (
+                              <div style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
+                                {timePart}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.9rem 1rem', verticalAlign: 'top' }}>
+                            <div style={{ fontWeight: isLatest ? 700 : 400, color: isLatest ? 'var(--color-text-main)' : 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                              {item.desc}
+                            </div>
+                            {item.location && (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                                📍 {item.location}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={2} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                        Belum ada riwayat perjalanan tercatat untuk resi ini.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* HASIL PENCARIAN VIA NOMOR WHATSAPP */}
+        {activeTab === 'WA' && waOrders.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {waOrders.map((order: any) => (
+              <div key={order.id} style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+                  <div>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem' }}>ORDER #{order.id}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--color-text-muted)', marginLeft: '0.75rem' }}>
+                      {order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    STATUS: <strong style={{ color: displayStatus === 'COMPLETED' ? 'green' : 'var(--color-text-main)' }}>{displayStatus}</strong>
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                    TOTAL: Rp {o.total_price.toLocaleString('id-ID')}
-                  </div>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.6rem', background: 'var(--color-text-main)', color: 'var(--color-bg-main)', textTransform: 'uppercase' }}>
+                    {order.status}
+                  </span>
                 </div>
-              );
-            })}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.83rem' }}>
+                  <div>
+                    <div>Penerima: <strong>{order.customer_name}</strong></div>
+                    <div style={{ marginTop: '0.25rem' }}>
+                      No. Resi: <strong>{order.tracking_number || 'Menunggu input resi dari Admin'}</strong>
+                      {order.courier ? ` (${order.courier})` : ''}
+                    </div>
+                  </div>
+
+                  {order.tracking_number && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('RESI');
+                        setResiInput(order.tracking_number);
+                        fetchResiTracking(order.tracking_number, order.courier || 'AUTO');
+                      }}
+                      className="btn-primary"
+                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.75rem' }}
+                    >
+                      LIHAT DETAIL PERJALANAN RESI &rarr;
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -2332,7 +3044,8 @@ function CheckoutView() {
           customer_address: `${address}\nKecamatan: ${districtName}\nKota/Kab: ${cityName}\nProvinsi: ${provinceName}\nKode Pos: ${postalCode}${email ? `\nEmail: ${email}` : ''}\nKurir: ${shippingLabel} (Rp. ${shippingCost.toLocaleString('id-ID')} | Dari ${SHIPPING_ORIGIN.label})`,
           order_items: JSON.stringify(cart),
           total_price: grandTotal.toString(),
-          coupon_code: appliedCoupon?.code
+          coupon_code: appliedCoupon?.code,
+          courier: selectedShippingOption.agentName
         })
       });
     } catch (e) {

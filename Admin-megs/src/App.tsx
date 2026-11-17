@@ -1191,12 +1191,61 @@ function AdminBookkeeping() {
 function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<number, { resi: string; courier: string; newNote: string; newLoc: string }>>({});
+  const [savingTrackingId, setSavingTrackingId] = useState<number | null>(null);
+
+  const [trackingMap, setTrackingMap] = useState<Record<string, { resi: string; courier: string; logs: any[] }>>({});
+  const [binderbyteKey, setBinderbyteKey] = useState('');
+  const [showApiConfig, setShowApiConfig] = useState(false);
+  const [savingApiKey, setSavingApiKey] = useState(false);
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders`);
-      const data = await res.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+      const [ordersRes, settingsRes] = await Promise.all([
+        fetch(`${apiUrl}/api/orders`),
+        fetch(`${apiUrl}/api/settings`)
+      ]);
+      const data = await ordersRes.json();
+      const settingsData = await settingsRes.json().catch(() => ({}));
+
+      if (settingsData && settingsData.binderbyte_api_key) {
+        setBinderbyteKey(settingsData.binderbyte_api_key);
+      }
+
+      let savedMap: Record<string, { resi: string; courier: string; logs: any[] }> = {};
+      if (settingsData && settingsData.megs_order_tracking) {
+        try {
+          savedMap = JSON.parse(settingsData.megs_order_tracking);
+        } catch {}
+      }
+      setTrackingMap(savedMap);
+
+      if (Array.isArray(data)) {
+        const enriched = data.map((o: any) => {
+          const mapEntry = savedMap[String(o.id)];
+          return {
+            ...o,
+            tracking_number: o.tracking_number || mapEntry?.resi || '',
+            courier: o.courier || mapEntry?.courier || 'J&T Express',
+            tracking_logs: o.tracking_logs || (mapEntry?.logs ? JSON.stringify(mapEntry.logs) : '')
+          };
+        });
+        setOrders(enriched);
+
+        const drafts: Record<number, { resi: string; courier: string; newNote: string; newLoc: string }> = {};
+        enriched.forEach((o: any) => {
+          drafts[o.id] = {
+            resi: o.tracking_number || '',
+            courier: o.courier || 'J&T Express',
+            newNote: '',
+            newLoc: 'CICURUG, KAB. SUKABUMI'
+          };
+        });
+        setTrackingDrafts(drafts);
+      } else {
+        setOrders([]);
+      }
     } catch {
       console.error('Failed to load orders');
     } finally {
@@ -1208,16 +1257,130 @@ function AdminOrders() {
     fetchOrders();
   }, []);
 
+  const handleSaveApiKey = async () => {
+    setSavingApiKey(true);
+    try {
+      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+        body: JSON.stringify({ binderbyte_api_key: binderbyteKey.trim() })
+      });
+      setShowApiConfig(false);
+    } catch {
+      alert('Gagal menyimpan API Key.');
+    } finally {
+      setSavingApiKey(false);
+    }
+  };
+
   const updateStatus = async (id: number, status: string) => {
     try {
-      await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787'}/api/orders/${id}`, {
+      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+      await fetch(`${apiUrl}/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
         body: JSON.stringify({ status })
       });
+
+      const currentEntry = trackingMap[String(id)] || { resi: '', courier: 'J&T Express', logs: [] };
+      const statusMsg =
+        status === 'diproses'
+          ? 'Pembayaran terverifikasi. Pesanan sedang dikemas di Gudang MEGS Cicurug, Kab. Sukabumi.'
+          : status === 'dikirim'
+            ? `Paket telah diserahkan ke agen ekspedisi ${currentEntry.courier || 'Kurir'}${currentEntry.resi ? ` dengan No. Resi ${currentEntry.resi}` : ''}.`
+            : status === 'selesai'
+              ? 'Paket telah diterima di alamat tujuan. Pesanan selesai.'
+              : 'Menunggu konfirmasi pembayaran.';
+
+      const updatedMap = {
+        ...trackingMap,
+        [String(id)]: {
+          ...currentEntry,
+          logs: [
+            { date: new Date().toISOString(), desc: statusMsg, location: 'CICURUG, KAB. SUKABUMI' },
+            ...(currentEntry.logs || [])
+          ]
+        }
+      };
+      setTrackingMap(updatedMap);
+      await fetch(`${apiUrl}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+        body: JSON.stringify({ megs_order_tracking: JSON.stringify(updatedMap) })
+      });
+
       fetchOrders();
     } catch (e) {
       alert('Error updating status');
+    }
+  };
+
+  const handleSaveTracking = async (order: any) => {
+    const draft = trackingDrafts[order.id] || { resi: '', courier: 'J&T Express', newNote: '', newLoc: 'CICURUG, KAB. SUKABUMI' };
+    setSavingTrackingId(order.id);
+    try {
+      const apiUrl = (import.meta as any).env.VITE_API_URL || 'http://127.0.0.1:8787';
+      const cleanResi = draft.resi.trim().toUpperCase();
+      const nextStatus =
+        cleanResi && (order.status === 'menunggu pembayaran' || order.status === 'diproses')
+          ? 'dikirim'
+          : order.status;
+
+      const currentEntry = trackingMap[String(order.id)] || {
+        resi: order.tracking_number || '',
+        courier: order.courier || 'J&T Express',
+        logs: []
+      };
+
+      const nextLogs = [...(currentEntry.logs || [])];
+      if (draft.newNote.trim()) {
+        nextLogs.unshift({
+          date: new Date().toISOString(),
+          desc: draft.newNote.trim(),
+          location: draft.newLoc.trim() || 'CICURUG, KAB. SUKABUMI'
+        });
+      } else if (cleanResi && cleanResi !== currentEntry.resi) {
+        nextLogs.unshift({
+          date: new Date().toISOString(),
+          desc: `Paket telah diserahkan ke agen ekspedisi ${draft.courier} di Drop Point Cicurug, Kab. Sukabumi (No. Resi: ${cleanResi}).`,
+          location: 'CICURUG, KAB. SUKABUMI'
+        });
+      }
+
+      const updatedMap = {
+        ...trackingMap,
+        [String(order.id)]: {
+          resi: cleanResi,
+          courier: draft.courier,
+          logs: nextLogs
+        }
+      };
+
+      await Promise.all([
+        fetch(`${apiUrl}/api/orders/${order.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+          body: JSON.stringify({
+            status: nextStatus,
+            tracking_number: cleanResi,
+            courier: draft.courier,
+            new_log_entry: draft.newNote.trim()
+              ? { desc: draft.newNote.trim(), location: draft.newLoc.trim() || 'CICURUG, KAB. SUKABUMI' }
+              : undefined
+          })
+        }),
+        fetch(`${apiUrl}/api/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('megs_admin_token') || '' },
+          body: JSON.stringify({ megs_order_tracking: JSON.stringify(updatedMap) })
+        })
+      ]);
+
+      await fetchOrders();
+    } catch {
+      alert('Gagal menyimpan data resi.');
+    } finally {
+      setSavingTrackingId(null);
     }
   };
 
@@ -1236,9 +1399,17 @@ function AdminOrders() {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.05em', textTransform: 'uppercase', margin: 0 }}>Orders</h2>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setShowApiConfig(!showApiConfig)}
+            className="btn-secondary"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '0.8rem' }}
+          >
+            ⚙ API CEK RESI KURIR {binderbyteKey ? '(AKTIF ✓)' : '(ATUR)'}
+          </button>
           <button
             type="button"
             onClick={() => printOrSaveOrdersPDF(orders, 'Daftar Semua Pesanan')}
@@ -1260,10 +1431,47 @@ function AdminOrders() {
         </div>
       </div>
 
+      {/* Panel Pengaturan API Cek Resi Real-Time (Gaya Berdu) */}
+      {showApiConfig && (
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', padding: '1.5rem', marginBottom: '2rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontWeight: 900, fontSize: '1.1rem', margin: '0 0 0.5rem 0', textTransform: 'uppercase' }}>
+            INTEGRASI API CEK RESI OTOMATIS (J&amp;T, JNE, SICEPAT, ID EXPRESS, ANTERAJA, POS, DLL.)
+          </h3>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+            Agar fitur Cek Resi menarik data posisi paket langsung dari server ekspedisi secara otomatis (seperti Berdu Cek Resi), masukkan <strong>API Key Binderbyte</strong> (Gratis daftar di <code>binderbyte.com</code>). Untuk kurir <strong>Shopee Express (SPX)</strong> dan <strong>Ninja Xpress</strong> sudah berjalan otomatis tanpa API Key.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              className="input-text"
+              style={{ flex: 1, minWidth: '260px' }}
+              placeholder="Tempel Binderbyte API Key di sini..."
+              value={binderbyteKey}
+              onChange={e => setBinderbyteKey(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={handleSaveApiKey}
+              disabled={savingApiKey}
+              className="btn-primary"
+              style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem' }}
+            >
+              {savingApiKey ? 'MENYIMPAN...' : 'SIMPAN API KEY'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {loading ? <p>Loading...</p> : orders.length === 0 ? <p>No orders found.</p> : orders.map(order => {
           let items = [];
           try { items = JSON.parse(order.order_items); } catch (e) { }
+          const draft = trackingDrafts[order.id] || {
+            resi: order.tracking_number || '',
+            courier: order.courier || 'J&T Express',
+            newNote: '',
+            newLoc: 'CICURUG, KAB. SUKABUMI'
+          };
 
           return (
             <div key={order.id} style={{ border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1293,12 +1501,124 @@ function AdminOrders() {
                 </div>
               </div>
 
+              {/* INPUT RESI & UPDATE KETERANGAN POSISI PAKET REAL-TIME */}
+              <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 180px' }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.3rem' }}>
+                      EKSPEDISI PENGIRIMAN
+                    </label>
+                    <select
+                      className="input-text"
+                      style={{ width: '100%', padding: '0.6rem' }}
+                      value={draft.courier}
+                      onChange={e =>
+                        setTrackingDrafts(prev => ({
+                          ...prev,
+                          [order.id]: { ...draft, courier: e.target.value }
+                        }))
+                      }
+                    >
+                      <option value="J&T Express">J&amp;T Express</option>
+                      <option value="JNE Express">JNE Express</option>
+                      <option value="SiCepat Ekspres">SiCepat Ekspres</option>
+                      <option value="Shopee Express (SPX)">Shopee Express (SPX)</option>
+                      <option value="ID Express">ID Express</option>
+                      <option value="Ninja Xpress">Ninja Xpress</option>
+                      <option value="AnterAja">AnterAja</option>
+                      <option value="Pos Indonesia">Pos Indonesia</option>
+                      <option value="Lion Parcel">Lion Parcel</option>
+                      <option value="TIKI">TIKI</option>
+                    </select>
+                  </div>
+
+                  <div style={{ flex: '2 1 220px' }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.3rem' }}>
+                      NOMOR RESI (AWB)
+                    </label>
+                    <input
+                      type="text"
+                      className="input-text"
+                      style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }}
+                      placeholder="Contoh: JP1234567890"
+                      value={draft.resi}
+                      onChange={e =>
+                        setTrackingDrafts(prev => ({
+                          ...prev,
+                          [order.id]: { ...draft, resi: e.target.value.toUpperCase() }
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSaveTracking(order)}
+                    disabled={savingTrackingId === order.id}
+                    className="btn-primary"
+                    style={{ padding: '0.65rem 1.25rem', fontSize: '0.78rem' }}
+                  >
+                    {savingTrackingId === order.id ? 'MENYIMPAN...' : 'SIMPAN RESI / UPDATE'}
+                  </button>
+
+                  {order.tracking_number && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cleanPhone = String(order.customer_phone || '').replace(/^0/, '62').replace(/\D/g, '');
+                        const msg = `Halo Kak ${order.customer_name}, pesanan Anda di *MEGS Apparel* (Order #${order.id}) telah dikirim dari Cicurug, Sukabumi!\n\n*Ekspedisi:* ${order.courier || 'J&T Express'}\n*Nomor Resi:* ${order.tracking_number}\n\nSilakan cek posisi paket Anda secara real-time di menu *TRACK ORDER* pada website kami dengan memasukkan Nomor Resi tersebut. Terima kasih!`;
+                        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '0.65rem 1rem', fontSize: '0.75rem' }}
+                    >
+                      KIRIM RESI KE WA
+                    </button>
+                  )}
+                </div>
+
+                {/* Tambah Keterangan Posisi Paket (Opsional) */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="input-text"
+                    style={{ flex: '2 1 260px', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
+                    placeholder="Tambah keterangan status baru (opsional, mis: Paket tiba di Sorting Center Bogor)..."
+                    value={draft.newNote}
+                    onChange={e =>
+                      setTrackingDrafts(prev => ({
+                        ...prev,
+                        [order.id]: { ...draft, newNote: e.target.value }
+                      }))
+                    }
+                  />
+                  <input
+                    type="text"
+                    className="input-text"
+                    style={{ flex: '1 1 160px', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
+                    placeholder="Lokasi (mis: BOGOR)"
+                    value={draft.newLoc}
+                    onChange={e =>
+                      setTrackingDrafts(prev => ({
+                        ...prev,
+                        [order.id]: { ...draft, newLoc: e.target.value }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
               <div className="admin-grid-2" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
                 <div>
                   <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>CUSTOMER INFO</h4>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: '0 0 0.2rem 0' }}><strong>Name:</strong> {order.customer_name}</p>
                   <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: '0 0 0.2rem 0' }}><strong>Phone:</strong> {order.customer_phone}</p>
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: 0 }}><strong>Address:</strong> {order.customer_address}</p>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', margin: 0, whiteSpace: 'pre-line' }}><strong>Address:</strong> {order.customer_address}</p>
+                  {order.tracking_number && (
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', margin: '0.5rem 0 0 0', color: '#4CAF50' }}>
+                      <strong>No. Resi Terdaftar:</strong> {order.tracking_number} ({order.courier || 'Ekspedisi'})
+                    </p>
+                  )}
                 </div>
                 <div>
                   <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>ITEMS ({items.length})</h4>
@@ -1311,7 +1631,7 @@ function AdminOrders() {
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem', fontFamily: 'var(--font-sans)', fontWeight: 900 }}>
                       <span>TOTAL</span>
-                      <span>{order.total_price}</span>
+                      <span>Rp. {(parseInt(String(order.total_price || '0').replace(/\D/g, ''), 10) || 0).toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
