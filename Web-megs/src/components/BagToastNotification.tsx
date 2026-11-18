@@ -4,16 +4,18 @@ import { useShop } from '../ShopContext';
 export function BagToastNotification() {
   const { bagToast, dismissBagToast, cart, setIsCartOpen } = useShop();
 
-  if (!bagToast) return null;
+  if (!bagToast || !bagToast.product) return null;
 
   const { product, selectedSize, key } = bagToast;
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const totalItems = cart.reduce((acc, item) => acc + (Number(item?.quantity) || 1), 0);
 
-  let displayImg = product.img;
+  let displayImg = typeof product.img === 'string' ? product.img : '';
   try {
-    const parsed = JSON.parse(product.img);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      displayImg = parsed[0];
+    if (displayImg) {
+      const parsed = JSON.parse(displayImg);
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        displayImg = parsed[0];
+      }
     }
   } catch {
     // Fallback to raw img string

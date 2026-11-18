@@ -44,11 +44,56 @@ type ShopContextType = {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
+function getPrimaryProductImage(rawImg: unknown): string {
+  if (typeof rawImg !== 'string') return '';
+  try {
+    const parsed = JSON.parse(rawImg);
+    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+      return parsed[0];
+    }
+  } catch {
+    // not a JSON array
+  }
+  return rawImg;
+}
+
+function sanitizeCartItems(raw: unknown): CartItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is CartItem => Boolean(item && typeof item === 'object' && 'id' in item && 'name' in item))
+    .map((item) => ({
+      id: Number(item.id),
+      name: String(item.name || 'Product'),
+      img: getPrimaryProductImage(item.img),
+      price: String(item.price ?? '0'),
+      category: String(item.category || ''),
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      selectedSize: item.selectedSize ? String(item.selectedSize) : undefined
+    }));
+}
+
+function saveCartSafely(items: CartItem[]) {
+  try {
+    localStorage.setItem('megs_cart', JSON.stringify(items));
+  } catch {
+    // Handle QuotaExceededError (e.g., if an old item carries a large base64 data URL on mobile)
+    try {
+      const compact = items.map((item) => ({
+        ...item,
+        img: item.img.startsWith('data:') ? '' : item.img
+      }));
+      localStorage.setItem('megs_cart', JSON.stringify(compact));
+    } catch {
+      // Never crash the React tree if storage is unavailable or full
+    }
+  }
+}
+
 export function ShopProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('megs_cart');
-      return saved ? JSON.parse(saved) : [];
+      return saved ? sanitizeCartItems(JSON.parse(saved)) : [];
     } catch {
       return [];
     }
@@ -111,7 +156,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   React.useEffect(() => {
-    localStorage.setItem('megs_cart', JSON.stringify(cart));
+    saveCartSafely(cart);
   }, [cart]);
 
   React.useEffect(() => {
@@ -155,19 +200,33 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToCart = (product: Product, size?: string) => {
+    const slimItem: CartItem = {
+      id: Number(product.id),
+      name: String(product.name || 'Product'),
+      img: getPrimaryProductImage(product.img),
+      price: String(product.price ?? '0'),
+      category: String(product.category || ''),
+      quantity: 1,
+      selectedSize: size
+    };
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id && item.selectedSize === size);
+      const existing = prev.find((item) => item.id === slimItem.id && item.selectedSize === slimItem.selectedSize);
       if (existing) {
-        return prev.map((item) => (item.id === product.id && item.selectedSize === size) ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map((item) =>
+          item.id === slimItem.id && item.selectedSize === slimItem.selectedSize
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
       }
-      return [...prev, { ...product, quantity: 1, selectedSize: size }];
+      return [...prev, slimItem];
     });
 
     // Trigger non-intrusive toast notification & navbar bag icon bump animation instead of opening the full bag sidebar
     setBagBumpKey((prev) => prev + 1);
     setBagToast({
       key: Date.now(),
-      product,
+      product: slimItem,
       selectedSize: size
     });
 

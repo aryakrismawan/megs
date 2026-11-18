@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { ShopProvider, useShop } from './ShopContext';
 import { CartSidebar } from './components/CartSidebar';
@@ -104,22 +105,95 @@ function DynamicTitle() {
   return null;
 }
 
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('Application render error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            minHeight: '100vh',
+            background: 'var(--color-bg-main, #ffffff)',
+            color: 'var(--color-text-main, #000000)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            textAlign: 'center',
+            fontFamily: 'var(--font-sans, sans-serif)'
+          }}
+        >
+          <h2 style={{ fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+            TERJADI KENDALA TAMPILAN
+          </h2>
+          <p style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.85rem', maxWidth: '420px', opacity: 0.75, marginBottom: '1.5rem' }}>
+            Halaman mengalami gangguan sementara saat memperbarui data. Silakan muat ulang atau bersihkan data keranjang.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => window.location.reload()}
+            >
+              MUAT ULANG
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('megs_cart');
+                  sessionStorage.clear();
+                } catch {
+                  // ignore
+                }
+                window.location.href = '/';
+              }}
+            >
+              RESET KERANJANG
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // --- MAIN APP COMPONENT ---
 function App() {
   return (
-    <ShopProvider>
-      <Router>
-        <DynamicTitle />
-        <div className="app-container">
-          <GlobalLoader />
-          <Navbar />
-          <CartSidebar />
-          <SearchOverlay />
-          <CollectionChoicePopup />
-          <BagToastNotification />
-          <ScrollUXEnhancer />
-          <style>
-            {`
+    <AppErrorBoundary>
+      <ShopProvider>
+        <Router>
+          <DynamicTitle />
+          <div className="app-container">
+            <GlobalLoader />
+            <Navbar />
+            <CartSidebar />
+            <SearchOverlay />
+            <CollectionChoicePopup />
+            <BagToastNotification />
+            <ScrollUXEnhancer />
+            <style>
+              {`
               @keyframes fadeInUpMain {
                 from { opacity: 0; transform: translateY(15px); }
                 to { opacity: 1; transform: translateY(0); }
@@ -128,113 +202,114 @@ function App() {
                 animation: fadeInUpMain 0.8s ease-out forwards;
               }
             `}
-          </style>
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<HomeView />} />
-              <Route path="/track-order" element={<TrackOrderView />} />
-              <Route path="/product" element={<ProductListView />} />
-              <Route path="/product/:id" element={<ProductDetailView />} />
-              <Route path="/archive" element={<JournalView />} />
-              <Route path="/archive/:id" element={<ArticleDetailView />} />
-              <Route path="/contact" element={<ContactView />} />
-              <Route path="/create-yours" element={<CreateYoursView />} />
-              <Route path="/how-to-shop" element={<HowToShopView />} />
-              <Route path="/faq" element={<FaqView />} />
-              <Route path="/checkout" element={<CheckoutView />} />
-              <Route path="/megs-thrive" element={<MegsStyleView />} />
-              <Route path="/megs-thrive-products" element={<ThriveProductListView />} />
-            </Routes>
-          </main>
-          <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <div className="footer-grid">
+            </style>
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<HomeView />} />
+                <Route path="/track-order" element={<TrackOrderView />} />
+                <Route path="/product" element={<ProductListView />} />
+                <Route path="/product/:id" element={<ProductDetailView />} />
+                <Route path="/archive" element={<JournalView />} />
+                <Route path="/archive/:id" element={<ArticleDetailView />} />
+                <Route path="/contact" element={<ContactView />} />
+                <Route path="/create-yours" element={<CreateYoursView />} />
+                <Route path="/how-to-shop" element={<HowToShopView />} />
+                <Route path="/faq" element={<FaqView />} />
+                <Route path="/checkout" element={<CheckoutView />} />
+                <Route path="/megs-thrive" element={<MegsStyleView />} />
+                <Route path="/megs-thrive-products" element={<ThriveProductListView />} />
+              </Routes>
+            </main>
+            <footer className="footer" style={{ padding: '6rem 2rem 3rem 2rem', background: 'var(--color-bg-main)', borderTop: '1px solid var(--color-border)' }}>
+              <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                <div className="footer-grid">
 
-                {/* Column 1: Brand Info */}
-                <div className="footer-brand">
-                  <h3
-                    style={{
-                      width: '100%',
-                      fontFamily: 'var(--font-sans)',
-                      fontWeight: 900,
-                      fontSize: '1.5rem',
-                      margin: '0 0 1.5rem 0',
-                      letterSpacing: '-0.02em',
-                      textTransform: 'uppercase',
-                      textAlign: 'left',
-                    }}
-                  >
-                    MEGS
-                  </h3>
+                  {/* Column 1: Brand Info */}
+                  <div className="footer-brand">
+                    <h3
+                      style={{
+                        width: '100%',
+                        fontFamily: 'var(--font-sans)',
+                        fontWeight: 900,
+                        fontSize: '1.5rem',
+                        margin: '0 0 1.5rem 0',
+                        letterSpacing: '-0.02em',
+                        textTransform: 'uppercase',
+                        textAlign: 'left',
+                      }}
+                    >
+                      MEGS
+                    </h3>
 
-                  <p
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.85rem',
-                      color: 'var(--color-text-main)',
-                      lineHeight: 1.6,
-                      maxWidth: '300px',
-                      margin: 0,
-                      textAlign: 'justify',
-                    }}
-                  >
-                    performance, comfort, and style on and off the field.
-                  </p>
-                </div>
-
-                {/* Column 2: Shop */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-                  <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Shop</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
-                    <Link to="/product?cat=all" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>All</Link>
-                    <Link to="/product?cat=tops" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Tops</Link>
-                    <Link to="/product?cat=bottoms" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Bottoms</Link>
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.85rem',
+                        color: 'var(--color-text-main)',
+                        lineHeight: 1.6,
+                        maxWidth: '300px',
+                        margin: 0,
+                        textAlign: 'justify',
+                      }}
+                    >
+                      performance, comfort, and style on and off the field.
+                    </p>
                   </div>
-                </div>
 
-                {/* Column 3: Help */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-                  <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Help</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
-                    <Link to="/faq" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>FAQ</Link>
-                    <Link to="/how-to-shop" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>How to Shop</Link>
-                    <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Contact Us</Link>
+                  {/* Column 2: Shop */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                    <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Shop</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
+                      <Link to="/product?cat=all" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>All</Link>
+                      <Link to="/product?cat=tops" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Tops</Link>
+                      <Link to="/product?cat=bottoms" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Bottoms</Link>
+                    </div>
                   </div>
+
+                  {/* Column 3: Help */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                    <h4 style={{ fontFamily: 'var(--font-sans)', fontWeight: 'bold', fontSize: '1rem', marginBottom: '1.5rem' }}>Help</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', width: '100%' }}>
+                      <Link to="/faq" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>FAQ</Link>
+                      <Link to="/how-to-shop" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>How to Shop</Link>
+                      <Link to="/contact" style={{ color: 'var(--color-text-main)', textDecoration: 'none' }}>Contact Us</Link>
+                    </div>
+                  </div>
+
                 </div>
 
+                {/* Bottom Section */}
+                <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+
+                  {/* Social Icons */}
+                  <div style={{ display: 'flex', gap: '1.5rem' }}>
+                    <a href="https://www.instagram.com/megsapparel_/" aria-label="Instagram" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    </a>
+                    <a href="https://www.tiktok.com/@megsapparel0" aria-label="TikTok" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                    </a>
+                    <a href="https://wa.me/6285863144773" aria-label="WhatsApp" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                      </svg>
+                    </a>
+                  </div>
+
+                  {/* Right Aligned Links & Shipping */}
+                  <div className="footer-bottom-links" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
+                      <span>2024 MEGS</span>
+                    </div>
+                  </div>
+
+                </div>
               </div>
-
-              {/* Bottom Section */}
-              <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
-
-                {/* Social Icons */}
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <a href="https://www.instagram.com/megsapparel_/" aria-label="Instagram" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                  </a>
-                  <a href="https://www.tiktok.com/@megsapparel0" aria-label="TikTok" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
-                  </a>
-                  <a href="https://wa.me/6285863144773" aria-label="WhatsApp" style={{ color: 'var(--color-text-main)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-text-muted)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-main)'}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                    </svg>
-                  </a>
-                </div>
-
-                {/* Right Aligned Links & Shipping */}
-                <div className="footer-bottom-links" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2rem' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', justifyContent: 'flex-end' }}>
-                    <span>2024 MEGS</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </footer>
-        </div>
-      </Router>
-    </ShopProvider>
+            </footer>
+          </div>
+        </Router>
+      </ShopProvider>
+    </AppErrorBoundary>
   );
 }
 
@@ -446,7 +521,24 @@ function Navbar() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsMobileProductSubOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   if (location.pathname.startsWith('/admin')) return null;
 
@@ -646,55 +738,173 @@ function Navbar() {
         </button>
       </div>
 
-      {isMobileMenuOpen && (
-        <div className="mobile-menu">
-          <Link to="/">HOME</Link>
-          <Link to="/archive">ARCHIVES</Link>
-          <div style={{ width: '100%', borderBottom: '1px solid var(--color-border)' }}>
-            <button
-              type="button"
-              onClick={() => setIsMobileProductSubOpen(!isMobileProductSubOpen)}
-              style={{
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                padding: '1rem 0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontFamily: 'var(--font-sans)',
-                fontWeight: 800,
-                fontSize: 'clamp(1.45rem, 5vw, 1.8rem)',
-                letterSpacing: '-0.02em',
-                color: 'var(--color-text-main)',
-                textTransform: 'uppercase',
-                cursor: 'pointer'
-              }}
-            >
-              <span>PRODUCTS</span>
-              <span style={{ fontSize: '1.2rem', fontFamily: 'var(--font-mono)' }}>{isMobileProductSubOpen ? '−' : '+'}</span>
-            </button>
-            {isMobileProductSubOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0 0 1.2rem 1rem' }}>
-                <Link
-                  to="/product"
-                  style={{ fontSize: '1.1rem', padding: '0.5rem 0', borderBottom: 'none', opacity: 1, animation: 'none' }}
+      {isMobileMenuOpen && createPortal(
+        <>
+          <div
+            className="mobile-menu-backdrop"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile Navigation"
+            className="mobile-menu"
+          >
+            {/* Top Bar: Brand Logo + Framed Close Toggle */}
+            <div className="mobile-menu-header">
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+                <img
+                  src={theme === 'dark' ? '/logo putih.png' : '/logo hitam.png'}
+                  alt="MEGS"
+                  style={{ height: '34px', width: 'auto', objectFit: 'contain' }}
+                />
+              </Link>
+              <button
+                type="button"
+                aria-label="Tutup menu"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="mobile-menu-close"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Clean Borderless Primary Navigation Links */}
+            <nav className="mobile-menu-nav">
+              <Link
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={location.pathname === '/' ? 'active' : ''}
+              >
+                HOME
+              </Link>
+
+              <div style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileProductSubOpen(!isMobileProductSubOpen)}
+                  className={`mobile-menu-subtoggle ${(location.pathname.startsWith('/product') || location.pathname.startsWith('/megs-thrive')) ? 'active' : ''}`}
                 >
-                  &rarr; MEGS ORIGIN
-                </Link>
-                <Link
-                  to="/megs-thrive"
-                  style={{ fontSize: '1.1rem', padding: '0.5rem 0', borderBottom: 'none', opacity: 1, animation: 'none' }}
-                >
-                  &rarr; MEGS THRIVE
-                </Link>
+                  <span>PRODUCTS</span>
+                  <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-mono)', opacity: 0.7 }}>{isMobileProductSubOpen ? '−' : '+'}</span>
+                </button>
+                {isMobileProductSubOpen && (
+                  <div className="mobile-menu-sublinks">
+                    <Link
+                      to="/product"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={location.pathname.startsWith('/product') ? 'active' : ''}
+                    >
+                      MEGS ORIGIN
+                    </Link>
+                    <Link
+                      to="/megs-thrive"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={location.pathname.startsWith('/megs-thrive') ? 'active' : ''}
+                    >
+                      MEGS THRIVE
+                    </Link>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <Link to="/create-yours">CREATE YOURS</Link>
-          <Link to="/track-order">TRACK ORDER</Link>
-          <Link to="/contact">CONTACT</Link>
-        </div>
+
+              <Link
+                to="/archive"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={location.pathname.startsWith('/archive') ? 'active' : ''}
+              >
+                ARCHIVES
+              </Link>
+              <Link
+                to="/create-yours"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={location.pathname.startsWith('/create-yours') ? 'active' : ''}
+              >
+                CREATE YOURS
+              </Link>
+              <Link
+                to="/track-order"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={location.pathname.startsWith('/track-order') ? 'active' : ''}
+              >
+                TRACK ORDER
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={location.pathname.startsWith('/contact') ? 'active' : ''}
+              >
+                CONTACT
+              </Link>
+            </nav>
+
+            {/* Quick Icon Action Row (Search, Bag, Theme) */}
+            <div className="mobile-menu-utilities">
+              <button
+                type="button"
+                className="mobile-menu-utility-btn"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsSearchOpen(true);
+                }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>SEARCH</span>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-menu-utility-btn"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsCartOpen(true);
+                }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                <span>
+                  BAG ( <strong style={{ color: totalItems > 0 ? '#ef4444' : 'inherit' }}>{totalItems}</strong> )
+                </span>
+              </button>
+
+              {location.pathname !== '/megs-thrive' && location.pathname !== '/megs-thrive-products' && (
+                <button
+                  type="button"
+                  className="mobile-menu-utility-btn"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                  {theme === 'dark' ? (
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                    </svg>
+                  ) : (
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                  )}
+                  <span>{theme === 'dark' ? 'LIGHT MODE' : 'DARK MODE'}</span>
+                </button>
+              )}
+            </div>
+          </aside>
+        </>,
+        document.body
       )}
     </header>
   );
@@ -1173,7 +1383,7 @@ function HomeView() {
                       {isSoldOut ? <div className="new-badge" style={{ background: '#ff4444', color: 'white' }}>SOLD OUT</div> : <div className="new-badge">NEW</div>}
                       <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: isSoldOut ? 0.6 : 1 }}>
                         <div className="product-image-container">
-                          <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                          <img src={displayImg} alt={product.name} loading="lazy" decoding="async" className="product-image" onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }} />
                         </div>
@@ -1181,9 +1391,6 @@ function HomeView() {
                           <h3>{product.name}</h3>
                           <p>Rp. {product.price}</p>
                         </div>
-                      </Link>
-                      <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', pointerEvents: isSoldOut ? 'none' : 'auto' }}>
-                        {isSoldOut ? 'SOLD OUT' : 'CHOOSE OPTIONS'}
                       </Link>
                     </div>
                   )
@@ -1281,7 +1488,7 @@ function ProductListView() {
               <div className="new-badge">NEW</div>
               <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="product-image-container">
-                  <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                  <img src={displayImg} alt={product.name} loading="lazy" decoding="async" className="product-image" onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }} />
                 </div>
@@ -1290,7 +1497,6 @@ function ProductListView() {
                   <p>Rp. {product.price}</p>
                 </div>
               </Link>
-              <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>CHOOSE OPTIONS</Link>
             </div>
           )
         })}
@@ -1346,6 +1552,12 @@ function ProductDetailView() {
   const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setActiveImageIndex(0);
+    setSelectedSize(null);
+    setIsAddedFeedback(false);
+  }, [id]);
+
+  useEffect(() => {
     const foundInCache = products.find(p => String(p.id) === String(id));
     if (foundInCache) {
       setProduct(foundInCache);
@@ -1394,6 +1606,8 @@ function ProductDetailView() {
       sizes = Array.isArray(parsed) ? parsed.map(s => typeof s === 'string' ? { size: s, stock: 1 } : s) : [];
     }
   } catch (e) { }
+
+  const safeImageIndex = images.length > 0 ? Math.min(activeImageIndex, images.length - 1) : 0;
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if ('touches' in e) setTouchStart(e.targetTouches[0].clientX);
@@ -1460,7 +1674,7 @@ function ProductDetailView() {
         >
           {images.length > 0 ? (
             <img
-              src={images[activeImageIndex]}
+              src={images[safeImageIndex]}
               alt={product.name}
               style={{
                 width: '100%',
@@ -2320,8 +2534,8 @@ function CheckoutView() {
 
   // calculate subtotal
   const subtotal = cart.reduce((sum, item) => {
-    const priceNum = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
-    return sum + (priceNum * item.quantity);
+    const priceNum = parseInt(String(item?.price ?? '0').replace(/\D/g, ''), 10) || 0;
+    return sum + (priceNum * (Number(item?.quantity) || 1));
   }, 0);
 
   const discountAmount = appliedCoupon ? Math.floor(subtotal * (appliedCoupon.discount / 100)) : 0;
@@ -3251,19 +3465,21 @@ function CheckoutView() {
                 borderBottom: '1px solid var(--color-border)'
               }}
             >
-              {cart.map(item => {
-                let displayImg = item.img;
+              {cart.map((item, idx) => {
+                let displayImg = typeof item?.img === 'string' ? item.img : '';
                 try {
-                  const parsed = JSON.parse(item.img);
-                  if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                  if (displayImg) {
+                    const parsed = JSON.parse(displayImg);
+                    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') displayImg = parsed[0];
+                  }
                 } catch (e) { }
 
-                const itemUnitPrice = parseInt(item.price.replace(/\D/g, ''), 10) || 0;
-                const itemTotalPrice = itemUnitPrice * item.quantity;
+                const itemUnitPrice = parseInt(String(item?.price ?? '0').replace(/\D/g, ''), 10) || 0;
+                const itemTotalPrice = itemUnitPrice * (Number(item?.quantity) || 1);
 
                 return (
                   <div
-                    key={`${item.id}-${item.selectedSize}`}
+                    key={`${item.id}-${item.selectedSize || 'none'}-${idx}`}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',

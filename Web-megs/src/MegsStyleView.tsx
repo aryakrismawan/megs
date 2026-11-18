@@ -327,7 +327,7 @@ export default function MegsStyleView() {
                         {isSoldOut ? <div className="new-badge" style={{ background: '#ff4444', color: 'white' }}>SOLD OUT</div> : <div className="new-badge">NEW</div>}
                         <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: isSoldOut ? 0.6 : 1 }}>
                           <div className="product-image-container">
-                            <img src={displayImg} alt={product.name} loading="lazy" className="product-image" onError={(e) => {
+                            <img src={displayImg} alt={product.name} loading="lazy" decoding="async" className="product-image" onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }} />
                           </div>
@@ -335,9 +335,6 @@ export default function MegsStyleView() {
                             <h3>{product.name}</h3>
                             <p>Rp. {product.price}</p>
                           </div>
-                        </Link>
-                        <Link to={`/product/${product.id}`} className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', pointerEvents: isSoldOut ? 'none' : 'auto' }}>
-                          {isSoldOut ? 'SOLD OUT' : 'CHOOSE OPTIONS'}
                         </Link>
                       </div>
                     )

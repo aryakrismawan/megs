@@ -7,10 +7,10 @@ export function CartSidebar() {
   const navigate = useNavigate();
   const { cart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen } = useShop();
 
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const totalItems = cart.reduce((acc, item) => acc + (Number(item?.quantity) || 1), 0);
   const subtotal = cart.reduce((sum, item) => {
-    const priceNum = parseInt(String(item.price).replace(/\D/g, ''), 10) || 0;
-    return sum + priceNum * item.quantity;
+    const priceNum = parseInt(String(item?.price ?? '0').replace(/\D/g, ''), 10) || 0;
+    return sum + priceNum * (Number(item?.quantity) || 1);
   }, 0);
 
   // Close on Escape key & lock background scroll while open
@@ -75,7 +75,7 @@ export function CartSidebar() {
             right: 0;
             width: 100%;
             max-width: 420px;
-            height: 100vh;
+            height: 100dvh;
             background: var(--color-bg-main);
             color: var(--color-text-main);
             border-left: 1px solid var(--color-border);
@@ -85,9 +85,32 @@ export function CartSidebar() {
             box-shadow: -20px 0 60px rgba(0, 0, 0, 0.35);
             transform: translate3d(100%, 0, 0);
             visibility: hidden;
-            transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-                        visibility 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+                        visibility 0.38s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: transform;
+          }
+          @media (max-width: 640px) {
+            .megs-cart-drawer {
+              width: min(72vw, 310px);
+              max-width: 75vw;
+            }
+            .megs-cart-header {
+              padding: 1rem 1.15rem !important;
+            }
+            .megs-cart-header h2 {
+              font-size: 1rem !important;
+            }
+            .megs-cart-list {
+              padding: 1rem 1.15rem !important;
+              gap: 0.9rem !important;
+            }
+            .megs-cart-thumb {
+              width: 56px !important;
+              height: 70px !important;
+            }
+            .megs-cart-footer {
+              padding: 1rem 1.15rem 1.25rem 1.15rem !important;
+            }
           }
           .megs-cart-drawer.open {
             transform: translate3d(0, 0, 0);
@@ -140,6 +163,7 @@ export function CartSidebar() {
       >
         {/* Header */}
         <div
+          className="megs-cart-header"
           style={{
             padding: '1.75rem 2rem',
             borderBottom: '1px solid var(--color-border)',
@@ -201,6 +225,7 @@ export function CartSidebar() {
 
         {/* Bag Items List */}
         <div
+          className="megs-cart-list"
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -278,40 +303,73 @@ export function CartSidebar() {
             </div>
           ) : (
             cart.map((item, idx) => {
-              let displayImg = item.img;
+              let displayImg = typeof item?.img === 'string' ? item.img : '';
               try {
-                const parsed = JSON.parse(item.img);
-                if (Array.isArray(parsed) && parsed.length > 0) displayImg = parsed[0];
+                if (displayImg) {
+                  const parsed = JSON.parse(displayImg);
+                  if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+                    displayImg = parsed[0];
+                  }
+                }
               } catch {
                 // fallback
               }
 
-              const itemPriceNum = parseInt(String(item.price).replace(/\D/g, ''), 10) || 0;
-              const lineTotal = itemPriceNum * item.quantity;
+              const itemPriceNum = parseInt(String(item?.price ?? '0').replace(/\D/g, ''), 10) || 0;
+              const lineTotal = itemPriceNum * (Number(item?.quantity) || 1);
 
               return (
                 <div
-                  key={`${item.id}-${item.selectedSize || 'none'}`}
+                  key={`${item.id}-${item.selectedSize || 'none'}-${idx}`}
                   className="megs-cart-item"
                   style={{ animationDelay: `${Math.min(idx * 0.05, 0.25)}s` }}
                 >
-                  <img
-                    src={displayImg}
-                    alt={item.name}
-                    onClick={() => {
-                      setIsCartOpen(false);
-                      navigate(`/product/${item.id}`);
-                    }}
-                    style={{
-                      width: '80px',
-                      height: '100px',
-                      objectFit: 'cover',
-                      background: 'var(--color-bg-card)',
-                      border: '1px solid var(--color-border)',
-                      cursor: 'pointer',
-                      flexShrink: 0
-                    }}
-                  />
+                  {displayImg ? (
+                    <img
+                      src={displayImg}
+                      alt={item.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="megs-cart-thumb"
+                      onClick={() => {
+                        setIsCartOpen(false);
+                        navigate(`/product/${item.id}`);
+                      }}
+                      style={{
+                        width: '80px',
+                        height: '100px',
+                        objectFit: 'cover',
+                        background: 'var(--color-bg-card)',
+                        border: '1px solid var(--color-border)',
+                        cursor: 'pointer',
+                        flexShrink: 0
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="megs-cart-thumb"
+                      onClick={() => {
+                        setIsCartOpen(false);
+                        navigate(`/product/${item.id}`);
+                      }}
+                      style={{
+                        width: '80px',
+                        height: '100px',
+                        background: 'var(--color-bg-card)',
+                        border: '1px solid var(--color-border)',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.65rem',
+                        color: 'var(--color-text-muted)'
+                      }}
+                    >
+                      MEGS
+                    </div>
+                  )}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
                     <div>
                       <h3
@@ -432,6 +490,7 @@ export function CartSidebar() {
         {/* Footer with Subtotal & Actions */}
         {cart.length > 0 && (
           <div
+            className="megs-cart-footer"
             style={{
               padding: '1.5rem 2rem 2rem 2rem',
               borderTop: '1px solid var(--color-border)',
